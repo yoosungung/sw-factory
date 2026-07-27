@@ -5,4 +5,15 @@ resources:
   - cronjob-flush-retries.yaml
   - cronjob-schedule-tick.yaml
   - cronjob-candydate.yaml
+  - cronjob-pvc-retention.yaml
+  - cronjob-spend-alert.yaml
   - generated/
+
+configMapGenerator:
+  - name: cursorbridge-ops-scripts
+    files:
+      - ops-scripts/pvc_chat_retention.py
+      - ops-scripts/spend_alert.py
+    options:
+      disableNameSuffixHash: true
+

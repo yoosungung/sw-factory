@@ -1,0 +1,52 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cursorbridge-pvc-retention
+  namespace: leantime
+  labels:
+    app: cursorbridge
+spec:
+  schedule: "15 3 * * *"
+  timeZone: UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: cursorbridge
+            component: pvc-retention
+        spec:
+          serviceAccountName: cursorbridge-flush
+          restartPolicy: OnFailure
+          imagePullSecrets:
+            - name: ghcr-pull
+          volumes:
+            - name: ops-scripts
+              configMap:
+                name: cursorbridge-ops-scripts
+                defaultMode: 0555
+          containers:
+            - name: retention
+              image: ghcr.io/yoosungung/cursor-agent-runner:latest
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: CHAT_RETENTION_DAYS
+                  value: "14"
+                - name: NAMESPACE
+                  value: leantime
+                - name: POD_LABEL
+                  value: app=cursor-agent
+              volumeMounts:
+                - name: ops-scripts
+                  mountPath: /ops
+                  readOnly: true
+              command:
+                - sh
+                - -c
+                - |
+                  set -eu
+                  python3 /ops/pvc_chat_retention.py --apply

@@ -32,11 +32,6 @@ This file provides guidance to AI coding assistants (Claude Code, Codex, Gemini,
 
 | `<comp>/DESIGN.md` | 컴포넌트 *내부* 설계 + `## Commands` (빌드/실행/테스트) | `backend/`, `frontend/`, `???/` |
 
-| `docs/goose/` | 외부 자율 에이전트 Goose 분석 노트 + 접목 전 연구 근거 | `docs/goose/` |
-
-| `docs/ACP/` | Agent Client Protocol 조사 + 하네스 호환 + 접목 전 연구 근거 | `docs/ACP/` |
-
-| `docs/candidate/` | Hermes candydate cron 포팅 명세·스크립트·jobs 스냅샷 + seewin 컷오버 | `docs/candidate/` |
 | `examples/tenant-cd/` | 테넌트가 복사하는 CD 어댑터 샘플(제품 코드 아님) | `examples/tenant-cd/` |
 
  

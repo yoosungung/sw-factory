@@ -17,15 +17,17 @@ credentials.json
 **/secrets/**
 
 # Local identity / deploy config (commit *.sample only)
-deploy/k8s/agents.yaml
+deploy/k8s/agents.yaml*
+!deploy/k8s/agents.yaml.sample
 leantime-plugin/bridge.json
 deploy/personas/**
 !deploy/personas/_default/
 !deploy/personas/candy/
 !deploy/personas/finder/
 !deploy/personas/infra/
-!deploy/personas/**/MEMORY.md.sample
-!deploy/k8s/agents.yaml.sample
+!deploy/personas/*/.cursor/
+!deploy/personas/*/.cursor/**
+!deploy/personas/*/MEMORY.md.sample
 !leantime-plugin/bridge.json.sample
 
 # Logs

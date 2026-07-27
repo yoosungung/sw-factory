@@ -1,0 +1,67 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cursorbridge-spend-alert
+  namespace: leantime
+  labels:
+    app: cursorbridge
+spec:
+  schedule: "0 */6 * * *"
+  timeZone: UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            app: cursorbridge
+            component: spend-alert
+        spec:
+          serviceAccountName: cursorbridge-flush
+          restartPolicy: OnFailure
+          imagePullSecrets:
+            - name: ghcr-pull
+          volumes:
+            - name: ops-scripts
+              configMap:
+                name: cursorbridge-ops-scripts
+                defaultMode: 0555
+          containers:
+            - name: spend
+              image: ghcr.io/yoosungung/cursor-agent-runner:latest
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: SPEND_TOKEN_THRESHOLD
+                  value: "2000000"
+                - name: LEANTIME_URL
+                  value: http://leantime.leantime.svc
+                - name: LEANTIME_PROJECT_ID
+                  value: "16"
+                - name: LEANTIME_USER_ID
+                  value: "13"
+                - name: LEANTIME_ASSIGNED_TO
+                  value: "1"
+                - name: LEANTIME_ACCESS_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: cursor-api-key
+                      key: LEANTIME_ACCESS_TOKEN_infra
+              volumeMounts:
+                - name: ops-scripts
+                  mountPath: /ops
+                  readOnly: true
+              command:
+                - sh
+                - -c
+                - |
+                  set -eu
+                  NS=leantime
+                  WINDOW=24h
+                  LOGS=$(mktemp)
+                  kubectl -n "$NS" logs -l app=cursor-agent -c agent-runner \
+                    --since="$WINDOW" --tail=-1 >"$LOGS" || true
+                  python3 /ops/spend_alert.py --logs-file "$LOGS" \
+                    --window "$WINDOW" --create-ticket

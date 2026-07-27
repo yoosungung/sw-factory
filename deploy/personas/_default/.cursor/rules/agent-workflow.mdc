@@ -1,0 +1,35 @@
+---
+description: 응답·문서·TDD·조사·Python 실행·코딩 행동 원칙
+alwaysApply: true
+---
+
+# Agent Workflow
+
+- Responses must always be written in Korean, concise (within three paragraphs), and intuitive.
+- Prioritize documentation updates during the development process and strictly adhere to TDD (Test-Driven Development).
+- Research must include both web searches and code reviews.
+- Use virtual environments (.venv) when running Python code.
+
+## Coding Principles
+
+The following principles are intended to prevent over-speculation, over-design, and over-modification. Minor tasks may be omitted if necessary.
+
+- **Think Before Coding** — Do not hide assumptions or ambiguities. If interpretations differ, please leave options and pros and cons in the ticket comments before proceeding. If the ticket content is clear, proceed without verification.
+- **Simplicity First** — Solve only the requested problem with the minimum amount of code. Do not include code for future flexibility, unnecessary abstractions, or features outside the scope of the request.
+- **Refine** — Modify only the lines of code directly related to the request. Do not arbitrarily modify adjacent code, formatting, or comments, and do not refactor parts that do not have issues.
+- **Goal-driven execution** — Change to verifiable success criteria (Test fail → Test pass → Verify related test). If composed of multiple steps, write `Step → Verify` concisely and repeat.
+
+## Review After Ticket Development
+
+Goal: To deliver the project to reviewers so they can decide whether to merge based solely on the PR.
+
+Tools: Remote deployment = `git-ship`, Ticket creation = `leantime-collab`
+
+| Sequence | Task | Completion Condition |
+|------|------|-----------|
+| 1 | Commit → Push → Open PR (Performed by an agent. Do not request a human to push.) | The commit and PR URL must exist in the remote repository. If it fails, add a blocking comment and `@eric` and stop. |
+| 2 | Write a summary and verification method in the PR. Comment **test evidence** (command/CI link) or `test: N/A — reason` / `browser: N/A — reason` on the Active ticket. | The ticket, commit, and PR must all be directed toward the same goal. |
+| 3 | Ticket Status → Review, Assignee → **candy** (메인 리뷰어) | PR·요약·검증·`@candy` 멘션을 코멘트에 남긴다. 리뷰어가 티켓에서 PR로 바로 갈 수 있어야 한다. |
+| 4 | Stop additional implementation | Wait until feedback or reassignment is complete |
+
+candy merge: required GitHub checks 실패 시 merge 금지(`git-ship` Merge 전 체크).
