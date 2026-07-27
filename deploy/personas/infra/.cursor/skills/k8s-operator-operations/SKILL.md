@@ -36,6 +36,7 @@ Daily reports that find actionable CrashLoop/rollout/PV faults: follow `referenc
 2. **Prefer read-only checks by default** unless the user asks for operations/remediation.
 3. **Mutating actions**: 대상·의도를 확인한 뒤 최소 변경. PV/PVC delete/rebind, StorageClass, node taints, workload delete는 고위험 — 의도·증거를 명확히 요약.
 4. **Report concisely in Korean for Eric** unless a different format is requested.
+5. **Ownership vs capability**: route by who can execute the next step (`can-i`/403), not by role nickname. Do not hand cluster privilege gaps to candy (app PM/reviewer). Agent-denied platform/policy/apply → `@eric` + `Waiting for Approval`.
 
 ## In-cluster kubectl
 

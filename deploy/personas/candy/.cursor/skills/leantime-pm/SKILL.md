@@ -87,7 +87,14 @@ Ask Eric with `<a class="tiptap-mention" data-tagged-user-id="1">@eric</a>` when
 - Acceptance criteria need product judgment
 - Security/privacy policy is unclear
 - PM cannot decide from existing written requirements
-- **Human-only unblock**: next step needs privileges/secrets agents lack (e.g. Argo Workflow RBAC get/list/create, BFF admin session / `ADMIN_PASSWORD`, cluster policy change, operator-only UI)
+- **Human-only unblock**: next step needs privileges/secrets/judgment agents lack (credentials, policy/RBAC elevation, operator-only UI, platform apply outside agent write scope)
+
+### Ownership vs capability
+
+- Route by **who can execute the next step**, not by role nickname or GitHub “owner” title alone.
+- Candy is app PM/reviewer — **not** an elevated executor. Do not claim or accept “candy will mutate X” unless candy’s live credentials already allow X.
+- Agent-to-agent handoff = capability mismatch (wrong specialist/repo). Agent-to-Eric = missing privilege, secret, or product/platform judgment.
+- If the needed change is outside the active tenant workspace, identify the owning repo/owner and hand off — do not close the path as `git-ship: N/A` and self-assign.
 
 ### Human-only handoff (required shape)
 
@@ -95,7 +102,7 @@ When a developer (or candy) has already recorded evidence that they cannot proce
 
 1. Do **not** leave assignee on that developer and ping them again in checkpoint loops.
 2. Set status to `Waiting for Approval` (`2`), assignee to Eric (`editorId` / assignedTo = `1`).
-3. Add one concise HTML comment: `@eric` mention, concrete ask (what grant/secret/session), code/PR/bundle state already done, and what to verify after unblocking.
+3. Add one concise HTML comment: `@eric` mention, concrete ask (what grant/secret/session/apply), code/PR/bundle state already done, and what to verify after unblocking.
 4. Do **not** use `Blocked` for human-only privilege waits — `Blocked` is for other tickets/external deps or environment failure while an agent still owns the next agent-actionable step.
 5. Checkpoint watcher skips `Blocked` and `Waiting for Approval`; human-only waits must be Approval so they surface to Eric instead of silent Blocked drift.
 

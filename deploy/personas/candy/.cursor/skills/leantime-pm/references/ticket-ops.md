@@ -71,9 +71,9 @@ Rules:
 
 ### Human-only privilege handoff
 
-Examples that require Eric handoff (not developer Blocked loops): Argo `workflows.argoproj.io` get/list/create denied for the agent SA; BFF `401` without admin session; missing `ADMIN_PASSWORD` / operator secret; cluster NetworkPolicy/RBAC change requests.
+Hand off to Eric (not developer/`candy` Blocked loops) when the next step needs authority agents lack: denied API/RBAC verbs, missing secrets or admin session, policy/platform changes, or live apply outside the agent write scope. Prefer evidence (`can-i`, 401/403, missing secret) over role nicknames.
 
-Handoff comment must include: concrete grant or session needed, already-complete code/PR/bundle evidence, and the post-unblock verification step (e.g. `force_agent=1` GraphRAG rerun + smoke).
+Handoff comment must include: concrete grant/session/apply needed, already-complete code/PR/bundle evidence, and the post-unblock verification step.
 
 ### Reactivated or Reused Tickets
 

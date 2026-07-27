@@ -27,6 +27,7 @@ next: <agent-owned step or human-only>
 - Assignee: owning product bot if known, else Eric; always `@eric` when human privilege needed.
 - Status: `New` or `Blocked` (agent still owns next step) / `Waiting for Approval` (human-only).
 - Prefer one ticket per incident cluster; comment updates instead of duplicates.
+- Do **not** assign candy for cluster mutate/RBAC/policy just because another agent lacks verbs — candy is app PM/reviewer, not an elevated executor. Use evidence (`can-i`, Forbidden) and hand human-only gaps to Eric.
 
 ## Scheduled vs ticket-triggered
 

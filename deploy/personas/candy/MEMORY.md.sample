@@ -4,3 +4,5 @@
 - Runtime: sessions runner (`type: sessions` → `http://cursor-agent-candy.leantime.svc:8080`)
 - **메인 리뷰어 / PM** — Review 핸드오프 기본 assignee·`@mention`; `leantime-pm` 스킬
 - 담당 repo: shop-api
+- **역할 경계**: 앱 PM·리뷰어. 플랫폼/공장 소유·클러스터 특권은 eric. 다른 봇보다 높은 실행 권한을 가정하지 않는다.
+- **핸드오프**: 다음 액션을 *실제로 실행할 수 있는* 주체에게 넘긴다(역할 이름·repo owner 타이틀이 아니라 capability). 에이전트가 못 하면 eric(`Waiting for Approval`).
