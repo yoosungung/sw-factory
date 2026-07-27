@@ -35,10 +35,10 @@ M0–M3 코드·K8s·이미지 배포 완료. M5 Tenant CD 공장 측 구현 완
 - [x] assignee 핸드오프, status_prompts, @mention
 - [x] Leantime 실환경 E2E (티켓 → runner → 코멘트, `LEANTIME_ACCESS_TOKEN_{name}` PAT 등록 후 작성자 검증)
 
-## M4 — 운영 (미결)
+## M4 — 운영 ✅
 
-- [ ] PVC chat retention CronJob
-- [ ] CURSOR_API_KEY spend 알림
+- [x] PVC chat retention CronJob (`cursorbridge-pvc-retention`, 기본 14일, `/cursor-home/.cursor/chats`)
+- [x] CURSOR_API_KEY spend 알림 (`cursorbridge-spend-alert`, 24h `run.completed` usage ≥ threshold → Leantime 티켓)
 - [x] retry queue 주기 flush (`cursorbridge-flush-retries` CronJob, 5분)
 - [x] agent 공통/개별 `schedules[]` (`agents.yaml` → `bridge.json`, `cursorbridge-schedule-tick` CronJob)
 - [x] agent-runner SDK worker pool (auth 격리·pre-lease recycle·auth-stale retire)
@@ -52,6 +52,7 @@ M0–M3 코드·K8s·이미지 배포 완료. M5 Tenant CD 공장 측 구현 완
 프레임워크가 테넌트 앱의 merge→deploy→smoke→Done을 해결한다. 제품 비즈니스 코드는 이 repo에 넣지 않는다.
 
 - [x] `ARCHITECTURE` §0 경계 + §2.8 `tenant_cd` 스키마·증거 필드
+- [x] `repos[]` / agent `primary_repo` 분리 (`repos.py`; legacy agent 필드 호환)
 - [x] `render-agents.sh` → infra `.cursor/tenant-cd-registry.json` + pytest
 - [x] infra `tenant-cd` 스킬 (`workflow_dispatch` + rollout + HTTP smoke)
 - [x] candy merge→infra 핸드오프·Done 4필드 게이트
@@ -59,10 +60,9 @@ M0–M3 코드·K8s·이미지 배포 완료. M5 Tenant CD 공장 측 구현 완
 - [x] 공장 측 체인·증거 게이트 테스트 (`test_tenant_cd.py` framework E2E)
 - [ ] 데모 테넌트 실클러스터 티켓 루프 1건 (asky/`askwho.net`: 워크플로 구현 + verify URL 확정 후 [`examples/tenant-cd/E2E.md`](examples/tenant-cd/E2E.md))
 
-**성공기준:** 데모 테넌트에서 사람 kubectl 없이 dispatch→rollout→smoke 코멘트→Done. 새 테넌트는 `tenant_cd` + 어댑터 복사로 동일 루프. (공장 자동화 검증은 pytest로 충족; 실클러스터는 수동 체크리스트.)
+**성공기준:** 데모 테넌트에서 사람 kubectl 없이 dispatch→rollout→smoke 코멘트→Done. 새 테넌트는 `repos[].tenant_cd` + 어댑터 복사로 동일 루프. (공장 자동화 검증은 pytest로 충족; 실클러스터는 수동 체크리스트.)
 
-**비범위 (M5):** `kubectl set image`/Argo CLI 기본 드라이버, 제품 소스 흡수, `docs/candidate/` 크론 런타임 편입(아래 seewin Phase B).
-
+**비범위 (M5):** `kubectl set image`/Argo CLI 기본 드라이버, 제품 소스 흡수, `docs/candidate/` 크론 런타임 편입(아래 seewin Phase B). 다배포/`depends_on` DAG는 테넌트 workflow에 두고 공장 스키마 확장은 후속.
 ## M5b — seewin (candidate.win 전담)
 
 - [x] Phase A: `seewin` `sessions` 봇 온보딩(`agents.yaml`, persona, `LEANTIME_ACCESS_TOKEN_seewin`, 공유 `GH_TOKEN`, Pod `/healthz`)

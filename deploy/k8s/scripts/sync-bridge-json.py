@@ -8,6 +8,8 @@ from pathlib import Path
 
 import yaml
 
+from repos import index_repos, resolve_agent_repo
+
 ROOT = Path(__file__).resolve().parents[3]
 AGENTS_YAML = ROOT / "deploy" / "k8s" / "agents.yaml"
 BRIDGE_JSON = ROOT / "leantime-plugin" / "bridge.json"
@@ -192,15 +194,19 @@ def normalize_success_retry(raw: object) -> dict | None:
 def main() -> None:
     data = yaml.safe_load(AGENTS_YAML.read_text())
     settings = data.get("settings", {})
+    repos_by_id = index_repos(data.get("repos"))
     agents_out = []
     for agent in data.get("agents", []):
         kind = agent_type(agent)
+        resolved = resolve_agent_repo(
+            agent, repos_by_id, label=f"agent {agent.get('name')}"
+        )
         entry = {
             "name": agent["name"],
             "leantime_user_id": agent["leantime_user_id"],
             "email": agent["email"],
             "runner_url": runner_url_for(agent),
-            "git_repo_url": agent.get("git_repo_url", ""),
+            "git_repo_url": resolved["git_repo_url"],
             "persona": agent.get("persona", agent["name"]),
             "type": kind,
         }

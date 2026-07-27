@@ -6,6 +6,8 @@ import json
 import re
 from typing import Any
 
+from repos import index_repos, resolve_agent_repo
+
 REGISTRY_VERSION = 1
 REGISTRY_CURSOR_PATH = ".cursor/tenant-cd-registry.json"
 ALLOWED_DRIVERS = frozenset({"workflow_dispatch"})
@@ -19,7 +21,7 @@ def _require_str(value: object, label: str) -> str:
 
 
 def normalize_tenant_cd(raw: object, label: str) -> dict[str, Any] | None:
-    """Validate agents[].tenant_cd. Returns None when absent or enabled=false."""
+    """Validate repos[].tenant_cd (or legacy agents[].tenant_cd)."""
     if raw is None:
         return None
     if not isinstance(raw, dict):
@@ -96,34 +98,53 @@ def normalize_tenant_cd(raw: object, label: str) -> dict[str, Any] | None:
     }
 
 
-def build_tenant_cd_registry(agents: list[dict]) -> dict[str, Any]:
-    """Collect enabled tenant_cd entries keyed for infra lookup."""
+def build_tenant_cd_registry(
+    agents: list[dict],
+    repos: list[dict] | None = None,
+) -> dict[str, Any]:
+    """Collect enabled tenant_cd entries keyed for infra lookup.
+
+    Prefer top-level `repos[].tenant_cd` via agent `primary_repo`/`repos`.
+    Legacy `agents[].tenant_cd` + `git_repo_url` still works.
+    """
+    repos_by_id = index_repos(repos)
     tenants: list[dict[str, Any]] = []
     for i, agent in enumerate(agents):
         if not isinstance(agent, dict):
             raise ValueError(f"agents[{i}] must be an object")
         name = _require_str(agent.get("name"), f"agents[{i}].name")
-        cd = normalize_tenant_cd(agent.get("tenant_cd"), f"agents[{i}].tenant_cd")
+        label = f"agents[{i}] ({name})"
+        resolved = resolve_agent_repo(agent, repos_by_id, label=label)
+        cd_label = (
+            f"repos[{resolved['repo_id']}].tenant_cd"
+            if resolved["repo_id"]
+            else f"{label}.tenant_cd"
+        )
+        cd = normalize_tenant_cd(resolved.get("tenant_cd"), cd_label)
         if cd is None:
             continue
-        git_repo = str(agent.get("git_repo_url") or "").strip()
+        git_repo = str(resolved.get("git_repo_url") or "").strip()
         if not git_repo:
             raise ValueError(
-                f"agents[{i}] ({name}): tenant_cd.enabled requires non-empty git_repo_url"
+                f"{label}: tenant_cd.enabled requires non-empty git_repo_url"
             )
-        tenants.append(
-            {
-                "agent": name,
-                "git_repo_url": git_repo,
-                "tenant_cd": cd,
-            }
-        )
+        entry: dict[str, Any] = {
+            "agent": name,
+            "git_repo_url": git_repo,
+            "tenant_cd": cd,
+        }
+        if resolved.get("repo_id"):
+            entry["repo_id"] = resolved["repo_id"]
+        tenants.append(entry)
     return {"version": REGISTRY_VERSION, "tenants": tenants}
 
 
-def registry_json(agents: list[dict]) -> str:
+def registry_json(
+    agents: list[dict],
+    repos: list[dict] | None = None,
+) -> str:
     """Pretty JSON for ConfigMap / file seed."""
-    return json.dumps(build_tenant_cd_registry(agents), indent=2) + "\n"
+    return json.dumps(build_tenant_cd_registry(agents, repos), indent=2) + "\n"
 
 
 def lookup_tenant(
@@ -131,13 +152,19 @@ def lookup_tenant(
     *,
     agent: str | None = None,
     git_repo_url: str | None = None,
+    repo_id: str | None = None,
 ) -> dict[str, Any] | None:
-    """Find a tenant entry by agent name or git_repo_url."""
+    """Find a tenant entry by agent name, repo_id, or git_repo_url."""
     tenants = registry.get("tenants") or []
     if agent:
         key = agent.strip().lower()
         for item in tenants:
             if str(item.get("agent", "")).strip().lower() == key:
+                return item
+    if repo_id:
+        key = repo_id.strip().lower()
+        for item in tenants:
+            if str(item.get("repo_id", "")).strip().lower() == key:
                 return item
     if git_repo_url:
         repo = git_repo_url.strip().rstrip("/").lower()

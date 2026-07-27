@@ -207,6 +207,13 @@ kubectl -n leantime exec deploy/leantime -- \
 
 참고: Leantime 3.9는 티켓 이벤트 payload에 assignee가 없어 플러그인이 `getTicket`으로 보강한다. 코멘트는 `Comments` 도메인 이벤트가 없어 `notifyProjectUsers`(module=comments)로 수신한다.
 
-## 8. PVC chat retention (수동)
+## 8. PVC chat retention / spend 알림
 
-agent별 PVC `cursor-data-cursor-agent-N-0` — 오래된 `~/.cursor/chats` 정리는 CronJob 또는 주기적 `kubectl exec`로 운영 정책에 맞게 설정.
+agent별 PVC 이름: `cursor-home-cursor-agent-{name}-0` (mount `/cursor-home`, chats=`/cursor-home/.cursor/chats`).
+
+| CronJob | schedule (UTC) | 동작 |
+|---------|----------------|------|
+| `cursorbridge-pvc-retention` | `15 3 * * *` | label `app=cursor-agent` Pod에 `find … -mtime +$CHAT_RETENTION_DAYS -delete` (기본 14일) |
+| `cursorbridge-spend-alert` | `0 */6 * * *` | 최근 24h agent-runner 로그의 `run.completed` usage 합산; `SPEND_TOKEN_THRESHOLD`(기본 2_000_000) 이상이면 project `agents-runtime`에 티켓 (작성자 infra → assignee Eric) |
+
+스크립트: ConfigMap `cursorbridge-ops-scripts` ← `deploy/k8s/base/ops-scripts/`. SA `cursorbridge-flush`에 `pods/log` get 포함. 임계값·보관일은 CronJob env로 조정.

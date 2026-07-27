@@ -123,13 +123,13 @@ def test_agents_yaml_sample_tenant_cd_validates():
     root = SCRIPTS.parents[2]
     sample = root / "deploy/k8s/agents.yaml.sample"
     data = yaml.safe_load(sample.read_text())
-    # Must not raise even before sample gains tenant_cd; after, must include asky.
-    registry = build_tenant_cd_registry(data.get("agents", []))
+    registry = build_tenant_cd_registry(data.get("agents", []), data.get("repos"))
     assert registry["version"] == 1
     enabled = [t["agent"] for t in registry["tenants"]]
     assert "asky" in enabled
     asky = next(t for t in registry["tenants"] if t["agent"] == "asky")
     assert asky["tenant_cd"]["workflow"] == "deploy.yml"
+    assert asky.get("repo_id") == "landing-web"
 
 
 def test_infra_bundle_receives_registry_path():
@@ -139,7 +139,7 @@ def test_infra_bundle_receives_registry_path():
     root = SCRIPTS.parents[2]
     personas_root = root / "deploy/personas"
     sample = yaml.safe_load((root / "deploy/k8s/agents.yaml.sample").read_text())
-    reg = registry_json(sample.get("agents", []))
+    reg = registry_json(sample.get("agents", []), sample.get("repos"))
 
     for persona in ("asky", "infra"):
         bundle = build_persona_bundle(persona, personas_root)
@@ -197,10 +197,11 @@ def test_framework_e2e_chain_sample_to_skill_to_evidence():
 
     root = SCRIPTS.parents[2]
     sample = yaml.safe_load((root / "deploy/k8s/agents.yaml.sample").read_text())
-    registry = build_tenant_cd_registry(sample["agents"])
+    registry = build_tenant_cd_registry(sample["agents"], sample.get("repos"))
     tenant = lookup_tenant(registry, agent="asky")
     assert tenant is not None
     assert tenant["tenant_cd"]["driver"] == "workflow_dispatch"
+    assert tenant.get("repo_id") == "landing-web"
 
     bundle = build_persona_bundle("infra", root / "deploy/personas")
     assert ".cursor/skills/tenant-cd/SKILL.md" in bundle

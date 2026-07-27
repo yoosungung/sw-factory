@@ -27,7 +27,7 @@ license: MIT
 ## Lookup
 
 1. Read `~/.cursor/tenant-cd-registry.json` (없으면 blocker + `@eric`).
-2. Match by ticket hint: product **agent name** (예: asky) or `git_repo_url`.
+2. Match by ticket hint: product **agent name** (예: asky), `repo_id`, or `git_repo_url`.
 3. If no match / `enabled` missing → not a CD ticket; do not invent deploy steps.
 
 ## Procedure

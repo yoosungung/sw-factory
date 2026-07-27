@@ -20,17 +20,19 @@ import yaml
 
 sys.path.insert(0, sys.argv[5])
 from persona_bundle import build_persona_bundle, bundle_for_configmap
+from repos import index_repos, resolve_agent_repo
 from tenant_cd import REGISTRY_CURSOR_PATH, registry_json
 
 agents_yaml, out_dir, ss_tpl_path, svc_tpl_path, _scripts_dir = sys.argv[1:6]
 data = yaml.safe_load(Path(agents_yaml).read_text())
 agents = data.get("agents", [])
+repos_by_id = index_repos(data.get("repos"))
 settings = data.get("settings", {})
 max_replicas = int(settings.get("replicas_max", 10))
 runner_image = settings.get("runner_image", "cursor-agent-runner:latest")
 default_model = settings.get("model", "composer-2.5")
 personas_root = Path(agents_yaml).parents[1] / "personas"
-tenant_registry = registry_json(agents)
+tenant_registry = registry_json(agents, data.get("repos"))
 
 def agent_model(agent: dict) -> str:
     return str(agent.get("model") or default_model)
@@ -56,8 +58,10 @@ for agent in deploy_agents:
     name = agent["name"]
     persona = agent.get("persona", name)
     email = agent["email"]
-    # YAML `git_repo_url:` (null) must become "" for str.replace.
-    git_repo = str(agent.get("git_repo_url") or "")
+    # YAML null / missing must become "" for str.replace.
+    git_repo = resolve_agent_repo(
+        agent, repos_by_id, label=f"agent {name}"
+    )["git_repo_url"]
 
     # Default shared Secret key; per-agent override e.g. candy → GH_TOKEN_candy.
     gh_token_secret_key = str(agent.get("gh_token_secret_key") or "GH_TOKEN").strip() or "GH_TOKEN"

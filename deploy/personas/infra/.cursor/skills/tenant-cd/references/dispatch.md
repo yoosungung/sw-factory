@@ -1,6 +1,6 @@
 # Dispatch (workflow_dispatch)
 
-Registry fields: `tenant_cd.workflow`, `ref`, `inputs`, `image_input`, plus tenant `git_repo_url`.
+Registry fields: `tenant_cd.workflow`, `ref`, `inputs`, `image_input`, plus tenant `git_repo_url` (and optional `repo_id`).
 
 Parse `owner/repo` from `git_repo_url` (strip `.git`, use path after `github.com/`).
 

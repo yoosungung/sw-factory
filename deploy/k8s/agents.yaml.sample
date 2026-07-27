@@ -1,30 +1,19 @@
 # Copy to agents.yaml and fill with real identities (gitignored).
 #   cp deploy/k8s/agents.yaml.sample deploy/k8s/agents.yaml
 # Then: ./deploy/k8s/scripts/render-agents.sh && python deploy/k8s/scripts/sync-bridge-json.py
+#
+# repos[] = git workspaces (+ optional tenant_cd). agents reference via primary_repo / repos.
+# Legacy agents[].git_repo_url + agents[].tenant_cd still resolve for one release.
 
-agents:
-  - name: eric
-    leantime_user_id: 1
-    email: eric@example.com
-    persona: eric
+repos:
+  - id: bridge-harness
     git_repo_url: https://github.com/demo-org/bridge-harness.git
-    type: human
 
-  - name: candy
-    leantime_user_id: 4
-    email: candy@example.com
-    persona: candy
+  - id: shop-api
     git_repo_url: https://github.com/demo-org/shop-api.git
-    type: sessions
-    # Optional: Secret cursor-api-key key (default GH_TOKEN). Hermes-era candy → GH_TOKEN_candy.
-    gh_token_secret_key: GH_TOKEN_candy
 
-  - name: asky
-    leantime_user_id: 5
-    email: asky@example.com
-    persona: asky
+  - id: landing-web
     git_repo_url: https://github.com/demo-org/landing-web.git
-    type: sessions
     # M5 Tenant CD: copied into infra persona as .cursor/tenant-cd-registry.json
     tenant_cd:
       enabled: true
@@ -43,18 +32,48 @@ agents:
           url: http://web.landing.svc.cluster.local:8080/healthz
           expect_status: 200
 
+  - id: topology-lib
+    git_repo_url: https://github.com/demo-org/topology-lib.git
+
+  - id: k8s-test
+    git_repo_url: https://github.com/demo-org/k8s-test.git
+
+agents:
+  - name: eric
+    leantime_user_id: 1
+    email: eric@example.com
+    persona: eric
+    primary_repo: bridge-harness
+    type: human
+
+  - name: candy
+    leantime_user_id: 4
+    email: candy@example.com
+    persona: candy
+    primary_repo: shop-api
+    type: sessions
+    # Optional: Secret cursor-api-key key (default GH_TOKEN). Hermes-era candy → GH_TOKEN_candy.
+    gh_token_secret_key: GH_TOKEN_candy
+
+  - name: asky
+    leantime_user_id: 5
+    email: asky@example.com
+    persona: asky
+    primary_repo: landing-web
+    type: sessions
+
   - name: path
     leantime_user_id: 6
     email: path@example.com
     persona: path
-    git_repo_url: https://github.com/demo-org/topology-lib.git
+    primary_repo: topology-lib
     type: sessions
 
   - name: infra
     leantime_user_id: 13
     email: infra@example.com
     persona: infra
-    git_repo_url: https://github.com/demo-org/k8s-test.git
+    primary_repo: k8s-test
     type: sessions
 
 settings:

@@ -7,7 +7,7 @@ Leantime × Cursor Agent 협업 시스템 계약 및 인터페이스.
 | | **Agent Framework (이 저장소)** | **Tenant project (외부 repo)** |
 |--|--------------------------------|-------------------------------|
 | 역할 | 설치형 공장: Bridge, runner, persona, **운영 SW CD 메커니즘** | 개발·운영되는 앱/서비스 **소스·이미지·도메인 설정** |
-| 코드 | 공장 코드만 | `agents[].git_repo_url`이 가리키는 제품 소스만 |
+| 코드 | 공장 코드만 | `repos[].git_repo_url`이 가리키는 제품 소스만 |
 | CD | 프레임워크가 해결(dispatch·rollout·smoke·Done 게이트) | CD *대상* + 워크플로/매니페스트/값(`examples/tenant-cd` 어댑터 복사) |
 
 제품 비즈니스 소스를 이 저장소에 두지 않는다. 운영 SW를 PROD에 올리는 CD는 공장 범위다. Review checks·테스트 증거·intake 템플릿·장애→티켓 훅(M6–M9)도 **공장 정책/스킬**이며, 테넌트 CI·E2E·APM 본체는 테넌트 repo에 둔다.
@@ -23,7 +23,7 @@ Leantime × Cursor Agent 협업 시스템 계약 및 인터페이스.
 7. **읽기 우선** — 에이전트는 Leantime MCP로 `get_ticket` / `get_comments` 후 행동한다.
 8. **K8s namespace** — `leantime` (Leantime과 동일 NS).
 9. **모델** — `deploy/k8s/agents.yaml` 정본: `settings.model` 기본값, bot마다 `agents[].model`로 override. Pod `AGENT_RUNNER_MODEL`에 주입; 기본 `composer-2.5` (비용 예측 가능); `auto`는 선택 사항.
-10. **Tenant CD** — `agents[].tenant_cd.enabled=true`인 제품 봇의 배포는 공장(infra `tenant-cd` 스킬)이 수행한다. v1 드라이버는 `workflow_dispatch`만. 상세는 §2.8.
+10. **Tenant CD** — `repos[].tenant_cd.enabled=true`인 제품 repo의 배포는 공장(infra `tenant-cd` 스킬)이 수행한다. agent는 `primary_repo`/`repos`로 그 repo를 참조한다. v1 드라이버는 `workflow_dispatch`만. 상세는 §2.8.
 
 ## 2. 컴포넌트 간 인터페이스
 
@@ -33,7 +33,7 @@ Leantime × Cursor Agent 협업 시스템 계약 및 인터페이스.
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
-| `agents[]` | array | ≤10; `name`, `leantime_user_id`, `email`, `runner_url`, `git_repo_url`, `persona`, `type`(`human`\|`sessions`\|`openai`). `human`: Pod 없음·`runner_url` 빈 문자열. `sessions`: Pod/Service `cursor-agent-{name}`, sync가 runner_url 생성, `model`(선택), `gh_token_secret_key`(선택, 기본 `GH_TOKEN`). `openai`: YAML `runner_url` 필수(외부 OpenAI-compatible), StatefulSet 없음. `tenant_cd`(선택)는 **bridge.json에 넣지 않음** — `render-agents.sh`가 infra persona의 `tenant-cd-registry.json`으로만 배포(§2.8) |
+| `agents[]` | array | ≤10; `name`, `leantime_user_id`, `email`, `runner_url`, `git_repo_url`(sync가 `primary_repo` resolve), `persona`, `type`(`human`\|`sessions`\|`openai`). `human`: Pod 없음·`runner_url` 빈 문자열. `sessions`: Pod/Service `cursor-agent-{name}`, sync가 runner_url 생성, `model`(선택), `gh_token_secret_key`(선택, 기본 `GH_TOKEN`). `openai`: YAML `runner_url` 필수(외부 OpenAI-compatible), StatefulSet 없음. `tenant_cd`는 **bridge.json에 넣지 않음** — infra `tenant-cd-registry.json`만(§2.8) |
 | `model` | string | 기본 모델 (`agents.yaml` `settings.model`에서 sync; `sessions`별 override는 `agents[].model`) |
 | `debounce_ms` | int | 동일 티켓 이벤트 디바운스 |
 | `prompts` | object | `ticket_created`, `ticket_updated`, `comment_added`, `assignee_changed`, `mention` (`{ticket_id}`), `handoff`. Router가 매 이벤트에 `Active ticket_id=N` 스코프 문장을 붙여 MCP 읽기/쓰기를 그 티켓으로 고정한다. |
@@ -136,9 +136,13 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
 
 §1–2.6·§2.8 계약은 불변이다. Goose 분석 기반 보수 도입(A안)은 Cursor SDK local runner와 Leantime 오케스트레이션을 유지한 채, run `budget`/`policy`/summary/`success_checks`를 prompt·로그 수준에서만 추가한다. 상세·단계는 [`docs/goose/06-gap-with-cursor-agent.md`](docs/goose/06-gap-with-cursor-agent.md), runner 내부는 [`agent-runner/DESIGN.md`](agent-runner/DESIGN.md)를 본다. Goose 실행기·scheduler 교체는 A안 범위가 아니다.
 
-### 2.8 Tenant CD (`agents[].tenant_cd`)
+### 2.8 Tenant CD (`repos[].tenant_cd`)
 
-정본: `deploy/k8s/agents.yaml`. `render-agents.sh`가 `tenant_cd.enabled=true`인 agent를 모아 infra persona ConfigMap에 `.cursor/tenant-cd-registry.json`으로 넣는다. **bridge.json에는 실리지 않는다.** 실행 절차는 infra `tenant-cd` 스킬.
+정본: `deploy/k8s/agents.yaml`.
+
+- **`repos[]`**: `id`, `git_repo_url`, 선택 `tenant_cd`. CD·clone URL의 정본.
+- **`agents[]`**: `primary_repo`(또는 `repos: [id, …]`의 첫 항목)로 workspace를 참조. agent에 `git_repo_url`/`tenant_cd`를 같이 두면 오류(legacy: `primary_repo` 없을 때만 `agents[].git_repo_url`+`tenant_cd` 허용).
+- `render-agents.sh`가 enabled `tenant_cd`를 infra persona ConfigMap `.cursor/tenant-cd-registry.json`으로 넣는다. **bridge.json에는 실리지 않는다.** 실행 절차는 infra `tenant-cd` 스킬.
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
@@ -164,11 +168,12 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
 3. `rollout:` `namespace`/`deployment` OK (또는 실패 요약)
 4. `smoke:` HTTP `<status>` `<url>`
 
-레지스트리 JSON shape: `{ "version": 1, "tenants": [ { "agent", "git_repo_url", "tenant_cd": { ... } } ] }`. infra는 티켓의 agent/repo로 조회한다.
+레지스트리 JSON shape: `{ "version": 1, "tenants": [ { "agent", "repo_id?", "git_repo_url", "tenant_cd": { ... } } ] }`. infra는 티켓의 agent / `repo_id` / repo URL로 조회한다.
 
 ## 3. 인증·비용
 
 - 전 runner가 동일 `CURSOR_API_KEY` 공유 (Secret `cursor-api-key`, 사용량 합산).
+- 공장 운영: `cursorbridge-pvc-retention`이 agent PVC의 `/cursor-home/.cursor/chats`를 보관일(`CHAT_RETENTION_DAYS`) 기준으로 삭제한다. `cursorbridge-spend-alert`는 agent-runner 로그의 `run.completed` usage를 합산해 임계값 초과 시 Leantime 티켓을 만든다.
 - Leantime MCP는 포크 `leantime-mcp/`(agent-runner 이미지). agent별 **`LEANTIME_ACCESS_TOKEN`**(해당 Leantime 사용자 PAT, Secret `LEANTIME_ACCESS_TOKEN_{name}`)으로 Bearer 인증한다. Leantime 3.9+ PAT는 댓글·쓰기 작성자가 해당 사용자로 표시된다.
 - agent-runner 이미지는 **Python 3.12 + uv**, **kubectl**, **gh**, **git**을 포함한다. K8s Pod는 ServiceAccount `cursor-agent` + ClusterRole `cursor-agent-observer`로 클러스터 Pod/로그/워크로드/PV·PVC 모니터링과 제한적 remediation(`patch`/`update`/`delete`, `pods/exec`). **RBAC 객체(write)는 부여하지 않는다**(자기권한 상승 방지). namespace `path-graph`에서는 Role `cursor-agent-argo-workflows`로 `workflows.argoproj.io`에 `get`/`list`/`create`/`delete`/`patch`(path Argo 조회·재실행·정리). Secret 클러스터 전역 list는 기본 미부여 — Postgres 등 Secret 읽기가 필요하면 Eric이 별도 부여. **봇 runner**는 Secret `cursor-api-key`의 **`GH_TOKEN`(공유 GitHub PAT, repo write)** 필수 — 시작 시 `gh auth setup-git`. agent별 override는 선택 키 **`GH_TOKEN_{name}`** → env `GH_TOKEN_OVERRIDE`(있으면 `GH_TOKEN`을 대체). GHCR pull은 별도 `ghcr-pull` Secret.
 - SDK run은 IDE와 동일 usage pool을 사용한다.
