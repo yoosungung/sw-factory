@@ -1,0 +1,4 @@
+# Agent memory (persona: finder)
+
+- Leantime: finder@example.com
+- 스케줄 `finder-wiki`: default branch(main)에 직접 commit·push. PR·git-ship·feature branch 금지.

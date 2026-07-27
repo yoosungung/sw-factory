@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "leantime": {
+      "command": "${workspaceFolder}/leantime-mcp/.venv/bin/leantime-mcp",
+      "envFile": "${workspaceFolder}/leantime-mcp/.env"
+    }
+  }
+}

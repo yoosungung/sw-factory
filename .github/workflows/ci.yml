@@ -1,0 +1,96 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  agent-runner:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: agent-runner
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: agent-runner/package-lock.json
+      - run: npm ci
+      - run: npm test
+        env:
+          AGENT_RUNNER_MOCK: "1"
+
+  leantime-plugin:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: leantime-plugin
+    steps:
+      - uses: actions/checkout@v4
+      - name: Bootstrap local config from samples
+        working-directory: ${{ github.workspace }}
+        run: bash scripts/bootstrap-config.sh --force
+      - uses: php-actions/composer@v6
+      - run: ./vendor/bin/phpunit
+
+  leantime-mcp:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: leantime-mcp
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: python -m venv .venv && .venv/bin/pip install -e ".[dev]"
+      - run: .venv/bin/pytest
+
+  k8s-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: bash scripts/bootstrap-config.sh --force
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install pyyaml pytest
+      - run: pytest deploy/k8s/scripts/
+      - run: bash deploy/k8s/scripts/render-agents.sh
+      - run: python deploy/k8s/scripts/sync-bridge-json.py
+
+  # M6 — Framework supply-chain gate (factory repo only; not tenant product CI)
+  fw-supply-chain:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Install gitleaks
+        run: |
+          ver=8.24.0
+          curl -sSfL "https://github.com/gitleaks/gitleaks/releases/download/v${ver}/gitleaks_${ver}_linux_x64.tar.gz" \
+            | tar -xz -C /tmp gitleaks
+          sudo install -m 755 /tmp/gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+      - name: Secret scan (gitleaks)
+        run: gitleaks detect --source . --verbose --redact
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: agent-runner/package-lock.json
+      - name: npm ci (agent-runner)
+        working-directory: agent-runner
+        run: npm ci
+      - name: npm audit (fail on critical)
+        working-directory: agent-runner
+        run: npm audit --audit-level=critical
+      - name: npm audit report (high/moderate informational)
+        working-directory: agent-runner
+        run: npm audit --audit-level=high || true

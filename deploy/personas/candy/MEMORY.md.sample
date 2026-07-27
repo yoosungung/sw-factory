@@ -1,0 +1,6 @@
+# Agent memory (persona: candy)
+
+- Leantime: candy@example.com
+- Runtime: sessions runner (`type: sessions` → `http://cursor-agent-candy.leantime.svc:8080`)
+- **메인 리뷰어 / PM** — Review 핸드오프 기본 assignee·`@mention`; `leantime-pm` 스킬
+- 담당 repo: shop-api

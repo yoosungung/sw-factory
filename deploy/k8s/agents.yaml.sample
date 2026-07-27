@@ -1,0 +1,153 @@
+# Copy to agents.yaml and fill with real identities (gitignored).
+#   cp deploy/k8s/agents.yaml.sample deploy/k8s/agents.yaml
+# Then: ./deploy/k8s/scripts/render-agents.sh && python deploy/k8s/scripts/sync-bridge-json.py
+
+agents:
+  - name: eric
+    leantime_user_id: 1
+    email: eric@example.com
+    persona: eric
+    git_repo_url: https://github.com/demo-org/bridge-harness.git
+    type: human
+
+  - name: candy
+    leantime_user_id: 4
+    email: candy@example.com
+    persona: candy
+    git_repo_url: https://github.com/demo-org/shop-api.git
+    type: sessions
+    # Optional: Secret cursor-api-key key (default GH_TOKEN). Hermes-era candy → GH_TOKEN_candy.
+    gh_token_secret_key: GH_TOKEN_candy
+
+  - name: asky
+    leantime_user_id: 5
+    email: asky@example.com
+    persona: asky
+    git_repo_url: https://github.com/demo-org/landing-web.git
+    type: sessions
+    # M5 Tenant CD: copied into infra persona as .cursor/tenant-cd-registry.json
+    tenant_cd:
+      enabled: true
+      driver: workflow_dispatch
+      workflow: deploy.yml
+      ref: main
+      inputs:
+        environment: production
+      image_input: image_tag
+      verify:
+        namespace: landing
+        deployment: web
+        timeout_sec: 300
+        smoke:
+          type: http
+          url: http://web.landing.svc.cluster.local:8080/healthz
+          expect_status: 200
+
+  - name: path
+    leantime_user_id: 6
+    email: path@example.com
+    persona: path
+    git_repo_url: https://github.com/demo-org/topology-lib.git
+    type: sessions
+
+  - name: infra
+    leantime_user_id: 13
+    email: infra@example.com
+    persona: infra
+    git_repo_url: https://github.com/demo-org/k8s-test.git
+    type: sessions
+
+settings:
+  debounce_ms: 3000
+  mention_routing: true
+  replicas_max: 10
+  runner_image: ghcr.io/example/agent-runner:latest
+  model: auto
+  budget:
+    timeout_ms: 600000
+  success_retry:
+    max_attempts: 3
+  success_checks:
+    - "Read Active ticket via Leantime MCP before writing."
+    - "Leave an add_comment outcome on the Active ticket."
+    - "If Review-ready: git-ship (push + PR) before handoff."
+    - "If tenant_cd-enabled and merged: deploy/smoke evidence fields before Done."
+  schedules:
+    - id: candy-pm-checkpoint
+      cron: "5,20,35,50 * * * *"
+      agents: [candy]
+      gates: [in_progress]
+      prompt: >-
+        Use the leantime-pm skill. 30분 체크포인트 감시. In Progress 개발 티켓/서브태스크만.
+        Done·Archived·Waiting for Approval는 스킵(새 개발 요청 코멘트 없으면).
+        최근 30분 내 PM 체크포인트 코멘트가 있으면 중복 금지.
+        마지막 actionable 코멘트가 30분 넘고 PR/테스트/완료/blocker 증거가 없으면
+        체크포인트 요청 코멘트 1건(시도·원인·branch/PR·다음 최소 단계).
+        원인은 하나만: (1) 과대/모호→서브태스크 분할 (2) 실패/차단→해제·재배정·Blocked·에스컬
+        (3) 단순 중단→재개+다음 30분 증거 요청.
+        멘션은 알려진 id만(eric=1,candy=4,asky=5,path=6,infra=13,seewin=14).
+        코드/메일/장문 금지. 실행당 코멘트 ≤5. 끝나면 조치·분류·스킵 사유만 짧게.
+      success_checks:
+        - "At most 5 checkpoint comments added this run."
+        - "No duplicate PM checkpoint within 30 minutes on the same ticket."
+        - "Final reply lists acted/skipped tickets with classification."
+    - id: github-issue-check
+      cron: "0 23 * * *"
+      prompt: >-
+        github issue 점검하여 신규는 티켓으로 변환하고, 블로커가 있으면 add_comment 처리.
+        (M9 feedback hook: configured GH repos only; no product support portal in the factory repo.)
+      success_checks:
+        - "New GitHub issues are reflected as Leantime tickets or explicitly skipped with a comment."
+        - "Blockers are reported via add_comment."
+    - id: finder-wiki
+      cron: "30 23 * * *"
+      agents: [finder]
+      prompt: >-
+        위키 리서치(km-researcher) 후 default branch(main)에 직접 commit·push.
+        PR·feature branch·git-ship 금지. 실패 시 ticket(New), 성공 시 ticket(Done).
+      success_checks:
+        - "Changes are committed and pushed directly to the default branch (no PR)."
+        - "Do not run git-ship or gh pr create."
+        - "On success create/update a Done ticket; on failure a New ticket with blocker."
+    - id: infra-k8s-daily
+      cron: "0 1 * * *"
+      agents: [infra]
+      prompt: >-
+        Use the k8s-operator-operations skill. 일일 k8s 운영 리포트(read-only).
+        worktree가 clean일 때만 git pull --ff-only origin main; 아니면 blocker만 보고.
+        전체 discovery 후 이상 Pod·rollout·svc/endpoints·PV/PVC·node pressure·Warning 이벤트 점검.
+        mutate/배포 금지. 조치 가능한 CrashLoop·rollout·PV 장애는 incident-tickets.md대로
+        Leantime 티켓 생성/갱신만 하고 리포트 Incident tickets 칸에 id를 적는다.
+        결과는 스킬의 한국어 리포트 포맷으로 짧게.
+      success_checks:
+        - "Report uses the k8s 운영 리포트 format with a clear status summary."
+        - "No mutating kubectl actions in this scheduled run."
+        - "Partial RBAC denials are reported distinctly from cluster faults."
+        - "Actionable incidents are ticketed or explicitly listed as none."
+    - id: seewin-people-curation
+      cron: "0 9 * * *"
+      agents: [seewin]
+      prompt: >-
+        Use political-wiki-administration in /workspace/repo. People SSoT curation (18:00 KST).
+        Report on Leantime project 20 as user 14. main direct push only after validation.
+      success_checks:
+        - "Work stayed in /workspace/repo."
+        - "Leantime report as seewin (user 14) or blocked with reason."
+    - id: seewin-publication-review
+      cron: "0 18 * * *"
+      agents: [seewin]
+      prompt: >-
+        Use political-wiki-administration in /workspace/repo. Publication-safety review (03:00 KST).
+        Run publication_gate.py before push. Report project 20 user 14.
+      success_checks:
+        - "publication_gate.py run before push decision."
+        - "Leantime report as seewin (user 14)."
+    - id: seewin-issue-radar-today
+      cron: "0 23 * * *"
+      agents: [seewin]
+      prompt: >-
+        Use political-wiki-administration in /workspace/repo. Issue radar → wiki/data/today.yaml.
+        No Leantime tickets. Direct main push when changed.
+      success_checks:
+        - "No new Leantime ticket."
+        - "Only wiki/data/today.yaml committed when changed, or no-op."

@@ -1,0 +1,50 @@
+# Agent memory (defaults)
+
+Persona별 `MEMORY.md`가 이어 붙는다. Leantime 협업 절차는 `leantime-collab` 스킬을 따른다.
+
+## Tool class policy (Goose A안)
+
+실행 정책 보조다. Pod/MCP가 강제 차단한다고 가정하지 말고, 스스로 지킨다.
+
+| class | 예 | 기본 |
+|-------|----|------|
+| `read` | 티켓/코멘트 읽기, `git diff`, `kubectl logs` | 허용 |
+| `local_write` | 워크스페이스 파일 수정, 테스트 실행 | 허용 |
+| `external_write` | Active ticket 코멘트·상태, `git push`, `gh pr create` | 허용 + Active ticket에 감사 기록 |
+| `destructive` | `git push --force`, `git reset --hard`, secret/권한 변경, 임의 삭제, Active 외 티켓 write | **금지** |
+
+- `budget`/`Success checks`가 prompt에 있으면 soft limit로 따른다. 못 끝내면 티켓에 blocker/next step을 남기고 멈춘다.
+- `Context summary`는 보조 문맥이다. 원문 감사는 Leantime 코멘트·PR 링크로 남긴다.
+- Delegation lineage(`delegated_from`/`delegated_to`)가 있으면 동일 Active ticket에 결과를 기록한다.
+- MCP 도구명·호출 세부는 `leantime-collab` 스킬을 따른다.
+
+## 설계 시 협업
+
+- 설계·아키텍처·API 계약은 단독 확정하지 않는다. 티켓 코멘트로 대안·질문을 남기고, 관련 담당자에게 `@mention`으로 피드백을 요청한다.
+- 여러 저장소에 걸치면 해당 repo 전담 에이전트와 먼저 합의한다. 합의 후 assignee를 구현 담당으로 넘기고, 코멘트에 결정·미결 사항을 요약한다.
+- Review 단계에서는 `git-ship`(push + PR) 완료 후 **메인 리뷰어 candy**에게 핸드오프한다(assignee·`@mention`). 플랫폼/인프라 이슈만 eric. Pod에서 push를 사람에게 요청하지 않는다.
+
+## 계획
+
+- 범위가 넓거나 단계가 여러 개면 **티켓 첨부 `plan.md`** 로 계획을 구체화한다. 코멘트·본문에는 요약만 남기고, 상세(목표, 범위, 단계, 미결, 테스트)는 md에 쓴다.
+- 파일명은 **`plan.md`**(티켓당 1개)를 기본으로 한다. 갱신 시 같은 이름으로 다시 `upload_ticket_file`하고, 코멘트에 변경 요지만 적는다.
+- 작업 시작 전 `list_ticket_files` → `download_ticket_file`로 `plan.md`를 읽는다. 없으면 먼저 작성·첨부한 뒤 `@mention`으로 리뷰를 요청한다.
+- 저장소 불변 규칙(`ARCHITECTURE.md` 등)과 겹치면 issue plan은 **이 티켓 범위의 실행 계획**만 담고, 확정된 계약은 해당 repo 문서에 반영한다.
+
+## 디버그
+
+- **재현 → 가설 → 증거 → 수정 → 검증** 순서로 한다. 재현 전에는 코드를 고치지 않는다.
+- 가설은 「X가 원인이면 Y에서 Z가 나와야 한다」처럼 검증 가능하게 적는다. 확인된 원인만 고친다.
+- 실패하는 테스트(또는 재현 커맨드)를 먼저 만든 뒤 수정한다. 임시 디버그 로그는 PR에 남기지 않는다.
+- 재현이 안 되거나 가설이 2회 이상 틀리면, 티켓 코멘트에 시도·증거를 남기고 `@mention`으로 확인을 요청한다.
+
+## 팀 구성원
+
+| 이름 | 유형 | Leantime | 역할 |
+|------|------|----------|------|
+| eric | 사람 | eric@example.com | 플랫폼 소유자·리뷰어(관리자) |
+| candy | 봇 | candy@example.com | 앱 소유자·리뷰어(메인)·PM |
+| asky | 봇 | asky@example.com | landing-web 저장소 전담 |
+| path | 봇 | path@example.com | topology-lib 전담 |
+| seewin | 봇 | seewin@example.com | candidate.win(Candydate) 전담 |
+| infra | 봇 | infra@example.com | k8s 클러스터 운영(operator) |

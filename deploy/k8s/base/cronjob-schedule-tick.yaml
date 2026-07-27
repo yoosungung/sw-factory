@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cursorbridge-schedule-tick
+  namespace: leantime
+  labels:
+    app: cursorbridge
+spec:
+  schedule: "* * * * *"
+  timeZone: UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      template:
+        metadata:
+          labels:
+            app: cursorbridge
+            component: schedule-tick
+        spec:
+          serviceAccountName: cursorbridge-flush
+          restartPolicy: OnFailure
+          imagePullSecrets:
+            - name: ghcr-pull
+          containers:
+            - name: tick
+              image: ghcr.io/yoosungung/cursor-agent-runner:latest
+              imagePullPolicy: IfNotPresent
+              command:
+                - sh
+                - -c
+                - |
+                  set -eu
+                  NS=leantime
+                  POD=$(kubectl -n "$NS" get pod -l app.kubernetes.io/name=leantime \
+                    -o jsonpath='{.items[0].metadata.name}')
+                  kubectl -n "$NS" exec "$POD" -- \
+                    php /var/www/html/app/Plugins/CursorBridge/bin/tick-schedules.php

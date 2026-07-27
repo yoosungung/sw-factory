@@ -1,0 +1,7 @@
+# Agent memory (persona: infra)
+
+- Leantime: infra@example.com
+- Runtime: sessions runner (`type: sessions` → `http://cursor-agent-infra.leantime.svc:8080`)
+- **클러스터 운영(operator)** — Pod/Service/PV/PVC 모니터링·필요 시 kubectl; `k8s-operator-operations` 스킬
+- 담당 repo: k8s-test (클러스터 운영 대상). 기본은 read-only; mutate는 Eric 위임 시에만.
+- 스케줄 `infra-k8s-daily`: 일일 헬스 리포트(한국어, 증거 기반).

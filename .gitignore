@@ -1,0 +1,66 @@
+# OS / editor
+.DS_Store
+Thumbs.db
+*.swp
+*~
+.idea/
+.vscode/
+
+# Secrets & local env
+.env
+.env.*
+!.env.example
+*.pem
+*.p12
+*.pfx
+credentials.json
+**/secrets/**
+
+# Local identity / deploy config (commit *.sample only)
+deploy/k8s/agents.yaml
+leantime-plugin/bridge.json
+deploy/personas/**
+!deploy/personas/_default/
+!deploy/personas/candy/
+!deploy/personas/finder/
+!deploy/personas/infra/
+!deploy/personas/**/MEMORY.md.sample
+!deploy/k8s/agents.yaml.sample
+!leantime-plugin/bridge.json.sample
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# --- agent-runner (Node / TypeScript) ---
+node_modules/
+dist/
+*.tsbuildinfo
+coverage/
+.vitest/
+
+# --- leantime-plugin (PHP) ---
+vendor/
+.phpunit.cache/
+leantime-plugin/data/*.sqlite
+.phpunit.result.cache
+
+# --- Python (deploy scripts, local tooling) ---
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+*.egg-info/
+.mypy_cache/
+.ruff_cache/
+.python-version
+
+# --- K8s render output (run deploy/k8s/scripts/render-agents.sh) ---
+deploy/k8s/base/generated/**
+!deploy/k8s/base/generated/.gitkeep
+
+docs/

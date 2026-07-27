@@ -1,0 +1,46 @@
+# Copy to tenant repo: .github/workflows/deploy.yml
+# Factory M5 driver: workflow_dispatch only. Fill TODOs per product; do not put
+# product business logic in the framework repository.
+
+name: tenant-cd-deploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      image_tag:
+        description: Git SHA or image tag to deploy (factory injects merge_sha)
+        required: true
+        type: string
+      environment:
+        description: Target environment
+        required: true
+        type: string
+        default: production
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.image_tag }}
+
+      - name: TODO build and push image
+        run: |
+          echo "TODO: build/push image tagged ${{ github.event.inputs.image_tag }}"
+          echo "environment=${{ github.event.inputs.environment }}"
+          # Example:
+          # docker build -t ghcr.io/ORG/APP:${{ github.event.inputs.image_tag }} .
+          # docker push ghcr.io/ORG/APP:${{ github.event.inputs.image_tag }}
+
+      - name: TODO apply / GitOps bump
+        run: |
+          echo "TODO: update cluster (kubectl/helm/Argo) to ${{ github.event.inputs.image_tag }}"
+          # Prefer: push image first, then update manifests / sync.
+          # Factory infra will still run kubectl rollout status + in-cluster HTTP smoke.
+
+      - name: Placeholder success
+        run: |
+          echo "Replace TODO steps before production use."
+          echo "workflow_dispatch adapter shape is valid for factory tenant_cd."

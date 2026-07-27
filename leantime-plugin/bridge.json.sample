@@ -1,0 +1,97 @@
+{
+  "debounce_ms": 3000,
+  "mention_routing": true,
+  "model": "auto",
+  "agents": [
+    {
+      "name": "eric",
+      "leantime_user_id": 1,
+      "email": "eric@example.com",
+      "runner_url": "",
+      "git_repo_url": "https://github.com/demo-org/bridge-harness.git",
+      "persona": "eric",
+      "type": "human"
+    },
+    {
+      "name": "candy",
+      "leantime_user_id": 4,
+      "email": "candy@example.com",
+      "runner_url": "http://cursor-agent-candy.leantime.svc:8080",
+      "git_repo_url": "https://github.com/demo-org/shop-api.git",
+      "persona": "candy",
+      "type": "sessions",
+      "model": "auto"
+    },
+    {
+      "name": "asky",
+      "leantime_user_id": 5,
+      "email": "asky@example.com",
+      "runner_url": "http://cursor-agent-asky.leantime.svc:8080",
+      "git_repo_url": "https://github.com/demo-org/landing-web.git",
+      "persona": "asky",
+      "type": "sessions",
+      "model": "auto"
+    },
+    {
+      "name": "path",
+      "leantime_user_id": 6,
+      "email": "path@example.com",
+      "runner_url": "http://cursor-agent-path.leantime.svc:8080",
+      "git_repo_url": "https://github.com/demo-org/topology-lib.git",
+      "persona": "path",
+      "type": "sessions",
+      "model": "auto"
+    }
+  ],
+  "prompts": {
+    "ticket_created": "New ticket assigned. Use Leantime MCP: get_ticket + get_comments, then plan. When implementation is ready for review, follow git-ship (push + PR) before Leantime handoff.",
+    "ticket_updated": "Ticket updated. Re-read context via MCP and continue or hand off with add_comment. Review handoff requires pushed commits and an open PR (git-ship skill).",
+    "comment_added": "New comment on ticket. Read comments and respond with add_comment if needed.",
+    "assignee_changed": "Assignee changed. If handing off for review: git-ship first (commit, push, PR), then add_comment with PR link and assign reviewer.",
+    "mention": "You were @mentioned on ticket {ticket_id}. Read context and respond.",
+    "handoff": "Assignee handoff. If work is ready for review: complete git-ship (push + PR), set ticket to Review, assign human reviewer, add_comment with PR link. Do not ask humans to push. Then stop until reassigned."
+  },
+  "status_prompts": {
+    "3": "Status is In Progress. Continue implementation.",
+    "4": "Status is Review. Ensure commits are pushed and PR is open (git-ship). Summarize changes for reviewer with PR link; do not ask anyone to push locally. After merge on a tenant_cd-enabled repo: hand off to infra with merge_sha (deploy/smoke evidence required before Done).",
+    "5": "Status is Done. Close out only when required evidence is present: for tenant_cd tickets require pr_url, merge_sha, workflow_run_url+workflow_conclusion=success, rollout OK, and smoke HTTP result."
+  },
+  "budget": {
+    "timeout_ms": 600000
+  },
+  "success_retry": {
+    "max_attempts": 3
+  },
+  "success_checks": [
+    "Read Active ticket via Leantime MCP before writing.",
+    "Leave an add_comment outcome on the Active ticket.",
+    "If Review-ready: git-ship (push + PR) before handoff."
+  ],
+  "schedules": [
+    {
+      "id": "candy-pm-checkpoint",
+      "cron": "5,20,35,50 * * * *",
+      "prompt": "Use the leantime-pm skill. 30\ubd84 \uccb4\ud06c\ud3ec\uc778\ud2b8 \uac10\uc2dc. In Progress \uac1c\ubc1c \ud2f0\ucf13/\uc11c\ube0c\ud0dc\uc2a4\ud06c\ub9cc. Done\u00b7Archived\u00b7Waiting for Approval\ub294 \uc2a4\ud0b5(\uc0c8 \uac1c\ubc1c \uc694\uccad \ucf54\uba58\ud2b8 \uc5c6\uc73c\uba74). \ucd5c\uadfc 30\ubd84 \ub0b4 PM \uccb4\ud06c\ud3ec\uc778\ud2b8 \ucf54\uba58\ud2b8\uac00 \uc788\uc73c\uba74 \uc911\ubcf5 \uae08\uc9c0. \ub9c8\uc9c0\ub9c9 actionable \ucf54\uba58\ud2b8\uac00 30\ubd84 \ub118\uace0 PR/\ud14c\uc2a4\ud2b8/\uc644\ub8cc/blocker \uc99d\uac70\uac00 \uc5c6\uc73c\uba74 \uccb4\ud06c\ud3ec\uc778\ud2b8 \uc694\uccad \ucf54\uba58\ud2b8 1\uac74(\uc2dc\ub3c4\u00b7\uc6d0\uc778\u00b7branch/PR\u00b7\ub2e4\uc74c \ucd5c\uc18c \ub2e8\uacc4). \uc6d0\uc778\uc740 \ud558\ub098\ub9cc: (1) \uacfc\ub300/\ubaa8\ud638\u2192\uc11c\ube0c\ud0dc\uc2a4\ud06c \ubd84\ud560 (2) \uc2e4\ud328/\ucc28\ub2e8\u2192\ud574\uc81c\u00b7\uc7ac\ubc30\uc815\u00b7Blocked\u00b7\uc5d0\uc2a4\uceec (3) \ub2e8\uc21c \uc911\ub2e8\u2192\uc7ac\uac1c+\ub2e4\uc74c 30\ubd84 \uc99d\uac70 \uc694\uccad. \uba58\uc158\uc740 \uc54c\ub824\uc9c4 id\ub9cc(eric=1,candy=4,asky=5,path=6). \ucf54\ub4dc/\uba54\uc77c/\uc7a5\ubb38 \uae08\uc9c0. \uc2e4\ud589\ub2f9 \ucf54\uba58\ud2b8 \u22645. \ub05d\ub098\uba74 \uc870\uce58\u00b7\ubd84\ub958\u00b7\uc2a4\ud0b5 \uc0ac\uc720\ub9cc \uc9e7\uac8c.",
+      "agents": [
+        "candy"
+      ],
+      "gates": [
+        "in_progress"
+      ],
+      "success_checks": [
+        "At most 5 checkpoint comments added this run.",
+        "No duplicate PM checkpoint within 30 minutes on the same ticket.",
+        "Final reply lists acted/skipped tickets with classification."
+      ]
+    },
+    {
+      "id": "github-issue-check",
+      "cron": "0 23 * * *",
+      "prompt": "github issue \uc810\uac80\ud558\uc5ec \uc2e0\uaddc\ub294 \ud2f0\ucf13\uc73c\ub85c \ubcc0\ud658\ud558\uace0, \ube14\ub85c\ucee4\uac00 \uc788\uc73c\uba74 add_comment \ucc98\ub9ac.",
+      "success_checks": [
+        "New GitHub issues are reflected as Leantime tickets or explicitly skipped with a comment.",
+        "Blockers are reported via add_comment."
+      ]
+    }
+  ]
+}

@@ -1,0 +1,108 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cursor-agent
+  namespace: leantime
+  labels:
+    app: cursor-agent
+---
+# Cluster-scoped observer/operator for infra monitoring + limited remediation.
+# Least privilege: no Role/ClusterRole/Binding write (no self-escalation).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cursor-agent-observer
+  labels:
+    app: cursor-agent
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+      - pods/log
+      - services
+      - endpoints
+      - events
+      - namespaces
+      - nodes
+      - persistentvolumes
+      - persistentvolumeclaims
+      - configmaps
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods", "persistentvolumeclaims", "persistentvolumes", "nodes"]
+    verbs: ["patch", "update", "delete"]
+  - apiGroups: [""]
+    resources: ["pods/exec", "pods/portforward"]
+    verbs: ["create"]
+  - apiGroups: [""]
+    resources: ["nodes/proxy", "nodes/stats", "nodes/metrics"]
+    verbs: ["get"]
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - statefulsets
+      - daemonsets
+      - replicasets
+    verbs: ["get", "list", "watch", "patch", "update", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments/scale", "statefulsets/scale"]
+    verbs: ["get", "patch", "update"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses", "volumeattachments"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["nodes", "pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cursor-agent-observer
+  labels:
+    app: cursor-agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cursor-agent-observer
+subjects:
+  - kind: ServiceAccount
+    name: cursor-agent
+    namespace: leantime
+---
+# path-graph Argo: path agent get/list Failed·파라미터, create(+delete/patch) 재실행·정리.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cursor-agent-argo-workflows
+  namespace: path-graph
+  labels:
+    app: cursor-agent
+rules:
+  - apiGroups: ["argoproj.io"]
+    resources: ["workflows"]
+    verbs: ["get", "list", "create", "delete", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cursor-agent-argo-workflows
+  namespace: path-graph
+  labels:
+    app: cursor-agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cursor-agent-argo-workflows
+subjects:
+  - kind: ServiceAccount
+    name: cursor-agent
+    namespace: leantime

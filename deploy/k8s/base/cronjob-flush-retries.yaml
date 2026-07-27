@@ -1,0 +1,78 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cursorbridge-flush
+  namespace: leantime
+  labels:
+    app: cursorbridge
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cursorbridge-flush
+  namespace: leantime
+  labels:
+    app: cursorbridge
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cursorbridge-flush
+  namespace: leantime
+  labels:
+    app: cursorbridge
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cursorbridge-flush
+subjects:
+  - kind: ServiceAccount
+    name: cursorbridge-flush
+    namespace: leantime
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cursorbridge-flush-retries
+  namespace: leantime
+  labels:
+    app: cursorbridge
+spec:
+  schedule: "*/5 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        metadata:
+          labels:
+            app: cursorbridge
+            component: flush-retries
+        spec:
+          serviceAccountName: cursorbridge-flush
+          restartPolicy: OnFailure
+          imagePullSecrets:
+            - name: ghcr-pull
+          containers:
+            - name: flush
+              image: ghcr.io/yoosungung/cursor-agent-runner:latest
+              imagePullPolicy: IfNotPresent
+              command:
+                - sh
+                - -c
+                - |
+                  set -eu
+                  NS=leantime
+                  POD=$(kubectl -n "$NS" get pod -l app.kubernetes.io/name=leantime \
+                    -o jsonpath='{.items[0].metadata.name}')
+                  kubectl -n "$NS" exec "$POD" -- \
+                    php /var/www/html/app/Plugins/CursorBridge/bin/flush-retries.php
