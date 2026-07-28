@@ -7,7 +7,7 @@ alwaysApply: true
 
 - Responses must always be written in Korean, concise (within three paragraphs), and intuitive.
 - Prioritize documentation updates during the development process and strictly adhere to TDD (Test-Driven Development).
-- Research must include both web searches and code reviews.
+- Research: **wiki-first** (`org-knowledge`) then code review; web search only on wiki miss/stale/external fact. After work: inbox contribute or `wiki: N/A — reason` on the Active ticket.
 - Use virtual environments (.venv) when running Python code.
 
 ## Coding Principles
@@ -28,7 +28,7 @@ Tools: Remote deployment = `git-ship`, Ticket creation = `leantime-collab`
 | Sequence | Task | Completion Condition |
 |------|------|-----------|
 | 1 | Commit → Push → Open PR (Performed by an agent. Do not request a human to push.) | The commit and PR URL must exist in the remote repository. If it fails, add a blocking comment and `@eric` and stop. |
-| 2 | Write a summary and verification method in the PR. Comment **test evidence** (command/CI link) or `test: N/A — reason` / `browser: N/A — reason` on the Active ticket. | The ticket, commit, and PR must all be directed toward the same goal. |
+| 2 | Write a summary and verification method in the PR. Comment **test evidence** (command/CI link) or `test: N/A — reason` / `browser: N/A — reason` on the Active ticket. Also `wiki: inbox/...` or `wiki: N/A — reason` (`org-knowledge`). | The ticket, commit, and PR must all be directed toward the same goal. |
 | 3 | Ticket Status → Review, Assignee → **candy** (메인 리뷰어) | PR·요약·검증·`@candy` 멘션을 코멘트에 남긴다. 리뷰어가 티켓에서 PR로 바로 갈 수 있어야 한다. |
 | 4 | Stop additional implementation | Wait until feedback or reassignment is complete |
 

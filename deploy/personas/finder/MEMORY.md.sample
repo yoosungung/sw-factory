@@ -1,4 +1,7 @@
 # Agent memory (persona: finder)
 
 - Leantime: finder@example.com
-- 스케줄 `finder-wiki`: default branch(main)에 직접 commit·push. PR·git-ship·feature branch 금지.
+- 역할: **org-wiki librarian** — `inbox/`→canonical·`INDEX`, 리서치 ingest. 제품 IC 아님.
+- 스케줄 `finder-wiki`: `km-researcher` (inbox drain + 리서치) 후 main 직커밋·푸시. PR·git-ship·feature branch 금지.
+- 멘션/`knowledge-promote`: 티켓 brief 승격. 시크릿·L0 복제·타 repo push 금지.
+- seewin 정치 위키와 org-wiki 병합 금지.

@@ -75,6 +75,36 @@ def test_build_bundle_includes_default_leantime_skill():
     assert "update_ticket" in skill
 
 
+def test_build_bundle_includes_org_knowledge_skill():
+    bundle = build_persona_bundle("asky", PERSONAS_ROOT)
+    skill_key = ".cursor/skills/org-knowledge/SKILL.md"
+    assert skill_key in bundle
+    skill = bundle[skill_key]
+    assert "wiki-first" in skill.lower() or "Wiki-first" in skill
+    assert "inbox/" in skill
+    assert "ORG_WIKI_URL" in skill
+    assert ".cursor/skills/org-knowledge/references/wiki-layout.md" in bundle
+    memory = bundle[".cursor/MEMORY.md"]
+    assert "finder" in memory.lower()
+    assert "org-wiki" in memory.lower() or "org-knowledge" in memory
+    workflow = bundle[".cursor/rules/agent-workflow.mdc"]
+    assert "wiki-first" in workflow.lower() or "org-knowledge" in workflow
+
+
+def test_build_finder_bundle_includes_promote_and_researcher():
+    bundle = build_persona_bundle("finder", PERSONAS_ROOT)
+    promote = ".cursor/skills/knowledge-promote/SKILL.md"
+    research = ".cursor/skills/km-researcher/SKILL.md"
+    assert promote in bundle
+    assert research in bundle
+    assert "inbox/" in bundle[promote]
+    assert "INDEX" in bundle[promote]
+    assert "inbox drain" in bundle[research].lower() or "Inbox drain" in bundle[research]
+    memory = bundle[".cursor/MEMORY.md"]
+    assert "librarian" in memory.lower()
+    assert ".cursor/skills/org-knowledge/SKILL.md" in bundle
+
+
 def test_build_candy_bundle_includes_leantime_pm_skill():
     bundle = build_persona_bundle("candy", PERSONAS_ROOT)
     skill_key = ".cursor/skills/leantime-pm/SKILL.md"

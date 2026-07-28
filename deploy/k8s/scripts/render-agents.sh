@@ -33,6 +33,8 @@ runner_image = settings.get("runner_image", "cursor-agent-runner:latest")
 default_model = settings.get("model", "composer-2.5")
 personas_root = Path(agents_yaml).parents[1] / "personas"
 tenant_registry = registry_json(agents, data.get("repos"))
+org_wiki = repos_by_id.get("org-wiki") or repos_by_id.get("wiki") or {}
+org_wiki_url = str(org_wiki.get("git_repo_url") or "").strip()
 
 def agent_model(agent: dict) -> str:
     return str(agent.get("model") or default_model)
@@ -74,6 +76,7 @@ for agent in deploy_agents:
         .replace("{{RUNNER_IMAGE}}", runner_image)
         .replace("{{MODEL}}", agent_model(agent))
         .replace("{{GH_TOKEN_SECRET_KEY}}", gh_token_secret_key)
+        .replace("{{ORG_WIKI_URL}}", org_wiki_url)
     )
     ss_path = out / f"statefulset-{name}.yaml"
     ss_path.write_text(ss)

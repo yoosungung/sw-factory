@@ -128,8 +128,9 @@ def test_statefulset_template_honors_gh_token_secret_key():
     root = SCRIPTS.parents[2]
     ss_tpl = (root / "deploy/k8s/templates/statefulset.yaml.tpl").read_text()
     assert "{{GH_TOKEN_SECRET_KEY}}" in ss_tpl
+    assert "{{ORG_WIKI_URL}}" in ss_tpl
 
-    def render(name: str, gh_key: str) -> str:
+    def render(name: str, gh_key: str, org_wiki: str = "") -> str:
         return (
             ss_tpl.replace("{{NAME}}", name)
             .replace("{{PERSONA}}", name)
@@ -138,14 +139,44 @@ def test_statefulset_template_honors_gh_token_secret_key():
             .replace("{{RUNNER_IMAGE}}", "example/runner:test")
             .replace("{{MODEL}}", "auto")
             .replace("{{GH_TOKEN_SECRET_KEY}}", gh_key)
+            .replace("{{ORG_WIKI_URL}}", org_wiki)
         )
 
-    candy = render("candy", "GH_TOKEN_candy")
+    candy = render("candy", "GH_TOKEN_candy", "https://github.com/demo-org/org-wiki.git")
     path = render("path", "GH_TOKEN")
     assert "key: GH_TOKEN_candy" in candy
     assert "key: GH_TOKEN_path" in path  # optional override slot
     assert "                  key: GH_TOKEN\n" in path or "                  key: GH_TOKEN\r\n" in path
     assert "GH_TOKEN_candy" not in path
+    assert "ORG_WIKI_URL" in candy
+    assert "https://github.com/demo-org/org-wiki.git" in candy
+
+
+def test_agents_yaml_sample_has_org_wiki_and_finder():
+    root = SCRIPTS.parents[2]
+    import yaml
+
+    data = yaml.safe_load((root / "deploy/k8s/agents.yaml.sample").read_text())
+    repo_ids = {r["id"] for r in data.get("repos", [])}
+    assert "org-wiki" in repo_ids
+    finder = next(a for a in data["agents"] if a["name"] == "finder")
+    assert finder["primary_repo"] == "org-wiki"
+    assert finder["type"] == "sessions"
+    schedules = {s["id"]: s for s in data["settings"]["schedules"]}
+    assert "finder-wiki" in schedules
+    assert "Inbox drain" in schedules["finder-wiki"]["prompt"] or "inbox" in schedules["finder-wiki"]["prompt"].lower()
+    assert "finder=9" in schedules["candy-pm-checkpoint"]["prompt"]
+
+
+def test_org_wiki_url_resolves_wiki_alias():
+    """render-agents: org-wiki preferred; legacy id wiki also sets ORG_WIKI_URL."""
+    from repos import index_repos
+
+    repos = index_repos(
+        [{"id": "wiki", "git_repo_url": "https://github.com/demo-org/wiki.git"}]
+    )
+    org = repos.get("org-wiki") or repos.get("wiki") or {}
+    assert org["git_repo_url"] == "https://github.com/demo-org/wiki.git"
 
 
 def test_bridge_sync_includes_schedules(tmp_path, monkeypatch):

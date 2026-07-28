@@ -35,6 +35,9 @@ repos:
   - id: topology-lib
     git_repo_url: https://github.com/demo-org/topology-lib.git
 
+  - id: org-wiki
+    git_repo_url: https://github.com/demo-org/org-wiki.git
+
   - id: k8s-test
     git_repo_url: https://github.com/demo-org/k8s-test.git
 
@@ -76,6 +79,13 @@ agents:
     primary_repo: k8s-test
     type: sessions
 
+  - name: finder
+    leantime_user_id: 9
+    email: finder@example.com
+    persona: finder
+    primary_repo: org-wiki
+    type: sessions
+
 settings:
   debounce_ms: 3000
   mention_routing: true
@@ -91,6 +101,7 @@ settings:
     - "Leave an add_comment outcome on the Active ticket."
     - "If Review-ready: git-ship (push + PR) before handoff."
     - "If tenant_cd-enabled and merged: deploy/smoke evidence fields before Done."
+    - "Wiki-first (org-knowledge); after work: inbox path or wiki: N/A on Active ticket."
   schedules:
     - id: candy-pm-checkpoint
       cron: "5,20,35,50 * * * *"
@@ -104,7 +115,7 @@ settings:
         체크포인트 요청 코멘트 1건(시도·원인·branch/PR·다음 최소 단계).
         원인은 하나만: (1) 과대/모호→서브태스크 분할 (2) 실패/차단→해제·재배정·Blocked·에스컬
         (3) 단순 중단→재개+다음 30분 증거 요청.
-        멘션은 알려진 id만(eric=1,candy=4,asky=5,path=6,infra=13,seewin=14).
+        멘션은 알려진 id만(eric=1,candy=4,asky=5,path=6,finder=9,infra=13,seewin=14).
         코드/메일/장문 금지. 실행당 코멘트 ≤5. 끝나면 조치·분류·스킵 사유만 짧게.
       success_checks:
         - "At most 5 checkpoint comments added this run."
@@ -122,11 +133,13 @@ settings:
       cron: "30 23 * * *"
       agents: [finder]
       prompt: >-
-        위키 리서치(km-researcher) 후 default branch(main)에 직접 commit·push.
+        Use km-researcher then knowledge-promote as needed.
+        Inbox drain + wiki research ingest; commit·push directly to default branch(main).
         PR·feature branch·git-ship 금지. 실패 시 ticket(New), 성공 시 ticket(Done).
       success_checks:
         - "Changes are committed and pushed directly to the default branch (no PR)."
         - "Do not run git-ship or gh pr create."
+        - "Inbox drain attempted (or explicitly no pending inbox)."
         - "On success create/update a Done ticket; on failure a New ticket with blocker."
     - id: infra-k8s-daily
       cron: "0 1 * * *"

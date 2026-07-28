@@ -74,7 +74,7 @@ This file provides guidance to AI coding assistants (Claude Code, Codex, Gemini,
 
 ## 3. Status
 
-M0–M5: `leantime-plugin/`, `agent-runner/`, `deploy/k8s/`, Tenant CD(`repos[].tenant_cd`·infra `tenant-cd`). M4: PVC chat retention + spend alert CronJobs. **seewin** Phase A+B(candidate.win Candydate schedules+CronJobs) + Hermes cron 컷오버 완료. CI는 `.github/workflows/ci.yml`(유닛 + FW supply-chain). 제품 소스는 테넌트 repo — 이 저장소에 넣지 않는다. `settings.schedules` → `cursorbridge-schedule-tick` CronJob.
+M0–M5: `leantime-plugin/`, `agent-runner/`, `deploy/k8s/`, Tenant CD(`repos[].tenant_cd`·infra `tenant-cd`). M4: PVC chat retention + spend alert CronJobs. **seewin** Phase A+B(candidate.win Candydate schedules+CronJobs) + Hermes cron 컷오버 완료. **M10** org-wiki: wiki-first + `inbox/`→finder canonical(`ARCHITECTURE` §2.9). CI는 `.github/workflows/ci.yml`(유닛 + FW supply-chain). 제품 소스는 테넌트 repo — 이 저장소에 넣지 않는다. `settings.schedules` → `cursorbridge-schedule-tick` CronJob.
 
  
 

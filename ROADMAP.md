@@ -92,6 +92,17 @@ M0–M3 코드·K8s·이미지 배포 완료. M5 Tenant CD 공장 측 구현 완
 - [x] infra `incident-tickets.md` + 일일 스케줄: 조치 가능 장애→티켓(mutate 없음)
 - [ ] 제품 APM/지원 포털 연동 (테넌트 선택; 공장 비범위)
 
+## M10 — Org wiki (wiki-first + inbox 승격)
+
+- [x] `ARCHITECTURE` §2.9 지식 계층(L0–L3)·wiki-first·inbox/canonical
+- [x] `_default` `org-knowledge` + `agent-workflow` / MEMORY (finder librarian)
+- [x] finder `knowledge-promote` + `km-researcher` + wiki 레이아웃 레퍼런스
+- [x] `repos[]` `org-wiki` + finder agent + `ORG_WIKI_URL` 주입 + `finder-wiki` inbox drain
+
+**성공기준:** 조사 시 wiki→웹 순서 고정; 작업 후 inbox 또는 `wiki: N/A`; finder만 INDEX/canonical 갱신.
+
+**비범위:** RAG/벡터DB, org-chart 런타임, seewin 정치 위키 병합.
+
 ---
 
 ## 다음 수동 작업

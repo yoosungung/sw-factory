@@ -184,10 +184,11 @@ kubectl -n leantime exec deploy/leantime -- \
 #     - id: finder-wiki
 #       cron: "30 23 * * *"
 #       agents: [finder]
-#       prompt: "위키 리서치 후 main 직접 commit·push (PR/git-ship 금지)"
+#       prompt: "km-researcher: inbox drain + research; main 직푸시 (PR/git-ship 금지)"
 #       success_checks:
 #         - "Changes are committed and pushed directly to the default branch (no PR)."
 #         - "Do not run git-ship or gh pr create."
+#         - "Inbox drain attempted (or explicitly no pending inbox)."
 
 python3 deploy/k8s/scripts/sync-bridge-json.py
 kubectl -n leantime get cronjob cursorbridge-schedule-tick

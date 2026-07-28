@@ -123,6 +123,8 @@ spec:
               value: /cursor-home
             - name: WORKSPACE
               value: /workspace/repo
+            - name: ORG_WIKI_URL
+              value: "{{ORG_WIKI_URL}}"
           ports:
             - containerPort: 8080
               name: http

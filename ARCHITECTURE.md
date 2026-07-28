@@ -131,10 +131,11 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
 7. 에이전트 간 코멘트는 허용; 담당자 에이전트가 자기 코멘트로 재기동되는 것만 억제.
 8. `GH_TOKEN`·push 실패 시: 티켓에 blocker를 남기고 플랫폼 담당자(`eric`)에게 `@mention` — **사용자에게 로컬 push를 요청하지 않는다.**
 9. **Done 게이트 (CD 대상):** candy는 §2.8 증거 필드가 모두 있을 때만 Done. merge ≠ Done.
+10. **지식 계층·wiki-first** — §2.9. 조사는 org-wiki를 웹보다 먼저 검색한다. 재사용 지식은 `inbox/` 기여 후 finder가 canonical로 승격한다.
 
 ### 2.7 Goose A안 실행 정책 (부가)
 
-§1–2.6·§2.8 계약은 불변이다. Goose 분석 기반 보수 도입(A안)은 Cursor SDK local runner와 Leantime 오케스트레이션을 유지한 채, run `budget`/`policy`/summary/`success_checks`를 prompt·로그 수준에서만 추가한다. 상세·단계는 [`docs/goose/06-gap-with-cursor-agent.md`](docs/goose/06-gap-with-cursor-agent.md), runner 내부는 [`agent-runner/DESIGN.md`](agent-runner/DESIGN.md)를 본다. Goose 실행기·scheduler 교체는 A안 범위가 아니다.
+§1–2.6·§2.8·§2.9 계약은 불변이다. Goose 분석 기반 보수 도입(A안)은 Cursor SDK local runner와 Leantime 오케스트레이션을 유지한 채, run `budget`/`policy`/summary/`success_checks`를 prompt·로그 수준에서만 추가한다. 상세·단계는 [`docs/goose/06-gap-with-cursor-agent.md`](docs/goose/06-gap-with-cursor-agent.md), runner 내부는 [`agent-runner/DESIGN.md`](agent-runner/DESIGN.md)를 본다. Goose 실행기·scheduler 교체는 A안 범위가 아니다.
 
 ### 2.8 Tenant CD (`repos[].tenant_cd`)
 
@@ -143,6 +144,7 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
 - **`repos[]`**: `id`, `git_repo_url`, 선택 `tenant_cd`. CD·clone URL의 정본.
 - **`agents[]`**: `primary_repo`(또는 `repos: [id, …]`의 첫 항목)로 workspace를 참조. agent에 `git_repo_url`/`tenant_cd`를 같이 두면 오류(legacy: `primary_repo` 없을 때만 `agents[].git_repo_url`+`tenant_cd` 허용).
 - `render-agents.sh`가 enabled `tenant_cd`를 infra persona ConfigMap `.cursor/tenant-cd-registry.json`으로 넣는다. **bridge.json에는 실리지 않는다.** 실행 절차는 infra `tenant-cd` 스킬.
+- `repos[]`에 `id: org-wiki`(또는 레거시 `wiki`)가 있으면 Pod에 `ORG_WIKI_URL`을 주입한다. 절차는 persona `org-knowledge` / finder `knowledge-promote` 스킬.
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
@@ -169,6 +171,26 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
 4. `smoke:` HTTP `<status>` `<url>`
 
 레지스트리 JSON shape: `{ "version": 1, "tenants": [ { "agent", "repo_id?", "git_repo_url", "tenant_cd": { ... } } ] }`. infra는 티켓의 agent / `repo_id` / repo URL로 조회한다.
+
+### 2.9 전사 지식 (org-wiki)
+
+정본 repo: `agents.yaml` `repos[]`의 `id: org-wiki`(레거시 별칭 `wiki`도 `ORG_WIKI_URL` 주입에 허용). Pod env `ORG_WIKI_URL`로 URL을 주입한다(`render-agents.sh`).
+
+| 계층 | 정본 | 쓰기 |
+|------|------|------|
+| L0 | 각 제품/공장 repo의 `ARCHITECTURE`/`DESIGN` | 해당 repo 전담. wiki에 **복사 금지**(링크만) |
+| L1 | Leantime 티켓·코멘트 | 담당 agent. 문의·보고·위임·지시 |
+| L2 | org-wiki | **읽기:** 전원. **기여:** `inbox/{agent}/`만(비-finder). **정본:** finder만(`INDEX.md`, `playbooks/` 등 canonical) |
+| L3 | persona `MEMORY.md` | 배포 시드·운영 힌트. Pod 내 수정은 재시작 시 ConfigMap 시드로 **초기화**. 조직 사실을 두지 않음 |
+
+규칙:
+
+1. **wiki-first** — 조사·외부 사실 확인 전 `INDEX.md` 및 관련 페이지를 검색한다. miss·stale(`review_after` 경과)·L0에 없는 외부 사실일 때만 웹 검색.
+2. **작업 후** — 재사용 지식이면 `inbox/{agent}/YYYY-MM-DD-slug.md`를 main에 직푸시하고 Active 티켓에 경로를 적는다. 없으면 `wiki: N/A — <사유>`.
+3. **finder** — `inbox/`(및 `@finder` brief)를 canonical로 합성하고 `INDEX.md`를 갱신한 뒤 `inbox/_archived/`로 옮긴다. 스케줄 `finder-wiki`는 리서치 ingest + inbox drain. PR/`git-ship`/feature branch 금지(main 직푸시).
+4. seewin 정치 위키 등 테넌트 전용 SSoT와 org-wiki는 병합하지 않는다.
+
+절차 정본: `_default` `org-knowledge`, finder `knowledge-promote` / `km-researcher`.
 
 ## 3. 인증·비용
 
