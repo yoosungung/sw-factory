@@ -34,7 +34,7 @@ pip install pyyaml   # 또는 venv
 python deploy/k8s/scripts/sync-bridge-json.py
 ```
 
-`render-agents.sh`는 `deploy/k8s/base/generated/`에 StatefulSet·Service·ConfigMap·kustomization을 생성합니다. Persona ConfigMap은 `deploy/personas/_default/`와 `deploy/personas/{persona}/`를 병합합니다 (`persona_bundle.py`). Cursor rules는 `.cursor/rules/*.mdc`로 시드됩니다.
+`render-agents.sh`는 `deploy/k8s/base/generated/`에 StatefulSet·Service·ConfigMap·kustomization을 생성합니다. Persona ConfigMap은 `deploy/personas/_default/`와 `deploy/personas/{persona}/`를 병합합니다 (`persona_bundle.py`). Cursor rules·skills·`mcp.json`은 매 기동 시 시드로 덮어쓰고, `.cursor/MEMORY.md`만 **seed-once**(없으면 생성, 있으면 PVC 내용 유지)입니다. 시드를 강제로 다시 쓰려면 Pod에서 해당 파일을 지운 뒤 restart합니다.
 
 ## 3. Secret
 

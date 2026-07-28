@@ -31,18 +31,7 @@ spec:
             - sh
             - -c
             - |
-              for src in /persona/*; do
-                [ -f "$src" ] || continue
-                key=$(basename "$src")
-                dest="$key"
-                case "$key" in
-                  *__*)
-                    dest=$(echo "$key" | sed 's/__/\//g' | sed 's/^_dot_/./')
-                    ;;
-                esac
-                mkdir -p "/cursor-home/$(dirname "$dest")"
-                cp "$src" "/cursor-home/$dest"
-              done
+{{SEED_PERSONA_SCRIPT}}
           volumeMounts:
             - name: cursor-home
               mountPath: /cursor-home

@@ -1,6 +1,6 @@
 # Agent memory (defaults)
 
-Persona별 `MEMORY.md`가 이어 붙는다. Leantime 협업 절차는 `leantime-collab` 스킬을 따른다. 전사 지식은 `org-knowledge`(wiki-first·inbox) — Pod에서 이 파일을 고쳐도 재배포 시 시드로 초기화된다.
+Persona별 `MEMORY.md`가 이어 붙는다. Leantime 협업 절차는 `leantime-collab` 스킬을 따른다. 전사 지식은 `org-knowledge`(wiki-first·inbox). Pod에서 고친 내용은 PVC에 유지되며, 재배포 시 ConfigMap으로 덮어쓰지 않는다(시드 재적용은 dest 삭제 후 restart).
 
 ## Tool class policy (Goose A안)
 

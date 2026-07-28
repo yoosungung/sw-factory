@@ -47,6 +47,15 @@ deploy_agents = [
 out = Path(out_dir)
 ss_tpl = Path(ss_tpl_path).read_text()
 svc_tpl = Path(svc_tpl_path).read_text()
+# Indent seed_persona.sh body for StatefulSet init | block (14 spaces).
+_seed_lines = []
+for _line in (Path(sys.argv[5]) / "seed_persona.sh").read_text().splitlines():
+    if _line.startswith("#!"):
+        continue
+    _seed_lines.append(("              " + _line) if _line else "")
+seed_persona_script = "\n".join(_seed_lines)
+if "{{SEED_PERSONA_SCRIPT}}" not in ss_tpl:
+    raise SystemExit("statefulset template missing {{SEED_PERSONA_SCRIPT}}")
 
 resources = ["namespace-service.yaml"]
 persona_emails: dict[str, str] = {}
@@ -69,7 +78,8 @@ for agent in deploy_agents:
     gh_token_secret_key = str(agent.get("gh_token_secret_key") or "GH_TOKEN").strip() or "GH_TOKEN"
 
     ss = (
-        ss_tpl.replace("{{NAME}}", name)
+        ss_tpl.replace("{{SEED_PERSONA_SCRIPT}}", seed_persona_script)
+        .replace("{{NAME}}", name)
         .replace("{{PERSONA}}", str(persona))
         .replace("{{EMAIL}}", str(email))
         .replace("{{GIT_REPO}}", git_repo)

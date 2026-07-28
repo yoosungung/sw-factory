@@ -115,7 +115,7 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
 | 파일 | PVC 대상 | 병합 |
 |------|----------|------|
 | `mcp.json` | `~/.cursor/mcp.json` | `mcpServers` deep merge (persona가 서버명 단위 override) |
-| `MEMORY.md` | `~/.cursor/MEMORY.md` | `_default` + persona append |
+| `MEMORY.md` | `~/.cursor/MEMORY.md` | `_default` + persona append; **seed-once**(파일 없을 때만 시드, PVC 유지) |
 | `skills/**` | `~/.cursor/skills/**` | 번들 내 `.cursor/skills/` — 경로별 overlay (persona wins) |
 | `rules/**` | `~/.cursor/rules/**` | 번들 내 `.cursor/rules/` — 경로별 overlay (persona wins) |
 | `cli-config.json` | `~/.cursor/cli-config.json` (선택) | persona 파일이 있으면 대체, 없으면 `_default` |
@@ -181,7 +181,7 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
 | L0 | 각 제품/공장 repo의 `ARCHITECTURE`/`DESIGN` | 해당 repo 전담. wiki에 **복사 금지**(링크만) |
 | L1 | Leantime 티켓·코멘트 | 담당 agent. 문의·보고·위임·지시 |
 | L2 | org-wiki | **읽기:** 전원. **기여:** `inbox/{agent}/`만(비-finder). **정본:** finder만(`INDEX.md`, `playbooks/` 등 canonical) |
-| L3 | persona `MEMORY.md` | 배포 시드·운영 힌트. Pod 내 수정은 재시작 시 ConfigMap 시드로 **초기화**. 조직 사실을 두지 않음 |
+| L3 | persona `MEMORY.md` | 배포 시드(최초 1회)·운영 힌트. Pod 내 수정은 PVC에 **유지**(재시작·재배포 시 ConfigMap으로 덮어쓰지 않음). 시드 재적용은 dest 삭제 후 Pod restart. 조직 사실을 두지 않음 |
 
 규칙:
 
