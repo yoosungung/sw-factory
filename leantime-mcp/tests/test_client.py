@@ -155,8 +155,26 @@ async def test_get_comments_filters_since_and_mentioned_user(client: LeantimeCli
 
         method, params = call.await_args.args
         assert method == "leantime.rpc.Comments.Comments.getComments"
-        assert params == {"module": "ticket", "entityId": 99}
+        # parent=-1: Leantime skips commentParent filter (include replies).
+        assert params == {"module": "ticket", "entityId": 99, "parent": -1}
         assert [c["id"] for c in result] == [1]
+
+
+@pytest.mark.asyncio
+async def test_get_comments_requests_all_parents_including_replies(client: LeantimeClient):
+    """Default Leantime parent=0 hides replies; MCP must pass parent=-1."""
+    with patch.object(client, "call", new_callable=AsyncMock) as call:
+        call.return_value = [
+            {"id": 10, "commentParent": 0, "text": "top"},
+            {"id": 11, "commentParent": 10, "text": "reply"},
+        ]
+
+        result = await client.get_comments("ticket", 32)
+
+        method, params = call.await_args.args
+        assert method == "leantime.rpc.Comments.Comments.getComments"
+        assert params["parent"] == -1
+        assert [c["id"] for c in result] == [10, 11]
 
 
 @pytest.mark.asyncio

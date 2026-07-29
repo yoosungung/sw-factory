@@ -51,7 +51,9 @@ Leantime JSON-RPC `Tickets.updateTicket`은 미전달 필드를 `''`로 덮어�
 | `add_comment` | JSON-RPC `Comments.Comments.addComment` |
 | `edit_comment` | JSON-RPC `Comments.Comments.editComment` (`id` + `values.text`) |
 | `delete_comment` | JSON-RPC `Comments.Comments.deleteComment` (`commentId`) |
-| `get_comments` | JSON-RPC `Comments.Comments.getComments` (+ 클라이언트 필터) |
+| `get_comments` | JSON-RPC `Comments.Comments.getComments` (`parent=-1` + 클라이언트 필터) |
+
+`get_comments`는 RPC에 **`parent=-1`** 을 넣어 reply(`commentParent≠0`)까지 포함한다. Leantime 기본 `parent=0`은 최상위만 반환한다.
 
 `get_comments` 추가 인자:
 
