@@ -58,6 +58,6 @@ Persona별 `MEMORY.md`가 이어 붙는다. Leantime 협업 절차는 `leantime-
 
 ## 전사 지식 (org-wiki)
 
-- 조사 전 `org-knowledge`로 wiki 검색. 웹은 miss/stale일 때만.
-- 작업 후 `inbox/{name}/…md` push 또는 티켓에 `wiki: N/A — …`. canonical/`INDEX`는 km만.
-- 급승격: `@km`(user id 9).
+- 조사 전 `org-knowledge`로 `INDEX.md`·`wiki/` 검색. 웹은 miss/stale일 때만.
+- 작업 후 `inbox/{name}/…md` push 또는 티켓에 `wiki: N/A — …`. `wiki/`·`INDEX`는 km만. Quartz는 `wiki/`만 배포(`inbox/`·`raw/` 제외).
+- km promote 후 inbox 원본 삭제(`git rm`). 급승격: `@km`.

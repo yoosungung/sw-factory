@@ -13,7 +13,7 @@ description: >-
 
 1. `git pull --ff-only origin main` (`WIKI_ROOT` = `/workspace/repo` 또는 `ORG_WIKI_URL` clone)
 2. **Inbox drain** — `knowledge-promote`로 미처리 `inbox/` 승격
-3. **Research ingest** — 주제에 대해 **wiki-first** 후 필요할 때만 웹. 합성은 `research/` canonical + `INDEX` (직접 inbox에만 쌓지 말고 스케줄 산출은 canonical 가능)
+3. **Research ingest** — 주제에 대해 **wiki-first** 후 필요할 때만 웹. 합성은 `wiki/` canonical + `INDEX` (직접 inbox에만 쌓지 말고 스케줄 산출은 canonical 가능)
 4. main 직커밋·푸시. PR·git-ship·feature branch 금지
 5. 성공 → Done 티켓(또는 기존 갱신). 실패 → New 티켓 + blocker
 

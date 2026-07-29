@@ -35,7 +35,7 @@ fi
 조사·외부 사실 확인 **전**:
 
 1. `$WIKI_ROOT/INDEX.md`를 읽는다.
-2. 관련 경로를 `rg`로 검색한다 (`playbooks/`, `glossary/`, `research/`, `routing/`, `inbox/` 제외 가능).
+2. 관련 경로를 `rg`로 검색한다 (`wiki/`; `inbox/`·`raw/`는 원료라 검색에서 제외해도 됨).
 3. 히트 페이지를 읽고 **경로를 인용**한다.
 4. **웹 검색은** wiki miss·`review_after` 경과·L0에 없는 외부 사실일 때만. 웹 결과는 즉시 확정하지 말고 inbox `sources`에 URL을 남긴다.
 
@@ -45,7 +45,7 @@ L0(`ARCHITECTURE`/`DESIGN`)·Active 티켓(L1)이 작업 범위 정본이다. wi
 
 허용: `inbox/{AGENT_NAME}/YYYY-MM-DD-slug.md` 만. `AGENT_NAME`은 env `AGENT_NAME`.
 
-금지: `INDEX.md`, `playbooks/`, `glossary/`, `research/`, `routing/`, 타 agent `inbox/`, `inbox/_archived/`.
+금지: `INDEX.md`, `wiki/`(canonical), 타 agent `inbox/`.
 
 ```markdown
 ---

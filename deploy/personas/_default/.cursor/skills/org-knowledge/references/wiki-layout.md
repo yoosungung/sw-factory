@@ -1,26 +1,25 @@
 # Org-wiki layout
 
-Teant org-wiki repo root (not seewin political wiki).
+Tenant org-wiki repo root (`ORG_WIKI_URL`, e.g. `yoosungung/wiki`). Quartz may publish `wiki/` only; **do not** publish `inbox/` or `raw/`.
 
 ```
 INDEX.md                 # catalog — km only
-inbox/{agent}/           # contributions — each sessions bot
-inbox/_archived/         # after promote — km only
-playbooks/               # how-to — km canonical
-glossary/                # terms — km canonical
-research/                # synthesized research — km canonical
-routing/                 # who/where to ask — km canonical
+wiki/                    # how-to · body (canonical) — km writes; all agents read
+inbox/{agent}/           # contributions (raw material) — each sessions bot
+raw/                     # optional human/raw material — not Quartz-published
 ```
+
+Legacy roots `playbooks/`, `glossary/`, `research/`, `routing/` are **not** used; put that content under `wiki/` (any subfolders inside `wiki/` are fine).
 
 ## INDEX.md
 
-One bullet per page: link, one-line summary, optional `updated`. Km updates on every promote/ingest.
+One bullet per page: link into `wiki/…`, one-line summary, optional `updated`. Km updates on every promote/ingest.
 
-## Frontmatter (canonical pages)
+## Frontmatter (canonical pages under `wiki/`)
 
 ```yaml
 ---
-id: playbooks-foo
+id: wiki-foo
 status: canonical   # or draft
 owner: km
 updated: YYYY-MM-DD
@@ -32,3 +31,8 @@ sources:
 ```
 
 Pages are atomic: one topic, one conclusion. Link L0 docs; do not copy contract text.
+
+## Inbox lifecycle
+
+1. Non-km: write only `inbox/{AGENT_NAME}/YYYY-MM-DD-slug.md` and push main.
+2. Km promote: synthesize into `wiki/…`, update `INDEX.md`, then **`git rm` the inbox file** (no `_archived/` keep).
