@@ -61,18 +61,19 @@ Rules:
 
 ### Checkpoint watcher runs
 
-When Eric asks for a 30-minute checkpoint monitor/watchdog run:
+When Eric asks for a 30-minute checkpoint monitor/watchdog run (`pm-checkpoint`):
 
-1. Scope strictly to active development tickets/subtasks with Leantime status `In Progress` (`4`). Do not checkpoint `Done` (`0`), `Archived` (`-1`), `Waiting for Approval` (`2`), `Blocked` (`1`), or `New` (`3`) items unless Eric explicitly says a new developer-action request comment on that item should override status.
-2. Prefer a compact all-ticket/status discovery before per-ticket reads. If first-class `list_tickets` output is huge or truncated by scheduled-run descriptions, use the existing Leantime JSON-RPC pattern (`leantime.rpc.Tickets.Tickets.getAll` with empty `searchCriteria`) or the local watcher helper pattern to compute status counts and identify only `status == 4` candidates, then fetch comments only for those candidates. Do not manually scan giant cron-result payloads.
+1. **Timebox scope:** active development tickets/subtasks with status `In Progress`. Do not timebox-nudge `Done`, `Archived`, `Blocked`, or `New` unless Eric explicitly overrides. `Waiting for Approval` is **not** a developer timebox target — use the misroute sweep below.
+2. Prefer a compact all-ticket/status discovery before per-ticket reads. If first-class `list_tickets` output is huge or truncated by scheduled-run descriptions, use the existing Leantime JSON-RPC pattern (`leantime.rpc.Tickets.Tickets.getAll` with empty `searchCriteria`) or the local watcher helper pattern to compute status counts and identify `In Progress` candidates, then fetch comments only for those candidates. Do not manually scan giant cron-result payloads.
    - Practical fallback when MCP `list_tickets` floods context: run a small Python/httpx JSON-RPC probe against `/api/jsonrpc` using the configured `LEANTIME_URL`/PAT, call `leantime.rpc.Tickets.Tickets.getAll` with `{"searchCriteria": {}}`, and print only `{counts, active_count, active:[id, headline, projectId, projectName, status, type, editorId, dependingTicketId, date, commentCount]}`. This is acceptable for discovery only; use MCP tools for comments/mutations. See `references/checkpoint-jsonrpc-status-probe.md` for the compact probe pattern.
-   - If JSON-RPC discovery is rate-limited or per-parent subtask probing would be noisy, use the read-only Kubernetes/MariaDB SQL fallback in `references/checkpoint-sql-status-probe.md` to get status counts and `status=4` rows compactly. Do not print secrets; use SQL only for discovery/verification and MCP for comments.
-   - If `active_count == 0`, strengthen the no-op verification by checking active subtasks. Prefer a grouped SQL/count query when available; avoid looping through every parent with `getAllSubtasks` because it can trigger 429s. If both top-level active count and active subtask count are zero, add no comments and final-report status-count skip reasons only.
+   - If JSON-RPC discovery is rate-limited or per-parent subtask probing would be noisy, use the read-only Kubernetes/MariaDB SQL fallback in `references/checkpoint-sql-status-probe.md` to get status counts and `In Progress` rows compactly. Do not print secrets; use SQL only for discovery/verification and MCP for comments.
+   - If `active_count == 0`, strengthen the no-op verification by checking active subtasks. Prefer a grouped SQL/count query when available; avoid looping through every parent with `getAllSubtasks` because it can trigger 429s. If both top-level active count and active subtask count are zero, skip timebox comments (misroute sweep may still run).
 3. Before commenting, read the latest comments for each candidate and suppress duplicates when a PM/pm checkpoint request was posted within the last 30 minutes on the same ticket.
 4. Identify the last actionable developer comment. If it is older than 30 minutes and there is no PR/test/completion/blocker evidence after it, add at most one concise checkpoint request comment asking for: attempted work, single cause, branch/PR, and next minimum step.
 5. Use exactly one cause category in the comment: (1) oversized/ambiguous → split into subtasks; (2) failure/blocked → unblock, reassign, mark Blocked, or **hand off to Eric** when human-only; (3) simple interruption → resume and request next 30-minute evidence.
-6. Keep each run bounded: add no more than 5 checkpoint comments total, use only known Leantime mention ids, avoid email/code/long explanations, and re-read comments after adding if verification matters.
-7. Final report for watchdog runs should be short and operational: list acted tickets, classification, and skipped tickets/reasons only. If there are zero `In Progress` development items, add no comments and report concise status-count skip reasons (for example Done/Archived, Blocked, New, Waiting for Approval counts plus any notable skipped active-ish ticket IDs).
+6. **Human misroute sweep (ARCHITECTURE §2.6 #13):** also scan `Waiting for Approval` (and any ticket whose newest actionable ask is `@eric` / assignee Eric). If the next step is **agent-actionable**, bounce to the correct status + assignee + `@mention` with one correction comment. If the ask is human-only (secrets/RBAC/product judgment) **or ambiguous**, leave Approval. Heuristic detail: `references/ticket-ops.md` → Human misroute correction.
+7. Keep each run bounded: ≤5 timebox comments + ≤5 misroute corrections; known Leantime mention ids only; re-read after mutations when verification matters.
+8. Final report: acted tickets (timebox vs misroute), classification, and skip reasons (Done/Archived/Blocked/New counts; Approval kept as human-only).
 
 
 ## Escalate to Eric
@@ -104,7 +105,7 @@ When a developer (or pm) has already recorded evidence that they cannot proceed 
 2. Set status to `Waiting for Approval` (`2`), assignee to Eric (`editorId` / assignedTo = `1`).
 3. Add one concise HTML comment: `@eric` mention, concrete ask (what grant/secret/session/apply), code/PR/bundle state already done, and what to verify after unblocking.
 4. Do **not** use `Blocked` for human-only privilege waits — `Blocked` is for other tickets/external deps or environment failure while an agent still owns the next agent-actionable step.
-5. Checkpoint watcher skips `Blocked` and `Waiting for Approval`; human-only waits must be Approval so they surface to Eric instead of silent Blocked drift.
+5. Developer timebox skips `Blocked` and `Waiting for Approval`; human-only waits must be Approval so they surface to Eric. Misroute sweep still **reads** Approval and bounces only agent-actionable asks (see ticket-ops).
 
 ## Status Guidance
 
@@ -131,7 +132,7 @@ Before reporting PM progress:
 - [ ] For tenant_cd tickets: feature Done evidence = pr_url, merge_sha, test_*, qa: pass, aa: pass, prod_* — otherwise do not Done; ensure ta→qa/aa→ta prod handoffs.
 - [ ] After merge, the parent has a closeout comment and the next canonical subtask has an actionable owner-mentioned instruction.
 - [ ] Duplicate/orphan tickets caused by wrong references or MCP behavior are commented and archived with a canonical pointer.
-- [ ] Eric was asked where required.
+- [ ] Eric was asked where required; human misroutes on Approval were bounced or explicitly kept as human-only.
 - [ ] In concurrent watcher/agent contexts, the latest ticket comments and GitHub open PR list were reconciled after all mutations; stale or contradictory comments were corrected on the active ticket.
 - [ ] Re-read the parent ticket, attached files, comments, and subtasks after mutating them.
 - [ ] For watcher/concurrent-agent tickets, the final `get_ticket(active_id)` status and newest comments still support the reported outcome; if not, add one concise correction comment and report the observed final state, not the intended state.

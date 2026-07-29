@@ -67,7 +67,7 @@ Rules:
 3. If a developer asks a blocking question, move ticket to `Blocked` or `Waiting for Approval` depending on who must act.
 4. If PM requests developer action, keep/mark `In Progress`.
 5. If Eric confirmation **or human-only unblock** is required, mark `Waiting for Approval`, assignee Eric, and `@eric` with a concrete ask — do not leave assignee on a developer who already proved they lack the required privilege (RBAC, admin/BFF session, secrets, cluster policy).
-6. Never ping-pong `Blocked` + developer assignee when the developer's latest evidence is "cannot proceed without human privilege"; convert to Eric handoff immediately so checkpoint watchers (which skip Blocked/Approval) do not create silent drift.
+6. Never ping-pong `Blocked` + developer assignee when the developer's latest evidence is "cannot proceed without human privilege"; convert to Eric handoff immediately so developer timebox (which skips Blocked/Approval) does not create silent drift. Misroute sweep still reviews Approval for agent-actionable asks.
 - After merge on tenant_cd: status `Deploying Test`, assign/mention **ta** with `merge_sha`. After test evidence: ensure `@qa` `@aa`. After qa+aa pass: ensure ta `Deploying Prod`. Do not `Done` until feature evidence is complete.
 - In active watcher/agent environments, re-read the active ticket comments immediately before git-ship or review handoff, and again after opening a PR. If another agent already opened or merged the same scope, do not keep a duplicate PR alive just to satisfy a handoff shape; close the duplicate with a GitHub comment, add a Leantime correction/outcome on the active ticket, and base status on the canonical merged/open PR.
 
@@ -76,6 +76,33 @@ Rules:
 Hand off to Eric (not developer/`pm` Blocked loops) when the next step needs authority agents lack: denied API/RBAC verbs, missing secrets or admin session, policy/platform changes, or live apply outside the agent write scope. Prefer evidence (`can-i`, 401/403, missing secret) over role nicknames.
 
 Handoff comment must include: concrete grant/session/apply needed, already-complete code/PR/bundle evidence, and the post-unblock verification step.
+
+### Human misroute correction
+
+PM checkpoint / queue hygiene (ARCHITECTURE §2.6 #13): fix tickets wrongly parked on a human when a factory agent owns the next step.
+
+**Candidates (per run):**
+- Status `Waiting for Approval`, or
+- Newest actionable comment `@eric` / assignee Eric (`data-tagged-user-id="1"`), even if status is not Approval yet.
+
+**Classify the newest concrete ask (not the ticket title alone):**
+
+| Next step | Action |
+|-----------|--------|
+| PR review / merge / Review handoff | Bounce → `Review`, assignee **pm**, `@pm` |
+| Browser E2E / quality gate | Bounce → `QA`, `@qa` (and `@aa` if security gate due) |
+| Tenant CD test/prod deploy | Bounce → `Deploying Test` or `Deploying Prod`, `@ta` |
+| Wiki / knowledge promote | Bounce → owning status, `@km` |
+| Local implementation still open | Bounce → `In Progress`, developer assignee + mention |
+| Secrets, RBAC/policy elevation, product/scope/cost judgment, GH_TOKEN/push needing human | **Keep** Approval + Eric |
+| Ambiguous / cannot tell | **Keep** Approval (fail-closed toward human) |
+
+**Bounce shape:**
+1. `update_ticket`: correct status + assignee for who executes next.
+2. One short correction comment: why bounced, previous mistaken human ask, next owner `@mention` (HTML `data-tagged-user-id`).
+3. Do not ask Eric to re-approve the bounce.
+4. Cap ≤5 misroute corrections per checkpoint run; prefer newest/stale Approval first.
+5. If another PM correction was posted on the same ticket within 30 minutes, skip duplicate.
 
 ### Reactivated or Reused Tickets
 

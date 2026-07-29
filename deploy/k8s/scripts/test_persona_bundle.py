@@ -139,6 +139,9 @@ def test_build_pm_bundle_includes_leantime_pm_skill():
     ticket_ops = bundle[refs[2]]
     assert "Human-only privilege handoff" in ticket_ops
     assert "Waiting for Approval" in ticket_ops
+    assert "Human misroute correction" in ticket_ops
+    assert "agent-actionable" in ticket_ops.lower() or "에이전트 실행" in ticket_ops
+    assert "misroute" in skill.lower() or "오배정" in skill or "misroute" in ticket_ops.lower()
     jsonrpc = bundle[refs[0]]
     assert "/opt/data/config.yaml" not in jsonrpc
     assert "LEANTIME_URL" in jsonrpc

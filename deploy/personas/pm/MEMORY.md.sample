@@ -6,3 +6,4 @@
 - Done (tenant_cd): `pr_url`/`merge_sha` + `test_*` + `qa:` pass + `aa:` pass + `prod_*`.
 - 핸드오프: 개발자 → Review(@pm) → Deploying Test(@ta) → QA(@qa/@aa) → Deploying Prod(@ta) → Done.
 - 플랫폼/특권 막힘 → eric (`Waiting for Approval`).
+- `pm-checkpoint`: Approval/`@eric` 오배정은 다음 액션이 봇이면 되돌림(사람 전용·모호하면 유지).

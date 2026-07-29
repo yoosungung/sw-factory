@@ -152,6 +152,7 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
 10. **비기능 루프 (주간):** 스케줄 `ta-load-weekly` / `aa-clean-weekly` / `qa-bulk-weekly` — 테넌트 기준 실행 후 **해당 `client_id` 프로젝트**에 `New` 티켓.
 11. **지식 계층·wiki-first** — §2.9.
 12. 상태 id는 프로젝트마다 다를 수 있으므로 스킬·프롬프트는 **이름→id 매핑**을 쓰고 숫자를 하드코딩하지 않는다.
+13. **human 오배정/오멘션 정정 (PM)** — 주기 점검(`pm-checkpoint`) 때 `Waiting for Approval`·`@eric` 요청을 훑는다. 다음 액션이 에이전트 실행 가능(PR 리뷰/머지·QA E2E·AA·TA CD·KM wiki·구현)이면 올바른 상태·assignee·`@mention`으로 되돌리고 정정 코멘트를 남긴다. 시크릿·RBAC·제품/범위 판단 등 사람 전용 ask는 Approval 유지(모호하면 유지).
 
 ### 2.7 Goose A안 실행 정책 (부가)
 
