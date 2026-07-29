@@ -12,9 +12,18 @@ clients:
     project_id: 1
     repo_ids: [landing-web, shop-api]
 
+  # Example real client (see deploy/SETUP.md §B)
+  - id: sw-factory
+    leantime_client_id: 2
+    project_id: 5
+    repo_ids: [sw-factory]
+
 repos:
   - id: bridge-harness
     git_repo_url: https://github.com/demo-org/bridge-harness.git
+
+  - id: sw-factory
+    git_repo_url: https://github.com/yoosungung/sw-factory.git
 
   - id: shop-api
     git_repo_url: https://github.com/demo-org/shop-api.git
@@ -64,6 +73,14 @@ agents:
     primary_repo: shop-api
     type: sessions
     gh_token_secret_key: GH_TOKEN_pm
+
+  # Example developer agent (sessions) — yoosungung/sw-factory client repo
+  - name: sw-factory
+    leantime_user_id: 7
+    email: sw-factory@example.com
+    persona: sw-factory
+    primary_repo: sw-factory
+    type: sessions
 
   # Example developer agent (sessions) — repo under client
   - name: asky

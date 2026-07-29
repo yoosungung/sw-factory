@@ -11,6 +11,8 @@ def test_install_sw_factory_script_exists_and_wipes_safely():
     assert "CURSORBRIDGE_NS" in text
     assert "--wipe" in text
     assert "seed_factory_users.py" in text
+    assert "status_board.py" in text
+    assert "--all-clients" in text
     assert "render-agents.sh" in text
     assert "overlays/sw-factory" in text
     assert "install-plugin-k8s.sh" in text
