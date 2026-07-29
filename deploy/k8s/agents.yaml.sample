@@ -18,12 +18,20 @@ clients:
     project_id: 5
     repo_ids: [sw-factory]
 
+  - id: nl2sql
+    leantime_client_id: 3
+    project_id: 6
+    repo_ids: [nl2sql]
+
 repos:
   - id: bridge-harness
     git_repo_url: https://github.com/demo-org/bridge-harness.git
 
   - id: sw-factory
     git_repo_url: https://github.com/yoosungung/sw-factory.git
+
+  - id: nl2sql
+    git_repo_url: https://github.com/yoosungung/nl2sql.git
 
   - id: shop-api
     git_repo_url: https://github.com/demo-org/shop-api.git
@@ -80,6 +88,13 @@ agents:
     email: sw-factory@example.com
     persona: sw-factory
     primary_repo: sw-factory
+    type: sessions
+
+  - name: nl2sql
+    leantime_user_id: 8
+    email: nl2sql@example.com
+    persona: nl2sql
+    primary_repo: nl2sql
     type: sessions
 
   # Example developer agent (sessions) — repo under client

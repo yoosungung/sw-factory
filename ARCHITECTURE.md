@@ -208,14 +208,14 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
 |------|------|------|
 | L0 | 각 제품/공장 repo의 `ARCHITECTURE`/`DESIGN` | 해당 repo 전담. wiki에 **복사 금지**(링크만) |
 | L1 | Leantime 티켓·코멘트 | 담당 agent. 문의·보고·위임·지시 |
-| L2 | org-wiki | **읽기:** 전원. **기여:** `inbox/{agent}/`만(비-km). **정본:** km만(`INDEX.md`, `playbooks/` 등 canonical) |
+| L2 | org-wiki | **읽기:** 전원. **기여:** `inbox/{agent}/`만(비-km). **정본:** km만(`INDEX.md`, `wiki/` canonical). Quartz는 `wiki/`만 배포; `inbox/`·`raw/` 비공개 |
 | L3 | persona `MEMORY.md` | 배포 시드(최초 1회)·운영 힌트. Pod 내 수정은 PVC에 **유지**(재시작·재배포 시 ConfigMap으로 덮어쓰지 않음). 시드 재적용은 dest 삭제 후 Pod restart. 조직 사실을 두지 않음 |
 
 규칙:
 
 1. **wiki-first** — 조사·외부 사실 확인 전 `INDEX.md` 및 관련 페이지를 검색한다. miss·stale(`review_after` 경과)·L0에 없는 외부 사실일 때만 웹 검색.
 2. **작업 후** — 재사용 지식이면 `inbox/{agent}/YYYY-MM-DD-slug.md`를 main에 직푸시하고 Active 티켓에 경로를 적는다. 없으면 `wiki: N/A — <사유>`.
-3. **km** — `inbox/`(및 `@km` brief)를 canonical로 합성하고 `INDEX.md`를 갱신한 뒤 `inbox/_archived/`로 옮긴다. 스케줄 `km-wiki`는 리서치 ingest + inbox drain. PR/`git-ship`/feature branch 금지(main 직푸시).
+3. **km** — `inbox/`(및 `@km` brief)를 `wiki/` canonical로 합성하고 `INDEX.md`를 갱신한 뒤 **inbox 원본을 삭제**(`git rm`). 스케줄 `km-wiki`는 리서치 ingest + inbox drain. PR/`git-ship`/feature branch 금지(main 직푸시).
 4. seewin 정치 위키 등 테넌트 전용 SSoT와 org-wiki는 병합하지 않는다.
 
 절차 정본: `_default` `org-knowledge`, km `knowledge-promote` / `km-researcher`.
