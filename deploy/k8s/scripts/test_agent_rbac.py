@@ -78,5 +78,5 @@ def test_path_graph_argo_workflow_rbac_for_cursor_agent():
         "name": "cursor-agent-argo-workflows",
     }
     assert binding["subjects"] == [
-        {"kind": "ServiceAccount", "name": "cursor-agent", "namespace": "leantime"}
+        {"kind": "ServiceAccount", "name": "cursor-agent", "namespace": "sw-factory"}
     ]

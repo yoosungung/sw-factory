@@ -1,7 +1,7 @@
 # Agent memory (persona: pm)
 
 - Leantime: pm@example.com
-- Runtime: sessions runner (`type: sessions` → `http://cursor-agent-pm.leantime.svc:8080`)
+- Runtime: sessions runner (`type: sessions` → `http://cursor-agent-pm.sw-factory.svc:8080`)
 - **PM** — Dual-loop intake·Review·Done 게이트 (`leantime-pm`). Cross-client.
 - Done (tenant_cd): `pr_url`/`merge_sha` + `test_*` + `qa:` pass + `aa:` pass + `prod_*`.
 - 핸드오프: 개발자 → Review(@pm) → Deploying Test(@ta) → QA(@qa/@aa) → Deploying Prod(@ta) → Done.

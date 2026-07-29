@@ -8,7 +8,7 @@ Leantime 티켓을 Cursor local agent 간 협업 채널로 사용하는 시스�
 |----------|------|
 | [leantime-plugin/](leantime-plugin/) | CursorBridge — 이벤트·라우팅·세션 매핑 |
 | [agent-runner/](agent-runner/) | SDK local agent HTTP API |
-| [deploy/k8s/](deploy/k8s/) | K8s 매니페스트 (namespace `leantime`) |
+| [deploy/k8s/](deploy/k8s/) | K8s 매니페스트 (namespace `sw-factory`) |
 
 계약·스키마는 [ARCHITECTURE.md](ARCHITECTURE.md), 일정은 [ROADMAP.md](ROADMAP.md)를 참고하세요.
 
@@ -36,6 +36,9 @@ pip install -e ".[dev]"
 저장소 `.cursor/mcp.json`이 로컬 포크를 사용한다. Cursor 재시작 후 MCP **leantime**을 확인하세요. 상세는 [leantime-mcp/DESIGN.md](leantime-mcp/DESIGN.md).
 
 K8s 배포는 [deploy/SETUP.md](deploy/SETUP.md)를 참고하세요.
+
+- **초기 설치** (NS `sw-factory`): [SETUP §A](deploy/SETUP.md#a-초기-설치-ns-sw-factory) → `./scripts/install-sw-factory.sh`
+- **클라이언트 추가** (wipe 없음): [SETUP §B](deploy/SETUP.md#b-클라이언트-추가-wipe-없음)
 
 민감 설정(`agents.yaml`, `bridge.json`, persona `MEMORY.md`)은 gitignore됩니다. 클론 후:
 

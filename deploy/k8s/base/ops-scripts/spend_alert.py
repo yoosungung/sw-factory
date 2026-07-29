@@ -17,7 +17,7 @@ from typing import Any
 
 DEFAULT_THRESHOLD = 2_000_000
 DEFAULT_PROJECT_ID = 16  # agents-runtime
-DEFAULT_URL = "http://leantime.leantime.svc"
+DEFAULT_URL = "http://leantime.sw-factory.svc"
 
 
 def extract_usage_tokens(usage: dict[str, Any] | None) -> tuple[int, int]:

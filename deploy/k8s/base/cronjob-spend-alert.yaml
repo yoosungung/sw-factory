@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: cursorbridge-spend-alert
-  namespace: leantime
+  namespace: sw-factory
   labels:
     app: cursorbridge
 spec:
@@ -37,7 +37,7 @@ spec:
                 - name: SPEND_TOKEN_THRESHOLD
                   value: "2000000"
                 - name: LEANTIME_URL
-                  value: http://leantime.leantime.svc
+                  value: http://leantime.sw-factory.svc
                 - name: LEANTIME_PROJECT_ID
                   value: "16"
                 - name: LEANTIME_USER_ID
@@ -58,7 +58,7 @@ spec:
                 - -c
                 - |
                   set -eu
-                  NS=leantime
+                  NS=sw-factory
                   WINDOW=24h
                   LOGS=$(mktemp)
                   kubectl -n "$NS" logs -l app=cursor-agent -c agent-runner \

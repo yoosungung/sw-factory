@@ -5,9 +5,9 @@ Use this only as a bounded fallback during checkpoint watcher runs when `list_ti
 ## Kubernetes/MariaDB pattern
 
 1. Confirm the Leantime MariaDB pod and DB env are available:
-   `kubectl get pods -n leantime`
+   `kubectl get pods -n sw-factory`
 2. Run read-only SQL inside `leantime-mariadb-0` without printing secrets:
-   `kubectl exec -n leantime leantime-mariadb-0 -- sh -c 'mysql -u"$MARIADB_USER" -p"$(cat $MARIADB_PASSWORD_FILE)" "$MARIADB_DATABASE" -e "SELECT status, COUNT(*) c FROM zp_tickets GROUP BY status ORDER BY status; SELECT id, projectId, headline, status, userId, editorId, dependingTicketId, type, modified FROM zp_tickets WHERE status=4 ORDER BY modified DESC;"'`
+   `kubectl exec -n sw-factory leantime-mariadb-0 -- sh -c 'mysql -u"$MARIADB_USER" -p"$(cat $MARIADB_PASSWORD_FILE)" "$MARIADB_DATABASE" -e "SELECT status, COUNT(*) c FROM zp_tickets GROUP BY status ORDER BY status; SELECT id, projectId, headline, status, userId, editorId, dependingTicketId, type, modified FROM zp_tickets WHERE status=4 ORDER BY modified DESC;"'`
 3. If top-level `status=4` returns zero rows, check visible subtasks with a grouped SQL query rather than probing every parent via JSON-RPC:
    `SELECT dependingTicketId, status, COUNT(*) c FROM zp_tickets WHERE dependingTicketId IS NOT NULL AND dependingTicketId <> 0 GROUP BY dependingTicketId, status ORDER BY dependingTicketId, status;`
 4. Treat `status=4` as the strict active development scope. Do not add checkpoint comments when both top-level and subtask `status=4` counts are zero.

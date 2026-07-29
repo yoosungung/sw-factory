@@ -13,7 +13,7 @@ import sys
 
 CHATS_DIR = "/cursor-home/.cursor/chats"
 DEFAULT_RETENTION_DAYS = 14
-NAMESPACE = os.environ.get("NAMESPACE", "leantime")
+NAMESPACE = os.environ.get("NAMESPACE", "sw-factory")
 POD_LABEL = os.environ.get("POD_LABEL", "app=cursor-agent")
 CONTAINER = os.environ.get("AGENT_CONTAINER", "agent-runner")
 

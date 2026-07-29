@@ -51,7 +51,7 @@ def test_runner_url_sessions_dns():
     mod = _load_sync_module()
     assert (
         mod.runner_url_for({"name": "path", "type": "sessions"})
-        == "http://cursor-agent-path.leantime.svc:8080"
+        == "http://cursor-agent-path.sw-factory.svc:8080"
     )
 
 

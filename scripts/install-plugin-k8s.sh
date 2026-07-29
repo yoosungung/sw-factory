@@ -3,7 +3,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PLUGIN="${ROOT}/leantime-plugin"
-NS="${CURSORBRIDGE_NS:-leantime}"
+NS="${CURSORBRIDGE_NS:-sw-factory}"
 CM=cursorbridge-plugin
 
 tmpdir=$(mktemp -d)

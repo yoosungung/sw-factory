@@ -118,14 +118,14 @@ def agent_model(agent: dict, settings: dict) -> str:
     return str(agent.get("model") or settings.get("model") or DEFAULT_MODEL)
 
 
-def runner_url_for(agent: dict, k8s_namespace: str = "leantime") -> str:
+def runner_url_for(agent: dict, k8s_namespace: str = "sw-factory") -> str:
     """Resolve runner_url from type: human→""; sessions→cursor-agent DNS; openai→YAML required."""
     kind = agent_type(agent)
     if kind == "human":
         return ""
     if kind == "sessions":
         name = agent["name"]
-        ns = (k8s_namespace or "leantime").strip() or "leantime"
+        ns = (k8s_namespace or "sw-factory").strip() or "sw-factory"
         return f"http://cursor-agent-{name}.{ns}.svc:8080"
     url = str(agent.get("runner_url") or "").strip()
     if not url:
@@ -242,7 +242,7 @@ def normalize_success_retry(raw: object) -> dict | None:
 def main() -> None:
     data = yaml.safe_load(AGENTS_YAML.read_text())
     settings = data.get("settings", {})
-    k8s_ns = str(settings.get("k8s_namespace") or "leantime").strip() or "leantime"
+    k8s_ns = str(settings.get("k8s_namespace") or "sw-factory").strip() or "sw-factory"
     repos_by_id = index_repos(data.get("repos"))
     agents_out = []
     for agent in data.get("agents", []):

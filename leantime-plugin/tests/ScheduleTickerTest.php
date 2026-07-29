@@ -44,13 +44,13 @@ final class ScheduleTickerTest extends TestCase
                     'name' => 'path',
                     'leantime_user_id' => 6,
                     'type' => 'sessions',
-                    'runner_url' => 'http://cursor-agent-path.leantime.svc:8080',
+                    'runner_url' => 'http://cursor-agent-path.sw-factory.svc:8080',
                 ],
                 [
                     'name' => 'km',
                     'leantime_user_id' => 9,
                     'type' => 'sessions',
-                    'runner_url' => 'http://cursor-agent-km.leantime.svc:8080',
+                    'runner_url' => 'http://cursor-agent-km.sw-factory.svc:8080',
                 ],
             ],
             'budget' => ['timeout_ms' => 600000],
@@ -102,13 +102,13 @@ final class ScheduleTickerTest extends TestCase
                     'name' => 'path',
                     'leantime_user_id' => 6,
                     'type' => 'sessions',
-                    'runner_url' => 'http://cursor-agent-path.leantime.svc:8080',
+                    'runner_url' => 'http://cursor-agent-path.sw-factory.svc:8080',
                 ],
                 [
                     'name' => 'km',
                     'leantime_user_id' => 9,
                     'type' => 'sessions',
-                    'runner_url' => 'http://cursor-agent-km.leantime.svc:8080',
+                    'runner_url' => 'http://cursor-agent-km.sw-factory.svc:8080',
                 ],
             ],
             'schedules' => [
@@ -147,7 +147,7 @@ final class ScheduleTickerTest extends TestCase
                     'name' => 'path',
                     'leantime_user_id' => 6,
                     'type' => 'sessions',
-                    'runner_url' => 'http://cursor-agent-path.leantime.svc:8080',
+                    'runner_url' => 'http://cursor-agent-path.sw-factory.svc:8080',
                 ],
             ],
             'schedules' => [
@@ -183,7 +183,7 @@ final class ScheduleTickerTest extends TestCase
                     'name' => 'pm',
                     'leantime_user_id' => 4,
                     'type' => 'sessions',
-                    'runner_url' => 'http://cursor-agent-pm.leantime.svc:8080',
+                    'runner_url' => 'http://cursor-agent-pm.sw-factory.svc:8080',
                 ],
             ],
             'schedules' => [
@@ -231,7 +231,7 @@ final class ScheduleTickerTest extends TestCase
                     'name' => 'pm',
                     'leantime_user_id' => 4,
                     'type' => 'sessions',
-                    'runner_url' => 'http://cursor-agent-pm.leantime.svc:8080',
+                    'runner_url' => 'http://cursor-agent-pm.sw-factory.svc:8080',
                 ],
             ],
             'schedules' => [
@@ -280,7 +280,7 @@ final class ScheduleTickerTest extends TestCase
                     'name' => 'pm',
                     'leantime_user_id' => 4,
                     'type' => 'sessions',
-                    'runner_url' => 'http://cursor-agent-pm.leantime.svc:8080',
+                    'runner_url' => 'http://cursor-agent-pm.sw-factory.svc:8080',
                 ],
             ],
             'schedules' => [

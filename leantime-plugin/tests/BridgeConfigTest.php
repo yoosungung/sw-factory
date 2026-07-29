@@ -41,7 +41,7 @@ final class BridgeConfigTest extends TestCase
         $this->assertSame('', (string) ($config->runnerForUserId(1)['runner_url'] ?? ''));
         $this->assertSame('human', $config->agentType($config->runnerForUserId(1)));
         $this->assertSame('sessions', $config->typeForRunnerUrl($candyUrl));
-        $this->assertSame('sessions', $config->typeForRunnerUrl('http://cursor-agent-path.leantime.svc:8080'));
+        $this->assertSame('sessions', $config->typeForRunnerUrl('http://cursor-agent-path.sw-factory.svc:8080'));
         $openaiCfg = new BridgeConfig([
             'agents' => [
                 [
