@@ -33,6 +33,8 @@ This file provides guidance to AI coding assistants (Claude Code, Codex, Gemini,
 | `<comp>/DESIGN.md` | 컴포넌트 *내부* 설계 + `## Commands` (빌드/실행/테스트) | `backend/`, `frontend/`, `???/` |
 
 | `examples/tenant-cd/` | 테넌트가 복사하는 CD 어댑터 샘플(제품 코드 아님) | `examples/tenant-cd/` |
+| `examples/tenant-quality/` | 테넌트 품질 discovery(`.factory/quality.yaml`) 샘플 | `examples/tenant-quality/` |
+| `scripts/install-sw-factory.sh` | NS=`sw-factory` 원샷 설치(wipe·직원 시드·render·plugin) | `scripts/` |
 
  
 
@@ -74,7 +76,7 @@ This file provides guidance to AI coding assistants (Claude Code, Codex, Gemini,
 
 ## 3. Status
 
-M0–M5: `leantime-plugin/`, `agent-runner/`, `deploy/k8s/`, Tenant CD(`repos[].tenant_cd`·infra `tenant-cd`). M4: PVC chat retention + spend alert CronJobs. **seewin** Phase A+B(candidate.win Candydate schedules+CronJobs) + Hermes cron 컷오버 완료. **M10** org-wiki: wiki-first + `inbox/`→finder canonical(`ARCHITECTURE` §2.9). CI는 `.github/workflows/ci.yml`(유닛 + FW supply-chain). 제품 소스는 테넌트 repo — 이 저장소에 넣지 않는다. `settings.schedules` → `cursorbridge-schedule-tick` CronJob.
+M0–M5: `leantime-plugin/`, `agent-runner/`, `deploy/k8s/`, Tenant CD(`repos[].tenant_cd`·ta `tenant-cd`). M4: PVC/spend CronJobs. **seewin** Phase A+B + Hermes cron 컷오버. **M10** org-wiki. **M11** Dual-loop: 직원 5인(PM/KM/QA/TA/AA), tenant≡`client_id`, 기능(test→QA∥AA→prod) + 주간 NF(부하·클린·대량품질). CI: `.github/workflows/ci.yml`. 제품 소스·품질 기준은 테넌트 repo. `settings.schedules` → `cursorbridge-schedule-tick`.
 
  
 

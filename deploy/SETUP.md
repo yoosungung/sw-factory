@@ -24,7 +24,25 @@ python deploy/k8s/scripts/sync-bridge-json.py
 | `sessions` | `cursor-agent-{name}` StatefulSet/Service | sync가 DNS 생성; `model`(선택) → `AGENT_RUNNER_MODEL` |
 | `openai` | 없음 | YAML 필수 (예: `http://openai-runner.example.svc:8642`) |
 
-`sessions` 생략 시 `settings.model`(기본 `composer-2.5`). **남은** `type: openai` agent가 있을 때만 Leantime Pod env **`CURSORBRIDGE_OPENAI_API_KEY`**(외부 OpenAI-compatible `API_SERVER_KEY`, 예: Hermes) Bearer가 필요하다. candy는 `sessions`(`cursor-agent-candy`)다.
+`sessions` 생략 시 `settings.model`(기본 `composer-2.5`). **남은** `type: openai` agent가 있을 때만 Leantime Pod env **`CURSORBRIDGE_OPENAI_API_KEY`**(외부 OpenAI-compatible `API_SERVER_KEY`, 예: Hermes) Bearer가 필요하다. pm는 `sessions`(`cursor-agent-pm`)다.
+
+### Dual-loop status board (M11)
+
+고객사 Leantime **Project** 상태 라벨을 기본값 대신 공장 보드에 맞춘다 (`agents.yaml` `settings.status_board`와 동일 이름·id):
+
+| 이름 | 샘플 id |
+|------|---------|
+| New | 3 |
+| Blocked | 1 |
+| In Progress | 4 |
+| Waiting for Approval | 2 |
+| Review | 10 |
+| Deploying Test | 11 |
+| QA | 12 |
+| Deploying Prod | 13 |
+| Done | 0 |
+
+흐름: `New` → `In Progress` → `Review` → `Deploying Test` → `QA` → `Deploying Prod` → `Done`. `clients[]`로 `leantime_client_id` ≡ tenant. 품질 어댑터: `examples/tenant-quality/`.
 
 ## 2. 렌더 및 bridge 동기화
 
@@ -45,7 +63,7 @@ python deploy/k8s/scripts/sync-bridge-json.py
 | `CURSOR_API_KEY` | `@cursor/sdk` |
 | `LEANTIME_ACCESS_TOKEN_{name}` | agent별 Leantime PAT (`path` → `LEANTIME_ACCESS_TOKEN_path`). Profile → Personal Access Tokens에서 발급 |
 | `GH_TOKEN` | **봇 runner 필수(공유 기본값)** — GitHub PAT (`repo` 또는 대상 repo write). Pod 시작 시 `gh auth setup-git`·`git push`·`gh pr create`용. GHCR pull은 `ghcr-pull` Secret 별도 |
-| `GH_TOKEN_{name}` | **선택** — agent별 GitHub PAT override (`candy` → `GH_TOKEN_candy`). 있으면 해당 Pod만 공유 `GH_TOKEN` 대신 사용 |
+| `GH_TOKEN_{name}` | **선택** — agent별 GitHub PAT override (`pm` → `GH_TOKEN_pm`). 있으면 해당 Pod만 공유 `GH_TOKEN` 대신 사용 |
 | `CURSORBRIDGE_OPENAI_API_KEY` | `type: openai` runner용 Bearer(외부 OpenAI-compatible). **남은 openai agent가 있을 때만** Leantime Deployment env로 주입 |
 
 `openai` runner용 키 등록 예:
@@ -65,12 +83,12 @@ kubectl -n leantime patch secret cursor-api-key --type merge \
 kubectl -n leantime rollout restart statefulset/cursor-agent-path
 ```
 
-agent별 GitHub 토큰 예 (candy = Hermes/`berryking404` PAT):
+agent별 GitHub 토큰 예 (pm = Hermes/`berryking404` PAT):
 
 ```bash
 kubectl -n leantime patch secret cursor-api-key --type merge \
-  -p '{"stringData":{"GH_TOKEN_candy":"<PAT>"}}'
-kubectl -n leantime rollout restart statefulset/cursor-agent-candy
+  -p '{"stringData":{"GH_TOKEN_pm":"<PAT>"}}'
+kubectl -n leantime rollout restart statefulset/cursor-agent-pm
 ```
 
 agent identity는 `agents.yaml` `email` / `bridge.json`이 담당. Leantime MCP 인증은 Pod `LEANTIME_ACCESS_TOKEN` → persona `mcp.json`만 사용.
@@ -109,7 +127,7 @@ kubectl -n leantime exec cursor-agent-runtime-0 -c agent-runner -- gh auth statu
 
 `GH_TOKEN` 없이 봇 Pod는 시작하지 않는다 (`entrypoint.sh`).
 
-agent-runner 이미지에 **Python 3.12 + uv**, **kubectl**(in-cluster), **gh**, **git** 포함. Pod는 `cursor-agent` ServiceAccount + ClusterRole `cursor-agent-observer`로 클러스터 모니터링·제한적 kubectl 작업(infra 포함). `path-graph` Role `cursor-agent-argo-workflows`로 Argo `workflows` get/list/create/delete/patch. RBAC 객체 write·Secret 전역 list는 기본 미부여.
+agent-runner 이미지에 **Python 3.12 + uv**, **kubectl**(in-cluster), **gh**, **git** 포함. Pod는 `cursor-agent` ServiceAccount + ClusterRole `cursor-agent-observer`로 클러스터 모니터링·제한적 kubectl 작업(ta 포함). `path-graph` Role `cursor-agent-argo-workflows`로 Argo `workflows` get/list/create/delete/patch. RBAC 객체 write·Secret 전역 list는 기본 미부여.
 
 ## 4. 이미지 빌드·푸시
 
@@ -131,16 +149,43 @@ StatefulSet에 `imagePullSecrets: ghcr-pull` 포함됨.
 
 ## 5. 배포
 
+### 원샷 (NS `sw-factory`, release)
+
+Leantime Helm·Ingress·Secret(`cursor-api-key`, `ghcr-pull`)이 NS에 있다고 가정. **My Project는 만들지 않으며**, 있으면 시드 단계에서 삭제한다. 직원 5인(pm/km/ta/qa/aa) 유저·PAT·Secret·CursorBridge 활성까지 한 번에:
+
+```bash
+./scripts/bootstrap-config.sh          # 최초만
+# agents.yaml 이메일/이미지/시크릿을 실값으로 맞춘 뒤
+./scripts/install-sw-factory.sh --wipe # 기존 factory STS/PVC 제거 후 재설치
+# 이미 깨끗하면: ./scripts/install-sw-factory.sh
+```
+
+시드 스크립트: `deploy/k8s/scripts/seed_factory_users.py` (idempotent). PAT는 `php bin/leantime auth:create-bearer-token`으로 발급해 `LEANTIME_ACCESS_TOKEN_{name}`에 넣는다.
+
+### 기본(NS `leantime`)
+
 ```bash
 kubectl apply -k deploy/k8s/base
 kubectl -n leantime rollout status statefulset/cursor-agent-asky
 kubectl -n leantime get pods -l app=cursor-agent
 ```
 
+직원 5인 스택을 수동으로 나누어 적용할 때:
+
+```bash
+./deploy/k8s/scripts/render-agents.sh
+kubectl apply -k deploy/k8s/overlays/sw-factory
+CURSORBRIDGE_NS=sw-factory ./scripts/install-plugin-k8s.sh
+kubectl -n sw-factory get pods,sts,ing,cronjob
+```
+
+Leantime Helm·Ingress(`sw-factory.k8s-test`)는 클러스터 차트/인그레스로 별도 설치. Secret(`cursor-api-key`, `ghcr-pull`, SMTP)도 NS에 미리 둔다. 직원 bot의 `primary_repo`를 비우면 git-clone init이 skip된다(데모 URL 404 방지).
+
 ## 6. Leantime 플러그인
 
 ```bash
 ./scripts/install-plugin-k8s.sh   # ConfigMap 갱신 + Leantime 재시작 + initContainer 설치
+# 다른 NS: CURSORBRIDGE_NS=sw-factory ./scripts/install-plugin-k8s.sh
 ```
 
 UI: My Apps에서 CursorBridge 설치·활성화(이미 DB에 있으면 활성만 확인).
@@ -173,17 +218,17 @@ kubectl -n leantime exec deploy/leantime -- \
 # agents.yaml 예
 # settings:
 #   schedules:
-#     - id: candy-pm-checkpoint
+#     - id: pm-checkpoint
 #       cron: "5,20,35,50 * * * *"
-#       agents: [candy]
+#       agents: [pm]
 #       gates: [in_progress]   # 선택; In Progress(top·sub) 없으면 세션 생략
 #       prompt: "…"
 #     - id: weekday-check
 #       cron: "0 9 * * 1-5"
 #       prompt: "담당 열린 티켓 점검"
-#     - id: finder-wiki
+#     - id: km-wiki
 #       cron: "30 23 * * *"
-#       agents: [finder]
+#       agents: [km]
 #       prompt: "km-researcher: inbox drain + research; main 직푸시 (PR/git-ship 금지)"
 #       success_checks:
 #         - "Changes are committed and pushed directly to the default branch (no PR)."
@@ -215,6 +260,6 @@ agent별 PVC 이름: `cursor-home-cursor-agent-{name}-0` (mount `/cursor-home`, 
 | CronJob | schedule (UTC) | 동작 |
 |---------|----------------|------|
 | `cursorbridge-pvc-retention` | `15 3 * * *` | label `app=cursor-agent` Pod에 `find … -mtime +$CHAT_RETENTION_DAYS -delete` (기본 14일) |
-| `cursorbridge-spend-alert` | `0 */6 * * *` | 최근 24h agent-runner 로그의 `run.completed` usage 합산; `SPEND_TOKEN_THRESHOLD`(기본 2_000_000) 이상이면 project `agents-runtime`에 티켓 (작성자 infra → assignee Eric) |
+| `cursorbridge-spend-alert` | `0 */6 * * *` | 최근 24h agent-runner 로그의 `run.completed` usage 합산; `SPEND_TOKEN_THRESHOLD`(기본 2_000_000) 이상이면 project `agents-runtime`에 티켓 (작성자 ta → assignee Eric) |
 
 스크립트: ConfigMap `cursorbridge-ops-scripts` ← `deploy/k8s/base/ops-scripts/`. SA `cursorbridge-flush`에 `pods/log` get 포함. 임계값·보관일은 CronJob env로 조정.

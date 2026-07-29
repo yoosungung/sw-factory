@@ -7,7 +7,7 @@ Built-in `view` ClusterRole alone is not enough for PV/PVC operations.
 - **Discovery/monitoring**: `get/list/watch` on pods, logs, events, services, endpoints/endpointslices, ingress, deployments, statefulsets, daemonsets, jobs/cronjobs, nodes, namespaces, PV, PVC, StorageClass, VolumeAttachment, snapshots.
 - **Live metrics**: `get/list/watch` on `metrics.k8s.io` `nodes`/`pods` so `kubectl top` works. Test with `kubectl auth can-i list nodes.metrics.k8s.io` and `kubectl top nodes` (not only `nodes/metrics`).
 - **Disk/PVC telemetry**: read-only kubelet stats via `nodes/proxy`, `nodes/stats`, `nodes/metrics` (`get`) for `/api/v1/nodes/<node>/proxy/stats/summary`. Core API alone does not give early detailed disk usage.
-- **GPU**: capacity/allocatable and pod requests from core API. Utilization needs DCGM/exporter/`nvidia-smi` — do not claim utilization from core API alone. If install authority is unclear, prepare manifests under `manifests/infra/` and ask cluster-admin to apply; do not claim they are on main until `git status`/`git log`/`git ls-remote` confirm.
+- **GPU**: capacity/allocatable and pod requests from core API. Utilization needs DCGM/exporter/`nvidia-smi` — do not claim utilization from core API alone. If install authority is unclear, prepare manifests under `manifests/ta/` and ask cluster-admin to apply; do not claim they are on main until `git status`/`git log`/`git ls-remote` confirm.
 - **Storage remediation**: `create/patch/update/delete` on PV/PVC (and often VolumeAttachment/Snapshot).
 - **Workload remediation**: `patch/update/delete` on pods/controllers; `patch/update` on scale.
 - **Debug**: `pods/log` read; `pods/exec` / `pods/portforward` create only when allowed.

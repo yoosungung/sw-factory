@@ -36,12 +36,59 @@ PROMPTS = {
     ),
 }
 
-STATUS_PROMPTS = {
+STATUS_PROMPT_BY_NAME = {
+    "In Progress": "Status is In Progress. Continue implementation (local / developer).",
+    "Review": (
+        "Status is Review. Ensure commits are pushed and PR is open (git-ship). "
+        "PM (pm) reviews/merges. After merge on tenant_cd: hand off to TA (ta) "
+        "with merge_sha for Deploying Test."
+    ),
+    "Deploying Test": (
+        "Status is Deploying Test. TA runs tenant_cd with environment=test, leaves "
+        "test_* evidence, then @qa and @aa and set status QA."
+    ),
+    "QA": (
+        "Status is QA. QA runs browser E2E; AA runs security-review (parallel). "
+        "On both pass: hand off to TA for Deploying Prod. On fail: developer + In Progress."
+    ),
+    "Deploying Prod": (
+        "Status is Deploying Prod. TA deploys environment=production, leaves prod_* evidence. "
+        "PM marks Done only when feature evidence (test+qa+aa+prod) is complete."
+    ),
+    "Done": (
+        "Status is Done. Close out only when feature Done evidence is present: "
+        "pr_url, merge_sha, test_*, qa: pass, aa: pass, prod_* "
+        "(ARCHITECTURE §2.8). Merge alone is never Done for CD tickets."
+    ),
+    "Blocked": "Status is Blocked. Unblock or escalate to @eric / PM.",
+    "Waiting for Approval": (
+        "Status is Waiting for Approval. Await human decision (@eric); do not invent scope."
+    ),
+    "New": "Status is New. PM intake / breakdown before In Progress.",
+}
+
+
+def build_status_prompts(settings: dict) -> dict[str, str]:
+    """Map dual-loop status names → numeric ids from settings.status_board."""
+    board = settings.get("status_board")
+    if not isinstance(board, dict) or not board:
+        return dict(STATUS_PROMPTS_LEGACY)
+    out: dict[str, str] = {}
+    for name, prompt in STATUS_PROMPT_BY_NAME.items():
+        if name not in board:
+            continue
+        sid = board[name]
+        out[str(int(sid))] = prompt
+    return out or dict(STATUS_PROMPTS_LEGACY)
+
+
+# Legacy numeric prompts when status_board absent
+STATUS_PROMPTS_LEGACY = {
     "3": "Status is In Progress. Continue implementation.",
     "4": (
         "Status is Review. Ensure commits are pushed and PR is open (git-ship). "
         "Summarize changes for reviewer with PR link; do not ask anyone to push locally. "
-        "After merge on a tenant_cd-enabled repo: hand off to infra with merge_sha "
+        "After merge on a tenant_cd-enabled repo: hand off to ta with merge_sha "
         "(deploy/smoke evidence required before Done)."
     ),
     "5": (
@@ -71,14 +118,15 @@ def agent_model(agent: dict, settings: dict) -> str:
     return str(agent.get("model") or settings.get("model") or DEFAULT_MODEL)
 
 
-def runner_url_for(agent: dict) -> str:
+def runner_url_for(agent: dict, k8s_namespace: str = "leantime") -> str:
     """Resolve runner_url from type: human→""; sessions→cursor-agent DNS; openai→YAML required."""
     kind = agent_type(agent)
     if kind == "human":
         return ""
     if kind == "sessions":
         name = agent["name"]
-        return f"http://cursor-agent-{name}.leantime.svc:8080"
+        ns = (k8s_namespace or "leantime").strip() or "leantime"
+        return f"http://cursor-agent-{name}.{ns}.svc:8080"
     url = str(agent.get("runner_url") or "").strip()
     if not url:
         raise ValueError(
@@ -194,6 +242,7 @@ def normalize_success_retry(raw: object) -> dict | None:
 def main() -> None:
     data = yaml.safe_load(AGENTS_YAML.read_text())
     settings = data.get("settings", {})
+    k8s_ns = str(settings.get("k8s_namespace") or "leantime").strip() or "leantime"
     repos_by_id = index_repos(data.get("repos"))
     agents_out = []
     for agent in data.get("agents", []):
@@ -205,7 +254,7 @@ def main() -> None:
             "name": agent["name"],
             "leantime_user_id": agent["leantime_user_id"],
             "email": agent["email"],
-            "runner_url": runner_url_for(agent),
+            "runner_url": runner_url_for(agent, k8s_ns),
             "git_repo_url": resolved["git_repo_url"],
             "persona": agent.get("persona", agent["name"]),
             "type": kind,
@@ -220,7 +269,7 @@ def main() -> None:
         "model": str(settings.get("model") or DEFAULT_MODEL),
         "agents": agents_out,
         "prompts": PROMPTS,
-        "status_prompts": STATUS_PROMPTS,
+        "status_prompts": build_status_prompts(settings),
         "schedules": normalize_schedules(settings.get("schedules", [])),
     }
     if "success_checks" in settings:

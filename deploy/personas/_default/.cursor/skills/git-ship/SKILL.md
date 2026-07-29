@@ -19,7 +19,7 @@ description: >-
 4. `git commit` (의미 있는 메시지)
 5. `git push` (feature branch 또는 정책에 맞는 브랜치) — **`git push --force` / `git reset --hard` 금지**
 6. PR 열림 — 없으면 `gh pr create`; 있으면 기존 PR 갱신
-7. Leantime: 상태 Review, assignee → **메인 리뷰어 candy**, `add_comment`에 PR URL·요약·검증 방법·`@candy` 멘션
+7. Leantime: 상태 Review, assignee → **메인 리뷰어 pm**, `add_comment`에 PR URL·요약·검증 방법·`@pm` 멘션
 
 허용 범위: `local_write`(커밋) + `external_write`(push/PR/티켓 코멘트). destructive(force-push, hard reset, secret 변경)는 ship에 포함되지 않는다.
 
@@ -46,7 +46,7 @@ EOF
 - 저장소 기본 브랜치·PR 규칙은 repo `AGENTS.md` / `README.md`를 따른다.
 - `gh`·`git`은 Pod 시작 시 `GH_TOKEN`으로 인증된다.
 
-## Merge 전 체크 (candy / 머지 권한 봇)
+## Merge 전 체크 (pm / 머지 권한 봇)
 
 테넌트 PR에 **required GitHub checks**가 있으면 실패·pending 중에는 **merge 금지**. 확인:
 

@@ -29,7 +29,7 @@ def _sample_cd(**overrides):
         "driver": "workflow_dispatch",
         "workflow": "deploy.yml",
         "ref": "main",
-        "inputs": {"environment": "production"},
+        "inputs": {"environment": "test"},
         "image_input": "image_tag",
         "verify": {
             "namespace": "landing",
@@ -71,12 +71,13 @@ def test_build_registry_shape():
         },
     ]
     registry = build_tenant_cd_registry(agents)
-    assert registry["version"] == 1
+    assert registry["version"] == 2
     assert len(registry["tenants"]) == 1
     tenant = registry["tenants"][0]
     assert tenant["agent"] == "asky"
     assert tenant["tenant_cd"]["driver"] == "workflow_dispatch"
     assert tenant["tenant_cd"]["verify"]["smoke"]["expect_status"] == 200
+    assert tenant["tenant_cd"]["inputs"]["environment"] == "test"
     assert REGISTRY_CURSOR_PATH == ".cursor/tenant-cd-registry.json"
 
 
@@ -123,36 +124,42 @@ def test_agents_yaml_sample_tenant_cd_validates():
     root = SCRIPTS.parents[2]
     sample = root / "deploy/k8s/agents.yaml.sample"
     data = yaml.safe_load(sample.read_text())
-    registry = build_tenant_cd_registry(data.get("agents", []), data.get("repos"))
-    assert registry["version"] == 1
+    registry = build_tenant_cd_registry(
+        data.get("agents", []), data.get("repos"), data.get("clients")
+    )
+    assert registry["version"] == 2
     enabled = [t["agent"] for t in registry["tenants"]]
     assert "asky" in enabled
     asky = next(t for t in registry["tenants"] if t["agent"] == "asky")
     assert asky["tenant_cd"]["workflow"] == "deploy.yml"
     assert asky.get("repo_id") == "landing-web"
+    assert asky.get("client_id") is not None
 
 
-def test_infra_bundle_receives_registry_path():
-    """Mirror render-agents.sh: only persona infra gets REGISTRY_CURSOR_PATH."""
+def test_ta_bundle_receives_registry_path():
+    """Mirror render-agents.sh: only persona ta gets REGISTRY_CURSOR_PATH."""
     from persona_bundle import build_persona_bundle, bundle_for_configmap
 
     root = SCRIPTS.parents[2]
     personas_root = root / "deploy/personas"
     sample = yaml.safe_load((root / "deploy/k8s/agents.yaml.sample").read_text())
-    reg = registry_json(sample.get("agents", []), sample.get("repos"))
+    reg = registry_json(
+        sample.get("agents", []), sample.get("repos"), sample.get("clients")
+    )
 
-    for persona in ("asky", "infra"):
+    for persona in ("asky", "ta"):
         bundle = build_persona_bundle(persona, personas_root)
-        if persona == "infra":
+        if persona == "ta":
             bundle[REGISTRY_CURSOR_PATH] = reg
         cm_data = bundle_for_configmap(bundle)
         encoded = REGISTRY_CURSOR_PATH.replace("/", "__")
         if encoded.startswith("."):
             encoded = "_dot_" + encoded[1:]
-        if persona == "infra":
+        if persona == "ta":
             assert encoded in cm_data
             parsed = json.loads(cm_data[encoded])
             assert parsed["tenants"][0]["agent"] == "asky"
+            assert "client_id" in parsed["tenants"][0]
         else:
             assert encoded not in cm_data
 
@@ -192,18 +199,23 @@ def test_evidence_rejects_failed_workflow():
 
 
 def test_framework_e2e_chain_sample_to_skill_to_evidence():
-    """Factory-side E2E without cluster: sample → registry → infra skill → Done gate."""
+    """Factory-side E2E without cluster: sample → registry → ta skill → Done gate."""
     from persona_bundle import build_persona_bundle
 
     root = SCRIPTS.parents[2]
     sample = yaml.safe_load((root / "deploy/k8s/agents.yaml.sample").read_text())
-    registry = build_tenant_cd_registry(sample["agents"], sample.get("repos"))
+    registry = build_tenant_cd_registry(
+        sample["agents"], sample.get("repos"), sample.get("clients")
+    )
     tenant = lookup_tenant(registry, agent="asky")
     assert tenant is not None
     assert tenant["tenant_cd"]["driver"] == "workflow_dispatch"
     assert tenant.get("repo_id") == "landing-web"
+    assert lookup_tenant(
+        registry, client_id=tenant["client_id"], repo_id="landing-web"
+    ) is not None
 
-    bundle = build_persona_bundle("infra", root / "deploy/personas")
+    bundle = build_persona_bundle("ta", root / "deploy/personas")
     assert ".cursor/skills/tenant-cd/SKILL.md" in bundle
     assert ".cursor/skills/tenant-cd/references/dispatch.md" in bundle
     assert "workflow_dispatch" in bundle[".cursor/skills/tenant-cd/SKILL.md"]

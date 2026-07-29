@@ -1,0 +1,40 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cursorbridge-spend-alert
+  namespace: leantime
+spec:
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: spend
+              env:
+                - name: SPEND_TOKEN_THRESHOLD
+                  value: "2000000"
+                - name: LEANTIME_URL
+                  value: http://leantime.sw-factory.svc
+                - name: LEANTIME_PROJECT_ID
+                  value: "1"
+                - name: LEANTIME_USER_ID
+                  value: "13"
+                - name: LEANTIME_ASSIGNED_TO
+                  value: "1"
+                - name: LEANTIME_ACCESS_TOKEN
+                  valueFrom:
+                    secretKeyRef:
+                      name: cursor-api-key
+                      key: LEANTIME_ACCESS_TOKEN_ta
+              command:
+                - sh
+                - -c
+                - |
+                  set -eu
+                  NS=sw-factory
+                  WINDOW=24h
+                  LOGS=$(mktemp)
+                  kubectl -n "$NS" logs -l app=cursor-agent -c agent-runner \
+                    --since="$WINDOW" --tail=-1 >"$LOGS" || true
+                  python3 /ops/spend_alert.py --logs-file "$LOGS" \
+                    --window "$WINDOW" --create-ticket

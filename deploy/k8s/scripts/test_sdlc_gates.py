@@ -26,7 +26,7 @@ def test_git_ship_merge_gate_and_test_evidence():
 def test_intake_template_m8():
     path = (
         ROOT
-        / "deploy/personas/candy/.cursor/skills/leantime-pm/references/intake-template.md"
+        / "deploy/personas/pm/.cursor/skills/leantime-pm/references/intake-template.md"
     )
     text = path.read_text()
     assert "Acceptance criteria" in text
@@ -36,14 +36,14 @@ def test_intake_template_m8():
 def test_incident_tickets_m9():
     path = (
         ROOT
-        / "deploy/personas/infra/.cursor/skills/k8s-operator-operations/references/incident-tickets.md"
+        / "deploy/personas/ta/.cursor/skills/k8s-operator-operations/references/incident-tickets.md"
     )
     text = path.read_text()
     assert "CrashLoopBackOff" in text
     assert "github-issue-check" in text
 
 
-def test_infra_daily_sample_mentions_incident_tickets():
+def test_ta_daily_sample_mentions_incident_tickets():
     sample = (ROOT / "deploy/k8s/agents.yaml.sample").read_text()
     assert "incident-tickets.md" in sample
     assert "Actionable incidents are ticketed" in sample

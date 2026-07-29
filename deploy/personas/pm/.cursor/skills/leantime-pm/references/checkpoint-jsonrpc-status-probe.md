@@ -4,7 +4,7 @@ Use this reference when `list_tickets` is too large/truncated during a checkpoin
 
 ## Pattern
 
-1. Read Leantime credentials from the candy agent-runner environment (`LEANTIME_URL` and `LEANTIME_ACCESS_TOKEN`, also present on the Leantime MCP server env).
+1. Read Leantime credentials from the pm agent-runner environment (`LEANTIME_URL` and `LEANTIME_ACCESS_TOKEN`, also present on the Leantime MCP server env).
 2. Call `{LEANTIME_URL}/api/jsonrpc` with `Authorization: Bearer <token>`.
 3. Use `leantime.rpc.Tickets.Tickets.getAll` with params `{ "searchCriteria": {} }`.
 4. Print only aggregate status counts and candidate rows with `status == 4`.

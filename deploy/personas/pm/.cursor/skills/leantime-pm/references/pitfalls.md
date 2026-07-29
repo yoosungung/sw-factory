@@ -10,9 +10,9 @@ Load when stuck, MCP returns false, or concurrent agents may race.
 - Do not bury decisions outside Leantime.
 - Do not create giant vague tickets when subtasks are needed.
 - Do not mark Done when only a PR exists but deployment is unverified.
-- Do not mark Done on tenant_cd tickets without all four evidence groups (pr_url/merge_sha, workflow success, rollout OK, smoke HTTP).
+- Do not mark Done on tenant_cd tickets without feature evidence (pr_url/merge_sha, test_*, qa pass, aa pass, prod_*).
 - Do not decide major product tradeoffs without Eric.
-- Do not self-assign or `@candy`-loop work that candy cannot execute with current credentials; capability gaps go to the owning specialist or Eric (`Waiting for Approval`), not `Blocked` drift.
+- Do not self-assign or `@pm`-loop work that pm cannot execute with current credentials; capability gaps go to the owning specialist or Eric (`Waiting for Approval`), not `Blocked` drift.
 - Do not treat “file not in this workspace” as end of ownership — name the owning repo/owner and hand off.
 - Be careful with Leantime `update_ticket`: some fields (for example tags) may not be accepted, and updating status can unintentionally clear description/priority depending on API behavior. On subtasks, `update_ticket` can also sever `dependingTicketId`/parent linkage and turn the item into an orphan task. Avoid `update_ticket` on live subtasks unless necessary; if used, immediately re-read `get_all_subtasks(parent)` and the ticket and repair/archive duplicates.
 - `add_comment` module must be singular `ticket`, not `tickets`; the latter can return `false` without adding anything.

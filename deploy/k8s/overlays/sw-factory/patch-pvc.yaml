@@ -1,0 +1,19 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cursorbridge-pvc-retention
+  namespace: leantime
+spec:
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: retention
+              env:
+                - name: CHAT_RETENTION_DAYS
+                  value: "14"
+                - name: NAMESPACE
+                  value: sw-factory
+                - name: POD_LABEL
+                  value: app=cursor-agent

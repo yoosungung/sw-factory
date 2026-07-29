@@ -19,7 +19,7 @@ def test_cursor_agent_sa_exists():
     assert ("ServiceAccount", "cursor-agent") in kinds
 
 
-def test_observer_is_cluster_scoped_for_infra_monitoring():
+def test_observer_is_cluster_scoped_for_ta_monitoring():
     docs = _docs()
     cluster_roles = [
         d for d in docs if d.get("kind") == "ClusterRole" and "observer" in d["metadata"]["name"]
@@ -29,7 +29,7 @@ def test_observer_is_cluster_scoped_for_infra_monitoring():
     core = next(r for r in rules if r.get("apiGroups") == [""] and "pods" in r.get("resources", []))
     assert "get" in core["verbs"] and "list" in core["verbs"]
     assert "pods/log" in core["resources"]
-    # Cluster-wide PV/PVC discovery for infra operator.
+    # Cluster-wide PV/PVC discovery for ta operator.
     assert any(
         "persistentvolumes" in r.get("resources", []) or "persistentvolumeclaims" in r.get("resources", [])
         for r in rules

@@ -45,12 +45,12 @@ Leantime 코멘트·티켓 본문은 Tiptap(HTML)으로 저장·표시된다. MC
 Leantime 멘션은 **HTML `data-tagged-user-id`** 로 저장해야 알림·봇 라우팅이 동작한다. `@이름`만 쓰면 일반 텍스트다.
 
 ```html
-<a class="tiptap-mention" data-tagged-user-id="4">@candy</a> 리뷰 부탁드립니다.
+<a class="tiptap-mention" data-tagged-user-id="4">@pm</a> 리뷰 부탁드립니다.
 ```
 
-리뷰 핸드오프의 기본 멘션·assignee는 **메인 리뷰어 candy**(user id `4`). 플랫폼/`GH_TOKEN` 등 인프라 blocker만 eric(`1`).
+리뷰 핸드오프의 기본 멘션·assignee는 **메인 리뷰어 pm**(user id `4`). 플랫폼/`GH_TOKEN` 등 인프라 blocker만 eric(`1`).
 
-`MEMORY.md` 팀 표의 Leantime 이메일과 `bridge.json`의 `leantime_user_id`를 대응시킨다. 예: eric=1, candy=4, asky=5, path=6, runtime=7, finder=9, nl2sql=11, rhwp=12, infra=13, seewin=14.
+`MEMORY.md` 팀 표의 Leantime 이메일과 `bridge.json`의 `leantime_user_id`를 대응시킨다. 예: eric=1, pm=4, asky=5, path=6, runtime=7, km=9, nl2sql=11, rhwp=12, ta=13, seewin=14.
 
 ## 작업 후 (필수)
 

@@ -1,6 +1,6 @@
 # Incident → Leantime ticket (M9)
 
-Factory LOOP #2 hook: cluster faults observed by infra become backlog items. Product APM UIs are out of scope.
+Factory LOOP #2 hook: cluster faults observed by ta become backlog items. Product APM UIs are out of scope.
 
 ## When to open a ticket
 
@@ -27,11 +27,11 @@ next: <agent-owned step or human-only>
 - Assignee: owning product bot if known, else Eric; always `@eric` when human privilege needed.
 - Status: `New` or `Blocked` (agent still owns next step) / `Waiting for Approval` (human-only).
 - Prefer one ticket per incident cluster; comment updates instead of duplicates.
-- Do **not** assign candy for cluster mutate/RBAC/policy just because another agent lacks verbs — candy is app PM/reviewer, not an elevated executor. Use evidence (`can-i`, Forbidden) and hand human-only gaps to Eric.
+- Do **not** assign pm for cluster mutate/RBAC/policy just because another agent lacks verbs — pm is app PM/reviewer, not an elevated executor. Use evidence (`can-i`, Forbidden) and hand human-only gaps to Eric.
 
 ## Scheduled vs ticket-triggered
 
-- `infra-k8s-daily`: **read-only** kubectl. If incidents found → **create/update tickets + comments only** (no mutate). Mention that daily report also lists them.
+- `ta-k8s-daily`: **read-only** kubectl. If incidents found → **create/update tickets + comments only** (no mutate). Mention that daily report also lists them.
 - Ticket-triggered `tenant-cd` / remediation: mutate only when the Active ticket asks for deploy/fix and policy allows.
 
 ## Feedback intake (configured channels)

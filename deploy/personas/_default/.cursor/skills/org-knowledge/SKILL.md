@@ -41,7 +41,7 @@ fi
 
 L0(`ARCHITECTURE`/`DESIGN`)·Active 티켓(L1)이 작업 범위 정본이다. wiki는 보조 컴파일 지식이다.
 
-## 쓰기 (inbox만 — 비-finder)
+## 쓰기 (inbox만 — 비-km)
 
 허용: `inbox/{AGENT_NAME}/YYYY-MM-DD-slug.md` 만. `AGENT_NAME`은 env `AGENT_NAME`.
 
@@ -76,7 +76,7 @@ git commit -m "inbox(${AGENT_NAME}): <slug>"
 git push origin main   # PR·git-ship·feature branch·force 금지
 ```
 
-충돌 시 `pull --rebase` 금지(force 위험). `pull --ff-only` 실패하면 티켓 blocker + `@finder` / `@eric`.
+충돌 시 `pull --rebase` 금지(force 위험). `pull --ff-only` 실패하면 티켓 blocker + `@km` / `@eric`.
 
 ## 작업 후 (필수)
 
@@ -85,4 +85,4 @@ Active 티켓 `add_comment`에 다음 중 하나:
 - `wiki: inbox/{agent}/YYYY-MM-DD-slug.md`
 - `wiki: N/A — <사유>` (재사용 가치 없음)
 
-승격이 급하면 같은 코멘트에 `<a class="tiptap-mention" data-tagged-user-id="9">@finder</a>`.
+승격이 급하면 같은 코멘트에 `<a class="tiptap-mention" data-tagged-user-id="9">@km</a>`.

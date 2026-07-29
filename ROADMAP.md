@@ -1,10 +1,10 @@
 # ROADMAP.md
 
-## 현황 (2026-07-27)
+## 현황 (2026-07-29)
 
-**Framework vs Tenant:** 이 저장소는 설치형 **agent 프레임워크(공장)** 다. 제품 비즈니스 소스는 테넌트 repo(`agents[].git_repo_url`)에만 둔다. **운영 SW CD는 프레임워크 범위**(M5). 공장 자체 운영(M4 PVC·spend)과 테넌트 CD·SDLC 게이트(M5–M9)를 문서에서 섞지 않는다.
+**Framework vs Tenant:** 이 저장소는 설치형 **agent 프레임워크(공장)** 다. 제품 소스·품질 기준은 테넌트(client) repo. **운영 SW CD·듀얼 루프는 프레임워크 범위**(M5/M11).
 
-M0–M3 코드·K8s·이미지 배포 완료. M5 Tenant CD 공장 측 구현 완료(실클러스터 데모 티켓은 수동).
+M0–M10 완료(실클러스터 데모·일부 수동 검증 제외). **M11 Dual-loop** 진행.
 
 ---
 
@@ -44,8 +44,8 @@ M0–M3 코드·K8s·이미지 배포 완료. M5 Tenant CD 공장 측 구현 완
 - [x] agent-runner SDK worker pool (auth 격리·pre-lease recycle·auth-stale retire)
 - [x] Goose A안(보수): docs + runner `budget`/`policy` preamble·로그, `success_checks`, context summary, tool-class/delegation prompt (`docs/goose/06-gap-with-cursor-agent.md`)
 - [x] Goose A안 Phase 2: `success_checks` hard 검증(SDK `status=finished` AND 마지막 Leantime mutation) + 같은 session 제한 재시도(`success_retry.max_attempts`) → `verification_failed` (`agent-runner/src/success-verify.ts`)
-- [x] candy Hermes(`openai`) → agent-runner(`sessions`) + persona `leantime-pm` 이식·컷오버
-- [x] infra persona + `k8s-operator-operations` 스킬 + `infra-k8s-daily` 스케줄 + ClusterRole observer
+- [x] pm Hermes(`openai`) → agent-runner(`sessions`) + persona `leantime-pm` 이식·컷오버
+- [x] ta persona + `k8s-operator-operations` 스킬 + `ta-k8s-daily` 스케줄 + ClusterRole observer
 
 ## M5 — Tenant CD (운영 SW CD)
 
@@ -53,9 +53,9 @@ M0–M3 코드·K8s·이미지 배포 완료. M5 Tenant CD 공장 측 구현 완
 
 - [x] `ARCHITECTURE` §0 경계 + §2.8 `tenant_cd` 스키마·증거 필드
 - [x] `repos[]` / agent `primary_repo` 분리 (`repos.py`; legacy agent 필드 호환)
-- [x] `render-agents.sh` → infra `.cursor/tenant-cd-registry.json` + pytest
-- [x] infra `tenant-cd` 스킬 (`workflow_dispatch` + rollout + HTTP smoke)
-- [x] candy merge→infra 핸드오프·Done 4필드 게이트
+- [x] `render-agents.sh` → ta `.cursor/tenant-cd-registry.json` + pytest
+- [x] ta `tenant-cd` 스킬 (`workflow_dispatch` + rollout + HTTP smoke)
+- [x] pm merge→ta 핸드오프·Done 4필드 게이트
 - [x] `examples/tenant-cd/` 워크플로 어댑터
 - [x] 공장 측 체인·증거 게이트 테스트 (`test_tenant_cd.py` framework E2E)
 - [ ] 데모 테넌트 실클러스터 티켓 루프 1건 (asky/`askwho.net`: 워크플로 구현 + verify URL 확정 후 [`examples/tenant-cd/E2E.md`](examples/tenant-cd/E2E.md))
@@ -74,7 +74,7 @@ M0–M3 코드·K8s·이미지 배포 완료. M5 Tenant CD 공장 측 구현 완
 ## M6 — Review 품질 게이트 (FW CI + 테넌트 checks)
 
 - [x] FW CI `fw-supply-chain`: gitleaks + `npm audit --audit-level=critical` (공장 repo만)
-- [x] `git-ship` / candy: 테넌트 required checks 실패 시 merge 금지
+- [x] `git-ship` / pm: 테넌트 required checks 실패 시 merge 금지
 
 ## M7 — Build 검증 증거
 
@@ -83,33 +83,50 @@ M0–M3 코드·K8s·이미지 배포 완료. M5 Tenant CD 공장 측 구현 완
 
 ## M8 — Planning 템플릿
 
-- [x] candy `intake-template.md` (Goal/Non-goals/AC/Architecture notes)
+- [x] pm `intake-template.md` (Goal/Non-goals/AC/Architecture notes)
 - [x] 수용 기준 없이 In Progress 금지; 제품 vision은 테넌트/Leantime
 
 ## M9 — LOOP #2 훅
 
 - [x] `github-issue-check` 유지(설정 가능 GH→티켓)
-- [x] infra `incident-tickets.md` + 일일 스케줄: 조치 가능 장애→티켓(mutate 없음)
+- [x] ta `incident-tickets.md` + 일일 스케줄: 조치 가능 장애→티켓(mutate 없음)
 - [ ] 제품 APM/지원 포털 연동 (테넌트 선택; 공장 비범위)
 
 ## M10 — Org wiki (wiki-first + inbox 승격)
 
 - [x] `ARCHITECTURE` §2.9 지식 계층(L0–L3)·wiki-first·inbox/canonical
-- [x] `_default` `org-knowledge` + `agent-workflow` / MEMORY (finder librarian)
-- [x] finder `knowledge-promote` + `km-researcher` + wiki 레이아웃 레퍼런스
-- [x] `repos[]` `org-wiki` + finder agent + `ORG_WIKI_URL` 주입 + `finder-wiki` inbox drain
+- [x] `_default` `org-knowledge` + `agent-workflow` / MEMORY (km librarian)
+- [x] km `knowledge-promote` + `km-researcher` + wiki 레이아웃 레퍼런스
+- [x] `repos[]` `org-wiki` + km agent + `ORG_WIKI_URL` 주입 + `km-wiki` inbox drain
 
-**성공기준:** 조사 시 wiki→웹 순서 고정; 작업 후 inbox 또는 `wiki: N/A`; finder만 INDEX/canonical 갱신.
+**성공기준:** 조사 시 wiki→웹 순서 고정; 작업 후 inbox 또는 `wiki: N/A`; km만 INDEX/canonical 갱신.
 
 **비범위:** RAG/벡터DB, org-chart 런타임, seewin 정치 위키 병합.
+
+## M11 — Dual-loop Soft Factory
+
+공장 직원 5인(PM/KM/QA/TA/AA) + 인간|에이전트 개발자. 기능 루프(티켓→test→QA∥AA→prod)와 주간 비기능(부하·클린·대량품질→client 티켓). tenant ≡ Leantime `client_id`.
+
+- [x] `ARCHITECTURE` §1.10–12 · §2.6 상태 보드 · §2.8 `clients[]` + 기능 Done 증거(test/qa/aa/prod)
+- [x] `clients[]` + registry v2(`client_id`) + quality/Done 파서 TDD (`clients.py`, `feature_evidence.py`)
+- [x] 고객사 Project status labels + `status_prompts` / gates / SETUP 절차
+- [x] `examples/tenant-quality/` + tenant_cd `environment: test|production`
+- [x] TA(`ta`) tenant-cd: test → `@qa` `@aa` → prod · `load-weekly`
+- [x] QA persona: `browser-e2e` · `bulk-api-probe` · `opik-eval` · `qa-bulk-weekly`
+- [x] AA persona: `security-review`(티켓) · `clean-code-weekly`
+- [x] PM(`pm`) Done 게이트(qa+aa+prod) · MEMORY 팀표 · `agents.yaml.sample` (qa/aa/clients)
+- [x] 직원 개명: `candy`→`pm`, `finder`→`km`, `infra`→`ta` (persona·스케줄·샘플·문서)
+- [x] 원샷 설치: `scripts/install-sw-factory.sh` + `seed_factory_users.py` (직원 5인·PAT·plugin enable, My Project 미생성)
+
+**성공기준:** sample YAML로 registry에 `client_id`가 실리고, 기능 Done 파서가 test+qa+aa+prod를 요구하며, QA/AA persona 번들과 주간 스케줄 3종이 sample에 존재. ✅ (pytest)
+
+**비범위:** Opik 서버 공장 설치, Client CRUD UI, 공장 내장 SAST/부하 엔진, 제품 소스 흡수.
 
 ---
 
 ## 다음 수동 작업
 
-1. Leantime **My Apps → CursorBridge 활성화**
+1. 고객사 Project에 M11 상태 보드 적용(`deploy/SETUP.md` Dual-loop status) — 시드가 `clients[].id` 프로젝트만 생성
 2. 티켓 assignee=agent → 코멘트/상태 변경으로 E2E 검증
-3. candy: `cursor-agent-candy` 배포 후 assignee/스케줄 E2E, Hermes `openai` 트래픽 제거 확인
-4. M5: 데모 테넌트에 `tenant_cd`·`examples/tenant-cd` 워크플로 연결 후 실 E2E
-5. `./deploy/k8s/scripts/render-agents.sh && python deploy/k8s/scripts/sync-bridge-json.py` 후 infra/candy persona 반영
-6. `git commit` + `git push` (변경분 다수 unstaged)
+3. M5/M11: 데모 테넌트 `tenant_cd`·quality 어댑터 + 실 E2E
+4. `git commit` + `git push`

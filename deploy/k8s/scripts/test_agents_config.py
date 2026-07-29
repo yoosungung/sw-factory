@@ -58,14 +58,14 @@ def test_runner_url_sessions_dns():
 def test_runner_url_openai_requires_override():
     mod = _load_sync_module()
     with pytest.raises(ValueError, match="runner_url"):
-        mod.runner_url_for({"name": "candy", "type": "openai"})
+        mod.runner_url_for({"name": "pm", "type": "openai"})
 
 
 def test_runner_url_openai_uses_override():
     mod = _load_sync_module()
     url = mod.runner_url_for(
         {
-            "name": "candy",
+            "name": "pm",
             "type": "openai",
             "runner_url": "http://hermes-master.ai-agents.svc:8642/",
         }
@@ -105,9 +105,9 @@ def test_bridge_sync_openai_agent(tmp_path, monkeypatch):
     agents_yaml.write_text(
         """
 agents:
-  - name: candy
+  - name: pm
     leantime_user_id: 4
-    email: candy@example.com
+    email: pm@example.com
     type: openai
     runner_url: http://hermes-master.ai-agents.svc:8642
 settings: {}
@@ -124,7 +124,7 @@ settings: {}
 
 
 def test_statefulset_template_honors_gh_token_secret_key():
-    """agents[].gh_token_secret_key → Secret key for env GH_TOKEN (candy override)."""
+    """agents[].gh_token_secret_key → Secret key for env GH_TOKEN (pm override)."""
     root = SCRIPTS.parents[2]
     ss_tpl = (root / "deploy/k8s/templates/statefulset.yaml.tpl").read_text()
     assert "{{GH_TOKEN_SECRET_KEY}}" in ss_tpl
@@ -142,30 +142,30 @@ def test_statefulset_template_honors_gh_token_secret_key():
             .replace("{{ORG_WIKI_URL}}", org_wiki)
         )
 
-    candy = render("candy", "GH_TOKEN_candy", "https://github.com/demo-org/org-wiki.git")
+    pm = render("pm", "GH_TOKEN_pm", "https://github.com/demo-org/org-wiki.git")
     path = render("path", "GH_TOKEN")
-    assert "key: GH_TOKEN_candy" in candy
+    assert "key: GH_TOKEN_pm" in pm
     assert "key: GH_TOKEN_path" in path  # optional override slot
     assert "                  key: GH_TOKEN\n" in path or "                  key: GH_TOKEN\r\n" in path
-    assert "GH_TOKEN_candy" not in path
-    assert "ORG_WIKI_URL" in candy
-    assert "https://github.com/demo-org/org-wiki.git" in candy
+    assert "GH_TOKEN_pm" not in path
+    assert "ORG_WIKI_URL" in pm
+    assert "https://github.com/demo-org/org-wiki.git" in pm
 
 
-def test_agents_yaml_sample_has_org_wiki_and_finder():
+def test_agents_yaml_sample_has_org_wiki_and_km():
     root = SCRIPTS.parents[2]
     import yaml
 
     data = yaml.safe_load((root / "deploy/k8s/agents.yaml.sample").read_text())
     repo_ids = {r["id"] for r in data.get("repos", [])}
     assert "org-wiki" in repo_ids
-    finder = next(a for a in data["agents"] if a["name"] == "finder")
-    assert finder["primary_repo"] == "org-wiki"
-    assert finder["type"] == "sessions"
+    km = next(a for a in data["agents"] if a["name"] == "km")
+    assert km["primary_repo"] == "org-wiki"
+    assert km["type"] == "sessions"
     schedules = {s["id"]: s for s in data["settings"]["schedules"]}
-    assert "finder-wiki" in schedules
-    assert "Inbox drain" in schedules["finder-wiki"]["prompt"] or "inbox" in schedules["finder-wiki"]["prompt"].lower()
-    assert "finder=9" in schedules["candy-pm-checkpoint"]["prompt"]
+    assert "km-wiki" in schedules
+    assert "Inbox drain" in schedules["km-wiki"]["prompt"] or "inbox" in schedules["km-wiki"]["prompt"].lower()
+    assert "km=9" in schedules["pm-checkpoint"]["prompt"]
 
 
 def test_org_wiki_url_resolves_wiki_alias():
@@ -186,18 +186,18 @@ def test_bridge_sync_includes_schedules(tmp_path, monkeypatch):
     agents_yaml.write_text(
         """
 agents:
-  - name: finder
+  - name: km
     leantime_user_id: 9
-    email: finder@example.com
+    email: km@example.com
     type: sessions
 settings:
   schedules:
     - id: weekday-check
       cron: "0 9 * * 1-5"
       prompt: check all
-    - id: finder-only
+    - id: km-only
       cron: "0 10 * * 1"
-      agents: [finder]
+      agents: [km]
       prompt: wiki
 """.strip()
     )
@@ -207,4 +207,4 @@ settings:
     bridge = json.loads(bridge_json.read_text())
     assert bridge["schedules"][0]["id"] == "weekday-check"
     assert "agents" not in bridge["schedules"][0]
-    assert bridge["schedules"][1]["agents"] == ["finder"]
+    assert bridge["schedules"][1]["agents"] == ["km"]

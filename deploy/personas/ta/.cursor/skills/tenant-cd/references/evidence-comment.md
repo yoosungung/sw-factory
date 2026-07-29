@@ -1,29 +1,32 @@
-# Evidence comment template
+# Evidence comment templates (M11)
 
-Candy Done gate (tenant_cd tickets) requires **all** of the following on the Active ticket comments.
+## After test deploy (Deploying Test)
 
 ```text
-tenant_cd evidence
+tenant_cd test evidence
+client_id: <leantime_client_id>
+repo_id: <repos[].id>
 pr_url: <https://github.com/.../pull/N>
-merge_sha: <40-char or short sha>
-workflow_run_url: <https://github.com/.../actions/runs/...>
-workflow_conclusion: success
-rollout: <namespace>/<deployment> OK
-smoke: HTTP <status> <url>
-agent: <product agent name, e.g. asky>
+merge_sha: <sha>
+test_workflow_run_url: <https://github.com/.../actions/runs/...>
+test_workflow_conclusion: success
+test_rollout: <namespace>/<deployment> OK
+test_smoke: HTTP <status> <url>
+next: @qa @aa — run E2E + security; then TA prod
 ```
 
-On failure, still post what you have and name the missing/failed field:
+## After prod deploy (Deploying Prod)
 
 ```text
-tenant_cd evidence
-pr_url: ...
-merge_sha: ...
-workflow_run_url: ...
-workflow_conclusion: failure
-rollout: <namespace>/<deployment> FAIL — <one-line reason>
-smoke: skipped or HTTP <status> <url>
-blocker: <next action; @eric if human-only>
+tenant_cd prod evidence
+client_id: <leantime_client_id>
+repo_id: <repos[].id>
+prod_workflow_run_url: <https://github.com/.../actions/runs/...>
+prod_workflow_conclusion: success
+prod_rollout: <namespace>/<deployment> OK
+prod_smoke: HTTP <status> <url>
 ```
 
-Do not set ticket status to Done from infra; candy closes after verifying these fields.
+PM (pm) Done requires **all** of: `pr_url`, `merge_sha`, test_*, `qa:` pass, `aa:` pass, prod_* (`feature_evidence.py` / ARCHITECTURE §2.8).
+
+On failure, post partial fields + `blocker:` and `@eric` when human-only.

@@ -34,7 +34,7 @@ final class OpenAIRunnerClientTest extends TestCase
 
         $result = $client->createSession(
             'http://hermes-master.ai-agents.svc:8642',
-            'hello candy',
+            'hello pm',
             99
         );
 
@@ -44,7 +44,7 @@ final class OpenAIRunnerClientTest extends TestCase
             'http://hermes-master.ai-agents.svc:8642/v1/responses',
             $posts[0]['url']
         );
-        $this->assertSame('hello candy', $posts[0]['body']['input']);
+        $this->assertSame('hello pm', $posts[0]['body']['input']);
         $this->assertSame('leantime-ticket-99', $posts[0]['body']['conversation']);
         $this->assertTrue($posts[0]['body']['store']);
     }

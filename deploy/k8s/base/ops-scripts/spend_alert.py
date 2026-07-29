@@ -208,7 +208,7 @@ def main(argv: list[str] | None = None) -> int:
 
     env = load_leantime_env()
     project_id = int(os.environ.get("LEANTIME_PROJECT_ID", str(DEFAULT_PROJECT_ID)))
-    user_id = int(os.environ.get("LEANTIME_USER_ID", "13"))  # infra
+    user_id = int(os.environ.get("LEANTIME_USER_ID", "13"))  # ta
     assigned_to = int(os.environ.get("LEANTIME_ASSIGNED_TO", "1"))  # eric
     result = create_ticket(
         env,

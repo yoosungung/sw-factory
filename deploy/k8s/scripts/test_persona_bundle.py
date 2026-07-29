@@ -85,14 +85,14 @@ def test_build_bundle_includes_org_knowledge_skill():
     assert "ORG_WIKI_URL" in skill
     assert ".cursor/skills/org-knowledge/references/wiki-layout.md" in bundle
     memory = bundle[".cursor/MEMORY.md"]
-    assert "finder" in memory.lower()
+    assert "km" in memory.lower()
     assert "org-wiki" in memory.lower() or "org-knowledge" in memory
     workflow = bundle[".cursor/rules/agent-workflow.mdc"]
     assert "wiki-first" in workflow.lower() or "org-knowledge" in workflow
 
 
-def test_build_finder_bundle_includes_promote_and_researcher():
-    bundle = build_persona_bundle("finder", PERSONAS_ROOT)
+def test_build_km_bundle_includes_promote_and_researcher():
+    bundle = build_persona_bundle("km", PERSONAS_ROOT)
     promote = ".cursor/skills/knowledge-promote/SKILL.md"
     research = ".cursor/skills/km-researcher/SKILL.md"
     assert promote in bundle
@@ -105,14 +105,14 @@ def test_build_finder_bundle_includes_promote_and_researcher():
     assert ".cursor/skills/org-knowledge/SKILL.md" in bundle
 
 
-def test_build_candy_bundle_includes_leantime_pm_skill():
-    bundle = build_persona_bundle("candy", PERSONAS_ROOT)
+def test_build_pm_bundle_includes_leantime_pm_skill():
+    bundle = build_persona_bundle("pm", PERSONAS_ROOT)
     skill_key = ".cursor/skills/leantime-pm/SKILL.md"
     assert skill_key in bundle
     skill = bundle[skill_key]
     assert "metadata:\n  hermes:" not in skill
     assert "Hermes is the PM" not in skill
-    assert "candy is the **PM**" in skill or "candy` is the **PM**" in skill or "candy is the PM" in skill.lower()
+    assert "pm is the **PM**" in skill or "pm` is the **PM**" in skill or "pm is the PM" in skill.lower()
     assert "Use when acting as a Leantime project manager" in skill
     assert "30-Minute Developer Work Timebox" in skill
     assert "Human-only handoff" in skill
@@ -145,8 +145,8 @@ def test_build_candy_bundle_includes_leantime_pm_skill():
     assert "LEANTIME_ACCESS_TOKEN" in jsonrpc
 
 
-def test_build_infra_bundle_includes_k8s_operator_skill():
-    bundle = build_persona_bundle("infra", PERSONAS_ROOT)
+def test_build_ta_bundle_includes_k8s_operator_skill():
+    bundle = build_persona_bundle("ta", PERSONAS_ROOT)
     skill_key = ".cursor/skills/k8s-operator-operations/SKILL.md"
     assert skill_key in bundle
     skill = bundle[skill_key]
@@ -158,7 +158,7 @@ def test_build_infra_bundle_includes_k8s_operator_skill():
     assert len(skill.splitlines()) < 200
     memory = bundle[".cursor/MEMORY.md"]
     assert "k8s-operator-operations" in memory
-    assert "infra" in memory.lower()
+    assert "ta" in memory.lower()
     refs = [
         ".cursor/skills/k8s-operator-operations/references/operator-rbac.md",
         ".cursor/skills/k8s-operator-operations/references/resource-monitoring-rbac.md",
@@ -174,7 +174,7 @@ def test_build_infra_bundle_includes_k8s_operator_skill():
 
 
 def test_persona_bundle_skips_sample_templates():
-    bundle = build_persona_bundle("candy", PERSONAS_ROOT)
+    bundle = build_persona_bundle("pm", PERSONAS_ROOT)
     assert "MEMORY.md.sample" not in bundle
     assert not any(k.endswith(".sample") for k in bundle)
     memory = bundle[".cursor/MEMORY.md"]

@@ -6,7 +6,7 @@ metadata:
   labels:
     app: cursor-agent
 ---
-# Cluster-scoped observer/operator for infra monitoring + limited remediation.
+# Cluster-scoped observer/operator for ta monitoring + limited remediation.
 # Least privilege: no Role/ClusterRole/Binding write (no self-escalation).
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole

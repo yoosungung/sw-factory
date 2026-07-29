@@ -38,7 +38,7 @@ jobs:
         run: |
           echo "TODO: update cluster (kubectl/helm/Argo) to ${{ github.event.inputs.image_tag }}"
           # Prefer: push image first, then update manifests / sync.
-          # Factory infra will still run kubectl rollout status + in-cluster HTTP smoke.
+          # Factory ta will still run kubectl rollout status + in-cluster HTTP smoke.
 
       - name: Placeholder success
         run: |

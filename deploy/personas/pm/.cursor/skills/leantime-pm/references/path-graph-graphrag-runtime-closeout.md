@@ -4,7 +4,7 @@ Use this when a Leantime path-graph ticket has code/PR/bundle work completed but
 
 ## Durable workflow
 
-1. Re-read the active Leantime ticket and comments before acting; path/candy/Eric may have added newer evidence or reassigned ownership.
+1. Re-read the active Leantime ticket and comments before acting; path/pm/Eric may have added newer evidence or reassigned ownership.
 2. Separate three states in the PM comment:
    - code/PR/CI/bundle registration complete,
    - runtime workflow currently Running/Succeeded/Failed,

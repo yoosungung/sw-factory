@@ -46,4 +46,4 @@ Incident tickets
 
 Actionable faults: open/update Leantime tickets per `incident-tickets.md` (still **no** kubectl mutate on the daily schedule).
 
-Schedule entry lives in `deploy/k8s/agents.yaml` `settings.schedules` (`infra-k8s-daily`), not Hermes cron.
+Schedule entry lives in `deploy/k8s/agents.yaml` `settings.schedules` (`ta-k8s-daily`), not Hermes cron.

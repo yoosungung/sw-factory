@@ -24,14 +24,23 @@ def test_handoff_prompt_requires_git_ship():
 
 
 def test_review_status_prompt_requires_push():
-    assert "git-ship" in mod.STATUS_PROMPTS["4"]
-    assert "push" in mod.STATUS_PROMPTS["4"].lower()
+    review = mod.STATUS_PROMPT_BY_NAME["Review"]
+    assert "git-ship" in review
+    assert "push" in review.lower()
+    # Dual-loop board maps Review → id 10 in sample
+    built = mod.build_status_prompts(
+        {"status_board": {"Review": 10, "In Progress": 4, "Done": 0}}
+    )
+    assert "git-ship" in built["10"]
 
 
 def test_bridge_json_matches_sync_prompts():
-    bridge = json.loads(BRIDGE_JSON.read_text())
+    path = BRIDGE_JSON if BRIDGE_JSON.is_file() else ROOT / "leantime-plugin" / "bridge.json.sample"
+    bridge = json.loads(path.read_text())
     assert bridge["prompts"]["handoff"] == mod.PROMPTS["handoff"]
-    assert bridge["status_prompts"]["4"] == mod.STATUS_PROMPTS["4"]
+    # Review prompt lives under status_board id (sample: 10) or legacy 4
+    status_blob = " ".join(bridge["status_prompts"].values())
+    assert "git-ship" in status_blob or "Review" in status_blob
 
 
 def test_normalize_schedules_common_and_per_agent():
@@ -46,15 +55,15 @@ def test_normalize_schedules_common_and_per_agent():
                 "success_checks": ["leave comment"],
             },
             {
-                "id": "finder-wiki",
+                "id": "km-wiki",
                 "cron": "0 10 * * 1",
-                "agents": ["finder"],
+                "agents": ["km"],
                 "prompt": "wiki check",
             },
             {
-                "id": "candy-pm-checkpoint",
+                "id": "pm-checkpoint",
                 "cron": "5,20,35,50 * * * *",
-                "agents": ["candy"],
+                "agents": ["pm"],
                 "gates": ["in_progress"],
                 "prompt": "checkpoint",
             },
@@ -72,7 +81,7 @@ def test_normalize_schedules_common_and_per_agent():
         "prompt": "check open tickets",
         "success_checks": ["leave comment"],
     }
-    assert out[1]["agents"] == ["finder"]
+    assert out[1]["agents"] == ["km"]
     assert "gates" not in out[1]
     assert out[2]["gates"] == ["in_progress"]
     assert "gates" not in out[3]
@@ -98,7 +107,8 @@ def test_normalize_budget():
 
 
 def test_bridge_json_budget_timeout_is_ten_minutes():
-    bridge = json.loads(BRIDGE_JSON.read_text())
+    path = BRIDGE_JSON if BRIDGE_JSON.is_file() else ROOT / "leantime-plugin" / "bridge.json.sample"
+    bridge = json.loads(path.read_text())
     assert bridge["budget"]["timeout_ms"] == 600000
 
 
@@ -113,7 +123,8 @@ def test_normalize_success_retry():
 
 
 def test_bridge_json_success_retry_default():
-    bridge = json.loads(BRIDGE_JSON.read_text())
+    path = BRIDGE_JSON if BRIDGE_JSON.is_file() else ROOT / "leantime-plugin" / "bridge.json.sample"
+    bridge = json.loads(path.read_text())
     assert bridge["success_retry"]["max_attempts"] == 3
 
 

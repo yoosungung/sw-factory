@@ -2,7 +2,7 @@
 name: leantime-pm
 description: "Use when acting as a Leantime project manager: translate requirements into tickets, coordinate developers, manage design review, track PRs/tests/deployments, run 30-minute checkpoints, and escalate decisions to Eric."
 version: 1.2.0
-author: candy persona
+author: pm persona
 license: MIT
 ---
 
@@ -16,26 +16,26 @@ license: MIT
 |------|------|
 | `references/ticket-ops.md` | 티켓 상태·assignee·부모/서브태스크·증거·터미널 workflow |
 | `references/pm-workflow.md` | Intake→설계→분배→PR→머지→closeout |
-| `references/mention-watcher-review.md` | `@candy` 리뷰/머지, 의존 PR, race-safe closeout |
+| `references/mention-watcher-review.md` | `@pm` 리뷰/머지, 의존 PR, race-safe closeout |
 | `references/pitfalls.md` | MCP false·orphan·동시성 함정 |
 | `references/checkpoint-*.md` | 체크포인트 discovery fallback (JSON-RPC/SQL) |
 | `references/path-graph-*.md` | path-graph 전용 리뷰/closeout |
 
 ## When to Use
 
-Eric이 candy에게 Leantime PM을 맡기거나, CursorBridge 스케줄/멘션/티켓 이벤트로 PM 조치가 필요할 때:
+Eric이 pm에게 Leantime PM을 맡기거나, CursorBridge 스케줄/멘션/티켓 이벤트로 PM 조치가 필요할 때:
 
 - 요구사항·설계·업무 분배
 - 개발자 질문 응답
 - PR 리뷰·머지·배포 검수
-- 30분 체크포인트 (`candy-pm-checkpoint`)
+- 30분 체크포인트 (`pm-checkpoint`)
 - Eric 정책/범위 확인
 
 ## Core Role
 
-candy is the **PM**, not the default developer.
+pm is the **PM**, not the default developer.
 
-1. 코드 구현은 Eric이 candy에게 개발 역할을 명시한 경우만.
+1. 코드 구현은 Eric이 pm에게 개발 역할을 명시한 경우만.
 2. 요구사항을 parent/subtask로 쪼개고 올바른 owner에게 배정.
 3. 구현 전 설계·범위 조율.
 4. 증거 필수: PR·테스트·배포/스모크 로그.
@@ -68,7 +68,7 @@ When Eric asks for a 30-minute checkpoint monitor/watchdog run:
    - Practical fallback when MCP `list_tickets` floods context: run a small Python/httpx JSON-RPC probe against `/api/jsonrpc` using the configured `LEANTIME_URL`/PAT, call `leantime.rpc.Tickets.Tickets.getAll` with `{"searchCriteria": {}}`, and print only `{counts, active_count, active:[id, headline, projectId, projectName, status, type, editorId, dependingTicketId, date, commentCount]}`. This is acceptable for discovery only; use MCP tools for comments/mutations. See `references/checkpoint-jsonrpc-status-probe.md` for the compact probe pattern.
    - If JSON-RPC discovery is rate-limited or per-parent subtask probing would be noisy, use the read-only Kubernetes/MariaDB SQL fallback in `references/checkpoint-sql-status-probe.md` to get status counts and `status=4` rows compactly. Do not print secrets; use SQL only for discovery/verification and MCP for comments.
    - If `active_count == 0`, strengthen the no-op verification by checking active subtasks. Prefer a grouped SQL/count query when available; avoid looping through every parent with `getAllSubtasks` because it can trigger 429s. If both top-level active count and active subtask count are zero, add no comments and final-report status-count skip reasons only.
-3. Before commenting, read the latest comments for each candidate and suppress duplicates when a PM/candy checkpoint request was posted within the last 30 minutes on the same ticket.
+3. Before commenting, read the latest comments for each candidate and suppress duplicates when a PM/pm checkpoint request was posted within the last 30 minutes on the same ticket.
 4. Identify the last actionable developer comment. If it is older than 30 minutes and there is no PR/test/completion/blocker evidence after it, add at most one concise checkpoint request comment asking for: attempted work, single cause, branch/PR, and next minimum step.
 5. Use exactly one cause category in the comment: (1) oversized/ambiguous → split into subtasks; (2) failure/blocked → unblock, reassign, mark Blocked, or **hand off to Eric** when human-only; (3) simple interruption → resume and request next 30-minute evidence.
 6. Keep each run bounded: add no more than 5 checkpoint comments total, use only known Leantime mention ids, avoid email/code/long explanations, and re-read comments after adding if verification matters.
@@ -92,13 +92,13 @@ Ask Eric with `<a class="tiptap-mention" data-tagged-user-id="1">@eric</a>` when
 ### Ownership vs capability
 
 - Route by **who can execute the next step**, not by role nickname or GitHub “owner” title alone.
-- Candy is app PM/reviewer — **not** an elevated executor. Do not claim or accept “candy will mutate X” unless candy’s live credentials already allow X.
+- Pm is app PM/reviewer — **not** an elevated executor. Do not claim or accept “pm will mutate X” unless pm’s live credentials already allow X.
 - Agent-to-agent handoff = capability mismatch (wrong specialist/repo). Agent-to-Eric = missing privilege, secret, or product/platform judgment.
 - If the needed change is outside the active tenant workspace, identify the owning repo/owner and hand off — do not close the path as `git-ship: N/A` and self-assign.
 
 ### Human-only handoff (required shape)
 
-When a developer (or candy) has already recorded evidence that they cannot proceed without human privilege:
+When a developer (or pm) has already recorded evidence that they cannot proceed without human privilege:
 
 1. Do **not** leave assignee on that developer and ping them again in checkpoint loops.
 2. Set status to `Waiting for Approval` (`2`), assignee to Eric (`editorId` / assignedTo = `1`).
@@ -128,7 +128,7 @@ Before reporting PM progress:
 - [ ] PR review status is reflected in Leantime.
 - [ ] Required GitHub checks are green before merge (`gh pr checks`).
 - [ ] Merge/deploy evidence is recorded before Done.
-- [ ] For tenant_cd tickets: comments include pr_url, merge_sha, workflow_run_url+conclusion=success, rollout OK, and smoke HTTP — otherwise do not Done; ensure infra was assigned after merge.
+- [ ] For tenant_cd tickets: feature Done evidence = pr_url, merge_sha, test_*, qa: pass, aa: pass, prod_* — otherwise do not Done; ensure ta→qa/aa→ta prod handoffs.
 - [ ] After merge, the parent has a closeout comment and the next canonical subtask has an actionable owner-mentioned instruction.
 - [ ] Duplicate/orphan tickets caused by wrong references or MCP behavior are commented and archived with a canonical pointer.
 - [ ] Eric was asked where required.

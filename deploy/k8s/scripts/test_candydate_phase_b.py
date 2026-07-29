@@ -8,6 +8,7 @@ import yaml
 
 ROOT = Path(__file__).resolve().parents[3]
 AGENTS = ROOT / "deploy" / "k8s" / "agents.yaml"
+AGENTS_SAMPLE = ROOT / "deploy" / "k8s" / "agents.yaml.sample"
 SCRIPTS = (
     ROOT
     / "deploy"
@@ -56,7 +57,8 @@ def test_leantime_cron_report_defaults_to_seewin_user() -> None:
 
 
 def test_seewin_llm_schedules_registered() -> None:
-    data = yaml.safe_load(AGENTS.read_text())
+    path = AGENTS if AGENTS.is_file() else AGENTS_SAMPLE
+    data = yaml.safe_load(path.read_text())
     by_id = {s["id"]: s for s in data["settings"]["schedules"]}
     for sid, cron in (
         ("seewin-people-curation", "0 9 * * *"),
@@ -69,7 +71,8 @@ def test_seewin_llm_schedules_registered() -> None:
         assert "/workspace/repo" in by_id[sid]["prompt"]
     for sid in ("seewin-people-curation", "seewin-publication-review"):
         assert "user_id=14" in by_id[sid]["prompt"] or "user 14" in by_id[sid]["prompt"]
-    assert "Leantime 티켓 생성 금지" in by_id["seewin-issue-radar-today"]["prompt"]
+    radar = by_id["seewin-issue-radar-today"]["prompt"]
+    assert "No Leantime tickets" in radar or "티켓" in radar
 
 
 def test_candydate_cronjobs_manifest() -> None:

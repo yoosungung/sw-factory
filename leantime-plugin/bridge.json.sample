@@ -13,12 +13,12 @@
       "type": "human"
     },
     {
-      "name": "candy",
+      "name": "pm",
       "leantime_user_id": 4,
-      "email": "candy@example.com",
-      "runner_url": "http://cursor-agent-candy.leantime.svc:8080",
+      "email": "pm@example.com",
+      "runner_url": "http://cursor-agent-pm.leantime.svc:8080",
       "git_repo_url": "https://github.com/demo-org/shop-api.git",
-      "persona": "candy",
+      "persona": "pm",
       "type": "sessions",
       "model": "auto"
     },
@@ -41,6 +41,46 @@
       "persona": "path",
       "type": "sessions",
       "model": "auto"
+    },
+    {
+      "name": "ta",
+      "leantime_user_id": 13,
+      "email": "ta@example.com",
+      "runner_url": "http://cursor-agent-ta.leantime.svc:8080",
+      "git_repo_url": "https://github.com/demo-org/k8s-test.git",
+      "persona": "ta",
+      "type": "sessions",
+      "model": "auto"
+    },
+    {
+      "name": "km",
+      "leantime_user_id": 9,
+      "email": "km@example.com",
+      "runner_url": "http://cursor-agent-km.leantime.svc:8080",
+      "git_repo_url": "https://github.com/demo-org/org-wiki.git",
+      "persona": "km",
+      "type": "sessions",
+      "model": "auto"
+    },
+    {
+      "name": "qa",
+      "leantime_user_id": 15,
+      "email": "qa@example.com",
+      "runner_url": "http://cursor-agent-qa.leantime.svc:8080",
+      "git_repo_url": "https://github.com/demo-org/bridge-harness.git",
+      "persona": "qa",
+      "type": "sessions",
+      "model": "auto"
+    },
+    {
+      "name": "aa",
+      "leantime_user_id": 16,
+      "email": "aa@example.com",
+      "runner_url": "http://cursor-agent-aa.leantime.svc:8080",
+      "git_repo_url": "https://github.com/demo-org/bridge-harness.git",
+      "persona": "aa",
+      "type": "sessions",
+      "model": "auto"
     }
   ],
   "prompts": {
@@ -52,46 +92,153 @@
     "handoff": "Assignee handoff. If work is ready for review: complete git-ship (push + PR), set ticket to Review, assign human reviewer, add_comment with PR link. Do not ask humans to push. Then stop until reassigned."
   },
   "status_prompts": {
-    "3": "Status is In Progress. Continue implementation.",
-    "4": "Status is Review. Ensure commits are pushed and PR is open (git-ship). Summarize changes for reviewer with PR link; do not ask anyone to push locally. After merge on a tenant_cd-enabled repo: hand off to infra with merge_sha (deploy/smoke evidence required before Done).",
-    "5": "Status is Done. Close out only when required evidence is present: for tenant_cd tickets require pr_url, merge_sha, workflow_run_url+workflow_conclusion=success, rollout OK, and smoke HTTP result."
+    "4": "Status is In Progress. Continue implementation (local / developer).",
+    "10": "Status is Review. Ensure commits are pushed and PR is open (git-ship). PM (pm) reviews/merges. After merge on tenant_cd: hand off to TA (ta) with merge_sha for Deploying Test.",
+    "11": "Status is Deploying Test. TA runs tenant_cd with environment=test, leaves test_* evidence, then @qa and @aa and set status QA.",
+    "12": "Status is QA. QA runs browser E2E; AA runs security-review (parallel). On both pass: hand off to TA for Deploying Prod. On fail: developer + In Progress.",
+    "13": "Status is Deploying Prod. TA deploys environment=production, leaves prod_* evidence. PM marks Done only when feature evidence (test+qa+aa+prod) is complete.",
+    "0": "Status is Done. Close out only when feature Done evidence is present: pr_url, merge_sha, test_*, qa: pass, aa: pass, prod_* (ARCHITECTURE \u00a72.8). Merge alone is never Done for CD tickets.",
+    "1": "Status is Blocked. Unblock or escalate to @eric / PM.",
+    "2": "Status is Waiting for Approval. Await human decision (@eric); do not invent scope.",
+    "3": "Status is New. PM intake / breakdown before In Progress."
   },
-  "budget": {
-    "timeout_ms": 600000
-  },
-  "success_retry": {
-    "max_attempts": 3
-  },
-  "success_checks": [
-    "Read Active ticket via Leantime MCP before writing.",
-    "Leave an add_comment outcome on the Active ticket.",
-    "If Review-ready: git-ship (push + PR) before handoff."
-  ],
   "schedules": [
     {
-      "id": "candy-pm-checkpoint",
+      "id": "pm-checkpoint",
       "cron": "5,20,35,50 * * * *",
-      "prompt": "Use the leantime-pm skill. 30\ubd84 \uccb4\ud06c\ud3ec\uc778\ud2b8 \uac10\uc2dc. In Progress \uac1c\ubc1c \ud2f0\ucf13/\uc11c\ube0c\ud0dc\uc2a4\ud06c\ub9cc. Done\u00b7Archived\u00b7Waiting for Approval\ub294 \uc2a4\ud0b5(\uc0c8 \uac1c\ubc1c \uc694\uccad \ucf54\uba58\ud2b8 \uc5c6\uc73c\uba74). \ucd5c\uadfc 30\ubd84 \ub0b4 PM \uccb4\ud06c\ud3ec\uc778\ud2b8 \ucf54\uba58\ud2b8\uac00 \uc788\uc73c\uba74 \uc911\ubcf5 \uae08\uc9c0. \ub9c8\uc9c0\ub9c9 actionable \ucf54\uba58\ud2b8\uac00 30\ubd84 \ub118\uace0 PR/\ud14c\uc2a4\ud2b8/\uc644\ub8cc/blocker \uc99d\uac70\uac00 \uc5c6\uc73c\uba74 \uccb4\ud06c\ud3ec\uc778\ud2b8 \uc694\uccad \ucf54\uba58\ud2b8 1\uac74(\uc2dc\ub3c4\u00b7\uc6d0\uc778\u00b7branch/PR\u00b7\ub2e4\uc74c \ucd5c\uc18c \ub2e8\uacc4). \uc6d0\uc778\uc740 \ud558\ub098\ub9cc: (1) \uacfc\ub300/\ubaa8\ud638\u2192\uc11c\ube0c\ud0dc\uc2a4\ud06c \ubd84\ud560 (2) \uc2e4\ud328/\ucc28\ub2e8\u2192\ud574\uc81c\u00b7\uc7ac\ubc30\uc815\u00b7Blocked\u00b7\uc5d0\uc2a4\uceec (3) \ub2e8\uc21c \uc911\ub2e8\u2192\uc7ac\uac1c+\ub2e4\uc74c 30\ubd84 \uc99d\uac70 \uc694\uccad. \uba58\uc158\uc740 \uc54c\ub824\uc9c4 id\ub9cc(eric=1,candy=4,asky=5,path=6). \ucf54\ub4dc/\uba54\uc77c/\uc7a5\ubb38 \uae08\uc9c0. \uc2e4\ud589\ub2f9 \ucf54\uba58\ud2b8 \u22645. \ub05d\ub098\uba74 \uc870\uce58\u00b7\ubd84\ub958\u00b7\uc2a4\ud0b5 \uc0ac\uc720\ub9cc \uc9e7\uac8c.",
+      "prompt": "Use the leantime-pm skill. 30\ubd84 \uccb4\ud06c\ud3ec\uc778\ud2b8. In Progress \uac1c\ubc1c \ud2f0\ucf13\ub9cc. Dual-loop: Review\u2192Deploying Test\u2192QA\u2192Deploying Prod\u2192Done. Done\ub294 test+qa+aa+prod \uc99d\uac70 \uc788\uc744 \ub54c\ub9cc. \uba58\uc158 id: eric=1,pm=4,asky=5,path=6,km=9,ta=13,qa=15,aa=16. \uc2e4\ud589\ub2f9 \ucf54\uba58\ud2b8 \u22645.",
       "agents": [
-        "candy"
-      ],
-      "gates": [
-        "in_progress"
+        "pm"
       ],
       "success_checks": [
         "At most 5 checkpoint comments added this run.",
         "No duplicate PM checkpoint within 30 minutes on the same ticket.",
         "Final reply lists acted/skipped tickets with classification."
+      ],
+      "gates": [
+        "in_progress"
       ]
     },
     {
       "id": "github-issue-check",
       "cron": "0 23 * * *",
-      "prompt": "github issue \uc810\uac80\ud558\uc5ec \uc2e0\uaddc\ub294 \ud2f0\ucf13\uc73c\ub85c \ubcc0\ud658\ud558\uace0, \ube14\ub85c\ucee4\uac00 \uc788\uc73c\uba74 add_comment \ucc98\ub9ac.",
+      "prompt": "github issue \uc810\uac80\ud558\uc5ec \uc2e0\uaddc\ub294 \ud2f0\ucf13\uc73c\ub85c \ubcc0\ud658\ud558\uace0, \ube14\ub85c\ucee4\uac00 \uc788\uc73c\uba74 add_comment \ucc98\ub9ac. QA\uac00 \uc7ac\ud604\u00b7\uc2dc\ub098\ub9ac\uc624 \ub4f1\ub85d\ud560 \uc218 \uc788\uac8c client \ud504\ub85c\uc81d\ud2b8\uc5d0 \ub454\ub2e4.",
       "success_checks": [
         "New GitHub issues are reflected as Leantime tickets or explicitly skipped with a comment.",
         "Blockers are reported via add_comment."
       ]
+    },
+    {
+      "id": "km-wiki",
+      "cron": "30 23 * * *",
+      "prompt": "Use km-researcher then knowledge-promote as needed. Inbox drain + wiki research ingest; commit\u00b7push directly to default branch(main). PR\u00b7feature branch\u00b7git-ship \uae08\uc9c0. \uc2e4\ud328 \uc2dc ticket(New), \uc131\uacf5 \uc2dc ticket(Done).",
+      "agents": [
+        "km"
+      ],
+      "success_checks": [
+        "Changes are committed and pushed directly to the default branch (no PR).",
+        "Do not run git-ship or gh pr create.",
+        "Inbox drain attempted (or explicitly no pending inbox).",
+        "On success create/update a Done ticket; on failure a New ticket with blocker."
+      ]
+    },
+    {
+      "id": "ta-k8s-daily",
+      "cron": "0 1 * * *",
+      "prompt": "Use the k8s-operator-operations skill. \uc77c\uc77c k8s \uc6b4\uc601 \ub9ac\ud3ec\ud2b8(read-only). mutate/\ubc30\ud3ec \uae08\uc9c0. \uc870\uce58 \uac00\ub2a5 \uc7a5\uc560\ub294 incident-tickets.md\ub300\ub85c client \ud504\ub85c\uc81d\ud2b8 \ud2f0\ucf13.",
+      "agents": [
+        "ta"
+      ],
+      "success_checks": [
+        "Report uses the k8s \uc6b4\uc601 \ub9ac\ud3ec\ud2b8 format with a clear status summary.",
+        "No mutating kubectl actions in this scheduled run.",
+        "Actionable incidents are ticketed or explicitly listed as none."
+      ]
+    },
+    {
+      "id": "ta-load-weekly",
+      "cron": "0 2 * * 1",
+      "prompt": "Use load-weekly skill. For each clients[] entry, run tenant .factory/quality.yaml load commands against test env. Failures \u2192 New ticket in that client's project_id. Do not mark feature tickets Done from this run.",
+      "agents": [
+        "ta"
+      ],
+      "success_checks": [
+        "Each client load was run or explicitly skipped with reason.",
+        "Failures created New tickets in the correct client project."
+      ]
+    },
+    {
+      "id": "aa-clean-weekly",
+      "cron": "30 2 * * 1",
+      "prompt": "Use clean-code-weekly skill. For each client repo, run tenant clean_code checks. Findings \u2192 New ticket in client project_id. Not a prod gate for feature tickets.",
+      "agents": [
+        "aa"
+      ],
+      "success_checks": [
+        "Each client clean-code check ran or was skipped with reason.",
+        "Findings filed as New tickets on the client project."
+      ]
+    },
+    {
+      "id": "qa-bulk-weekly",
+      "cron": "0 3 * * 1",
+      "prompt": "Use bulk-api-probe and opik-eval as configured in tenant .factory/quality.yaml. Weekly bulk quality across clients. Failures \u2192 New tickets on client project_id.",
+      "agents": [
+        "qa"
+      ],
+      "success_checks": [
+        "Bulk/Opik suites ran per tenant config or skipped with reason.",
+        "Failures filed as New tickets on the client project."
+      ]
+    },
+    {
+      "id": "seewin-people-curation",
+      "cron": "0 9 * * *",
+      "prompt": "Use political-wiki-administration in /workspace/repo. People SSoT curation (18:00 KST). Report on Leantime project 20 as user 14. main direct push only after validation.",
+      "agents": [
+        "seewin"
+      ],
+      "success_checks": [
+        "Work stayed in /workspace/repo.",
+        "Leantime report as seewin (user 14) or blocked with reason."
+      ]
+    },
+    {
+      "id": "seewin-publication-review",
+      "cron": "0 18 * * *",
+      "prompt": "Use political-wiki-administration in /workspace/repo. Publication-safety review (03:00 KST). Run publication_gate.py before push. Report project 20 user 14.",
+      "agents": [
+        "seewin"
+      ],
+      "success_checks": [
+        "publication_gate.py run before push decision.",
+        "Leantime report as seewin (user 14)."
+      ]
+    },
+    {
+      "id": "seewin-issue-radar-today",
+      "cron": "0 23 * * *",
+      "prompt": "Use political-wiki-administration in /workspace/repo. Issue radar \u2192 wiki/data/today.yaml. No Leantime tickets. Direct main push when changed.",
+      "agents": [
+        "seewin"
+      ],
+      "success_checks": [
+        "No new Leantime ticket.",
+        "Only wiki/data/today.yaml committed when changed, or no-op."
+      ]
     }
-  ]
+  ],
+  "success_checks": [
+    "Read Active ticket via Leantime MCP before writing.",
+    "Leave an add_comment outcome on the Active ticket.",
+    "If Review-ready: git-ship (push + PR) before handoff.",
+    "If tenant_cd-enabled: feature Done needs test+qa+aa+prod evidence (ARCHITECTURE \u00a72.8).",
+    "Wiki-first (org-knowledge); after work: inbox path or wiki: N/A on Active ticket."
+  ],
+  "budget": {
+    "timeout_ms": 600000
+  },
+  "success_retry": {
+    "max_attempts": 3
+  }
 }
