@@ -1,0 +1,22 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cursorbridge-flush-retries
+  namespace: leantime
+spec:
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: flush
+              command:
+                - sh
+                - -c
+                - |
+                  set -eu
+                  NS=sw-factory
+                  POD=$(kubectl -n "$NS" get pod -l app.kubernetes.io/name=leantime \
+                    -o jsonpath='{.items[0].metadata.name}')
+                  kubectl -n "$NS" exec "$POD" -- \
+                    php /var/www/html/app/Plugins/CursorBridge/bin/flush-retries.php

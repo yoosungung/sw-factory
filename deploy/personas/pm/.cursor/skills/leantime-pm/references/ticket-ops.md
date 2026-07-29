@@ -29,7 +29,7 @@ Known examples:
 
 - Eric: `<a class="tiptap-mention" data-tagged-user-id="1">@eric</a>`
 - path developer: `<a class="tiptap-mention" data-tagged-user-id="6">@path</a>`
-- candy (PM/self): `<a class="tiptap-mention" data-tagged-user-id="4">@candy</a>`
+- pm (PM/self): `<a class="tiptap-mention" data-tagged-user-id="4">@pm</a>`
 
 Rules:
 
@@ -49,14 +49,16 @@ Rules:
 
 ### Ticket State Management
 
-PM must actively manage ticket status:
+Dual-loop board (configure on each client Leantime project; ids from `settings.status_board`):
 
-- `New`: created but not yet started.
-- `In Progress`: design/dev/review is actively underway.
-- `Waiting for Approval`: waiting on Eric/product approval, final human decision, **or human-only privilege/secret handoff**.
-- `Blocked`: waiting on another ticket/external dependency, or env failure where an **agent still owns** the next agent-actionable step.
-- `Done`: only after PR merged, tests verified, and — when the product repo has `tenant_cd.enabled` — all four deploy evidence groups on comments (`pr_url`+`merge_sha`, `workflow_run_url`+`workflow_conclusion=success`, `rollout: … OK`, `smoke: HTTP …`). Merge alone is never Done for CD tickets.
-- `Archived`: duplicate/stale tickets only, with a reason.
+- `New`: intake
+- `In Progress`: developer local implementation
+- `Review`: PM PR review/merge
+- `Deploying Test`: TA test env CD
+- `QA`: QA E2E ∥ AA security
+- `Deploying Prod`: TA production CD
+- `Done`: only when feature evidence complete — `pr_url`, `merge_sha`, `test_*`, `qa:` pass, `aa:` pass, `prod_*` (ARCHITECTURE §2.8). Merge alone is never Done for CD tickets.
+- `Blocked` / `Waiting for Approval`: same escalation rules as before
 
 Rules:
 
@@ -66,12 +68,12 @@ Rules:
 4. If PM requests developer action, keep/mark `In Progress`.
 5. If Eric confirmation **or human-only unblock** is required, mark `Waiting for Approval`, assignee Eric, and `@eric` with a concrete ask — do not leave assignee on a developer who already proved they lack the required privilege (RBAC, admin/BFF session, secrets, cluster policy).
 6. Never ping-pong `Blocked` + developer assignee when the developer's latest evidence is "cannot proceed without human privilege"; convert to Eric handoff immediately so checkpoint watchers (which skip Blocked/Approval) do not create silent drift.
-- If implementation is complete but deploy verification is missing on a tenant_cd ticket, do not mark `Done`; assign/mention infra with `merge_sha` if not already handed off.
+- After merge on tenant_cd: status `Deploying Test`, assign/mention **ta** with `merge_sha`. After test evidence: ensure `@qa` `@aa`. After qa+aa pass: ensure ta `Deploying Prod`. Do not `Done` until feature evidence is complete.
 - In active watcher/agent environments, re-read the active ticket comments immediately before git-ship or review handoff, and again after opening a PR. If another agent already opened or merged the same scope, do not keep a duplicate PR alive just to satisfy a handoff shape; close the duplicate with a GitHub comment, add a Leantime correction/outcome on the active ticket, and base status on the canonical merged/open PR.
 
 ### Human-only privilege handoff
 
-Hand off to Eric (not developer/`candy` Blocked loops) when the next step needs authority agents lack: denied API/RBAC verbs, missing secrets or admin session, policy/platform changes, or live apply outside the agent write scope. Prefer evidence (`can-i`, 401/403, missing secret) over role nicknames.
+Hand off to Eric (not developer/`pm` Blocked loops) when the next step needs authority agents lack: denied API/RBAC verbs, missing secrets or admin session, policy/platform changes, or live apply outside the agent write scope. Prefer evidence (`can-i`, 401/403, missing secret) over role nicknames.
 
 Handoff comment must include: concrete grant/session/apply needed, already-complete code/PR/bundle evidence, and the post-unblock verification step.
 
@@ -81,7 +83,7 @@ A ticket previously marked `Done` can be explicitly reactivated by a newer comme
 
 1. Re-read the ticket and comments; identify the newest explicit request and its referenced PR.
 2. Inspect that live PR rather than assuming the earlier merged PR remains the subject.
-3. If an open review PR conflicts with `main` and candy Pod (`GH_TOKEN`) has push permission, merge `origin/main` into the PR branch and resolve only the direct conflicts. Preserve valid content from both sides and apply documented repository retention policies rather than blindly keeping either side.
+3. If an open review PR conflicts with `main` and pm Pod (`GH_TOKEN`) has push permission, merge `origin/main` into the PR branch and resolve only the direct conflicts. Preserve valid content from both sides and apply documented repository retention policies rather than blindly keeping either side.
 4. Push the conflict-resolution commit, re-check mergeability, rerun focused/full tests, then approve and merge only when checks are clear or absent by repository design.
 5. After merge, re-read the PR state and open-PR list, set the reactivated ticket to `Done` only when the new request is fully complete, and add an active-ticket outcome comment with the PR URL, merge commit, test evidence, and policy-sensitive resolution.
 

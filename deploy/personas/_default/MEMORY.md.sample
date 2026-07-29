@@ -22,7 +22,7 @@ Persona별 `MEMORY.md`가 이어 붙는다. Leantime 협업 절차는 `leantime-
 
 - 설계·아키텍처·API 계약은 단독 확정하지 않는다. 티켓 코멘트로 대안·질문을 남기고, 관련 담당자에게 `@mention`으로 피드백을 요청한다.
 - 여러 저장소에 걸치면 해당 repo 전담 에이전트와 먼저 합의한다. 합의 후 assignee를 구현 담당으로 넘기고, 코멘트에 결정·미결 사항을 요약한다.
-- Review 단계에서는 `git-ship`(push + PR) 완료 후 **메인 리뷰어 candy**에게 핸드오프한다(assignee·`@mention`). 플랫폼/인프라 이슈만 eric. Pod에서 push를 사람에게 요청하지 않는다.
+- Review 단계에서는 `git-ship`(push + PR) 완료 후 **PM pm**에게 핸드오프한다. CD 티켓은 merge 후 TA(`ta`) → QA/AA → prod. 플랫폼 이슈만 eric.
 
 ## 계획
 
@@ -40,18 +40,24 @@ Persona별 `MEMORY.md`가 이어 붙는다. Leantime 협업 절차는 `leantime-
 
 ## 팀 구성원
 
-| 이름 | 유형 | Leantime | 역할 |
-|------|------|----------|------|
-| eric | 사람 | eric@example.com | 플랫폼 소유자·리뷰어(관리자) |
-| candy | 봇 | candy@example.com | 앱 소유자·리뷰어(메인)·PM |
-| asky | 봇 | asky@example.com | landing-web 저장소 전담 |
-| path | 봇 | path@example.com | topology-lib 전담 |
-| seewin | 봇 | seewin@example.com | candidate.win(Candydate) 전담 |
-| infra | 봇 | infra@example.com | k8s 클러스터 운영(operator) |
-| finder | 봇 | finder@example.com | org-wiki librarian (inbox→canonical, 리서치) |
+| 이름 | 유형 | 역할 |
+|------|------|------|
+| eric | 사람 | 플랫폼 소유자·승인 |
+| pm | 봇 | **PM** — intake·리뷰·머지·Done 게이트 (전 client) |
+| km | 봇 | **KM** — org-wiki librarian |
+| ta | 봇 | **TA** — tenant-cd (test→prod) · 주간 부하 · k8s |
+| qa | 봇 | **QA** — browser E2E · bulk/Opik · 주간 대량품질 |
+| aa | 봇 | **AA** — 티켓 보안 게이트 · 주간 클린코드 |
+| asky / path / … | 개발자 | client/repo IC (`human` 또는 `sessions`) |
+
+직원 5인(PM/KM/QA/TA/AA)은 **client_id에 묶이지 않음**. 테넌트 키는 티켓·배포 대상 조회용.
+
+## Dual-loop 상태
+
+`New` → `In Progress` → `Review` → `Deploying Test` → `QA` → `Deploying Prod` → `Done` (+ `Blocked` / `Waiting for Approval`). 숫자 id는 `settings.status_board` / client `status_map`.
 
 ## 전사 지식 (org-wiki)
 
 - 조사 전 `org-knowledge`로 wiki 검색. 웹은 miss/stale일 때만.
-- 작업 후 `inbox/{name}/…md` push 또는 티켓에 `wiki: N/A — …`. canonical/`INDEX`는 finder만.
-- 급승격: `@finder`(user id 9).
+- 작업 후 `inbox/{name}/…md` push 또는 티켓에 `wiki: N/A — …`. canonical/`INDEX`는 km만.
+- 급승격: `@km`(user id 9).

@@ -113,19 +113,14 @@ Before merge:
 - Confirm no unresolved review comments.
 - Confirm deployment plan.
 - Confirm Review handoff comments include test evidence or explicit `test:`/`browser:` N/A (M7).
-- For `@candy` / wiki review mention watcher PRs, **candy merges by default** when the PR satisfies requirements, tests/CI pass, and no unresolved blocker remains.
+- For `@pm` / wiki review mention watcher PRs, **pm merges by default** when the PR satisfies requirements, tests/CI pass, and no unresolved blocker remains.
 - If merge authority, requirements interpretation, CI status, deployment risk, or release timing is unclear, **do not merge; ask Eric** with the Leantime mention format.
 - Respect explicit human-only approval, merge-freeze, or separate release-gate instructions when present.
 
 After merge:
 
-- If the product agent has `tenant_cd.enabled` (framework registry / ticket hints asky|path|… + deploy): **hand off to infra** — assignee infra, `@mention` infra, comment `pr_url` + `merge_sha` + product `agent` name. Do **not** mark Done yet.
-- infra runs `tenant-cd` (`workflow_dispatch` → rollout → smoke) and posts the evidence comment.
-- Require deploy evidence (all four groups for tenant_cd tickets):
-  - `pr_url`, `merge_sha`
-  - `workflow_run_url`, `workflow_conclusion=success`
-  - `rollout: namespace/deployment OK`
-  - `smoke: HTTP <status> <url>`
+- If the product repo has `tenant_cd.enabled`: set **Deploying Test**, hand off to **ta** (`pr_url` + `merge_sha`). After test evidence, ensure **QA** + `@qa` `@aa`. After both pass, **Deploying Prod** via ta. **Done** only with feature evidence (test+qa+aa+prod).
+- Evidence: ARCHITECTURE §2.8 / ta `evidence-comment.md` (`test_*`, `qa:`, `aa:`, `prod_*`).
 - If `tenant_cd` does not apply (docs/wiki-only): merge + test evidence may suffice for Done; say so explicitly in the closeout comment.
 
 ### 7. Closeout
@@ -134,7 +129,7 @@ Close or move tickets only after:
 
 - PR merged
 - Tests verified
-- Deployment/smoke complete when `tenant_cd` applies — **all four evidence field groups** present (see Merge and Deployment). Missing any field → keep In Progress/Blocked, do not Done.
+- Deployment complete when `tenant_cd` applies — **feature evidence** (test+qa+aa+prod) present. Missing any → do not Done.
 - Leantime comment summarizes result and evidence
 - Follow-up tickets created for deferred scope
 

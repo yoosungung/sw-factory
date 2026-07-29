@@ -31,8 +31,12 @@ settings = data.get("settings", {})
 max_replicas = int(settings.get("replicas_max", 10))
 runner_image = settings.get("runner_image", "cursor-agent-runner:latest")
 default_model = settings.get("model", "composer-2.5")
+k8s_ns = str(settings.get("k8s_namespace") or "leantime").strip() or "leantime"
+leantime_url = str(
+    settings.get("leantime_url") or f"http://leantime.{k8s_ns}.svc"
+).strip().rstrip("/")
 personas_root = Path(agents_yaml).parents[1] / "personas"
-tenant_registry = registry_json(agents, data.get("repos"))
+tenant_registry = registry_json(agents, data.get("repos"), data.get("clients"))
 org_wiki = repos_by_id.get("org-wiki") or repos_by_id.get("wiki") or {}
 org_wiki_url = str(org_wiki.get("git_repo_url") or "").strip()
 
@@ -74,7 +78,7 @@ for agent in deploy_agents:
         agent, repos_by_id, label=f"agent {name}"
     )["git_repo_url"]
 
-    # Default shared Secret key; per-agent override e.g. candy → GH_TOKEN_candy.
+    # Default shared Secret key; per-agent override e.g. pm → GH_TOKEN_pm.
     gh_token_secret_key = str(agent.get("gh_token_secret_key") or "GH_TOKEN").strip() or "GH_TOKEN"
 
     ss = (
@@ -87,27 +91,31 @@ for agent in deploy_agents:
         .replace("{{MODEL}}", agent_model(agent))
         .replace("{{GH_TOKEN_SECRET_KEY}}", gh_token_secret_key)
         .replace("{{ORG_WIKI_URL}}", org_wiki_url)
+        .replace("{{NAMESPACE}}", k8s_ns)
+        .replace("{{LEANTIME_URL}}", leantime_url)
     )
     ss_path = out / f"statefulset-{name}.yaml"
     ss_path.write_text(ss)
     resources.append(ss_path.name)
 
-    svc = svc_tpl.replace("{{NAME}}", name)
+    svc = (
+        svc_tpl.replace("{{NAME}}", name).replace("{{NAMESPACE}}", k8s_ns)
+    )
     svc_path = out / f"service-{name}.yaml"
     svc_path.write_text(svc)
     resources.append(svc_path.name)
 
 for persona in persona_emails:
     bundle = build_persona_bundle(persona, personas_root)
-    # M5: only infra gets the generated tenant CD registry (lookup by agent/repo).
-    if persona == "infra":
+    # M5: only ta gets the generated tenant CD registry (lookup by agent/repo).
+    if persona == "ta":
         bundle[REGISTRY_CURSOR_PATH] = tenant_registry
     cm = {
         "apiVersion": "v1",
         "kind": "ConfigMap",
         "metadata": {
             "name": f"persona-{persona}",
-            "namespace": "leantime",
+            "namespace": k8s_ns,
             "labels": {"app": "cursor-agent", "persona": persona},
         },
         "data": bundle_for_configmap(bundle),
@@ -119,13 +127,33 @@ for persona in persona_emails:
 kustomization = {
     "apiVersion": "kustomize.config.k8s.io/v1beta1",
     "kind": "Kustomization",
-    "namespace": "leantime",
+    "namespace": k8s_ns,
     "resources": resources,
 }
 (out / "kustomization.yaml").write_text(yaml.safe_dump(kustomization, sort_keys=False))
 
-ns_src = Path(agents_yaml).parent / "base" / "namespace-service.yaml"
-(out / "namespace-service.yaml").write_text(ns_src.read_text())
+ns_yaml = f"""apiVersion: v1
+kind: Namespace
+metadata:
+  name: {k8s_ns}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: cursor-agents
+  namespace: {k8s_ns}
+  labels:
+    app: cursor-agent
+spec:
+  clusterIP: None
+  selector:
+    app: cursor-agent
+  ports:
+    - name: http
+      port: 8080
+      targetPort: 8080
+"""
+(out / "namespace-service.yaml").write_text(ns_yaml)
 
-print(f"Rendered {len(deploy_agents)} bot agent(s) -> {out}")
+print(f"Rendered {len(deploy_agents)} bot agent(s) -> {out} (ns={k8s_ns})")
 PY

@@ -158,7 +158,13 @@ def test_agents_yaml_sample_uses_repos_separation():
     assert primary_repo_id(asky) == "landing-web"
     landing = next(r for r in sample["repos"] if r["id"] == "landing-web")
     assert landing["tenant_cd"]["enabled"] is True
-    registry = build_tenant_cd_registry(sample["agents"], sample.get("repos"))
+    registry = build_tenant_cd_registry(
+        sample["agents"], sample.get("repos"), sample.get("clients")
+    )
     assert lookup_tenant(registry, agent="asky")["repo_id"] == "landing-web"
-    parsed = registry_json(sample["agents"], sample.get("repos"))
+    assert lookup_tenant(registry, agent="asky")["client_id"] == 1
+    parsed = registry_json(
+        sample["agents"], sample.get("repos"), sample.get("clients")
+    )
     assert "landing-web" in parsed
+    assert '"client_id": 1' in parsed or '"client_id":1' in parsed.replace(" ", "")

@@ -28,12 +28,12 @@ def test_sum_run_completed_usage_from_json_logs():
         json.dumps(
             {
                 "event": "run.completed",
-                "agent_id": "candy",
+                "agent_id": "pm",
                 "usage": {"inputTokens": 100, "outputTokens": 40},
             }
         ),
         "not-json",
-        json.dumps({"event": "run.started", "agent_id": "candy"}),
+        json.dumps({"event": "run.started", "agent_id": "pm"}),
         json.dumps(
             {
                 "event": "run.completed",
@@ -47,7 +47,7 @@ def test_sum_run_completed_usage_from_json_logs():
     assert summary["input_tokens"] == 150
     assert summary["output_tokens"] == 50
     assert summary["total_tokens"] == 200
-    assert summary["by_agent"]["candy"] == 140
+    assert summary["by_agent"]["pm"] == 140
     assert summary["by_agent"]["path"] == 60
 
 
@@ -62,13 +62,13 @@ def test_ticket_headline_and_description_include_totals():
         "input_tokens": 150,
         "output_tokens": 50,
         "total_tokens": 200,
-        "by_agent": {"candy": 140, "path": 60},
+        "by_agent": {"pm": 140, "path": 60},
     }
     headline = spend.ticket_headline(summary, threshold=100)
     assert "spend" in headline.lower() or "Spend" in headline
     assert "200" in headline
     body = spend.ticket_description(summary, threshold=100, window="24h")
-    assert "candy" in body and "140" in body
+    assert "pm" in body and "140" in body
     assert "threshold" in body.lower() or "100" in body
 
 
@@ -87,6 +87,8 @@ def test_spend_alert_cronjob_manifest():
     assert "SPEND_TOKEN_THRESHOLD" in env_names
     assert "LEANTIME_ACCESS_TOKEN" in env_names
     assert "LEANTIME_PROJECT_ID" in env_names
+    token_env = next(e for e in container["env"] if e["name"] == "LEANTIME_ACCESS_TOKEN")
+    assert token_env["valueFrom"]["secretKeyRef"]["key"] == "LEANTIME_ACCESS_TOKEN_ta"
 
 
 def test_flush_role_allows_pods_log():

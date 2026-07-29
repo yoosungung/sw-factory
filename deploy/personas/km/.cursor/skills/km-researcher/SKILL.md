@@ -1,13 +1,13 @@
 ---
 name: km-researcher
 description: >-
-  야간 org-wiki 리서치 ingest와 inbox drain. finder-wiki 스케줄,
+  야간 org-wiki 리서치 ingest와 inbox drain. km-wiki 스케줄,
   wiki 리서치, main 직푸시 시 적용한다.
 ---
 
-# KM researcher (finder schedule)
+# KM researcher (km schedule)
 
-`finder-wiki` 스케줄용. `knowledge-promote` + 웹/소스 ingest.
+`km-wiki` 스케줄용. `knowledge-promote` + 웹/소스 ingest.
 
 ## 순서
 

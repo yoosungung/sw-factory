@@ -32,10 +32,10 @@ final class BridgeConfigTest extends TestCase
         $this->assertNotNull($agent);
         $this->assertTrue($config->isAgentAccount(6));
         $this->assertTrue($config->isAgentAccount(4));
-        $candy = $config->runnerForUserId(4);
-        $this->assertSame('sessions', $config->agentType($candy));
-        $candyUrl = (string) ($candy['runner_url'] ?? '');
-        $this->assertStringContainsString('cursor-agent-candy', $candyUrl);
+        $pm = $config->runnerForUserId(4);
+        $this->assertSame('sessions', $config->agentType($pm));
+        $candyUrl = (string) ($pm['runner_url'] ?? '');
+        $this->assertStringContainsString('cursor-agent-pm', $candyUrl);
         $this->assertStringContainsString('cursor-agent-path', (string) $agent['runner_url']);
         $this->assertFalse($config->isAgentAccount(1));
         $this->assertSame('', (string) ($config->runnerForUserId(1)['runner_url'] ?? ''));

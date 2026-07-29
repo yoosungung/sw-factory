@@ -1,0 +1,7 @@
+# QA memory
+
+Factory staff — **not** bound to a single `client_id`. Cross-client E2E / bulk / Opik.
+
+- Ticket gate: `browser-e2e` (required before prod). Optional `bulk-api-probe` / `opik-eval` per tenant quality.yaml.
+- Weekly: `qa-bulk-weekly` schedule → bulk (+ Opik) → New tickets on client projects.
+- PM=`pm`, TA=`ta`, AA=`aa`. Mentions use Leantime user ids from MEMORY team table.

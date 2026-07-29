@@ -3,15 +3,15 @@ name: k8s-operator-operations
 description: >-
   Operate Kubernetes clusters as an in-cluster service operator: RBAC, PV/PVC
   work, health checks, kubectl remediation, and safe Korean reports. Use when
-  infra monitors pods/services/PV/PVCs or runs scheduled cluster health reports.
+  ta monitors pods/services/PV/PVCs or runs scheduled cluster health reports.
 version: 1.0.0
-author: infra persona
+author: ta persona
 license: MIT
 ---
 
 # Kubernetes Operator Operations
 
-infra가 클러스터 안에서 Pod/Service/PV/PVC를 모니터링하고, 필요할 때만 `kubectl`로 최소 변경한다.
+ta가 클러스터 안에서 Pod/Service/PV/PVC를 모니터링하고, 필요할 때만 `kubectl`로 최소 변경한다.
 
 세부 플레이북은 필요할 때만 읽는다:
 
@@ -27,7 +27,7 @@ infra가 클러스터 안에서 Pod/Service/PV/PVC를 모니터링하고, 필요
 | `references/scheduled-reports.md` | 일일 리포트·스케줄 |
 | `references/incident-tickets.md` | 장애→Leantime 티켓 (M9 LOOP #2) |
 
-**Tenant CD (post-merge deploy):** use sibling skill `tenant-cd` when the ticket asks for deploy/smoke after merge (`tenant_cd` / `workflow_dispatch`). Do **not** run tenant CD during `infra-k8s-daily` (read-only).
+**Tenant CD (post-merge deploy):** use sibling skill `tenant-cd` when the ticket asks for deploy/smoke after merge (`tenant_cd` / `workflow_dispatch`). Do **not** run tenant CD during `ta-k8s-daily` (read-only).
 
 Daily reports that find actionable CrashLoop/rollout/PV faults: follow `references/incident-tickets.md` (ticket create/update only — still no cluster mutate on the schedule).
 ## Operating posture
@@ -36,7 +36,7 @@ Daily reports that find actionable CrashLoop/rollout/PV faults: follow `referenc
 2. **Prefer read-only checks by default** unless the user asks for operations/remediation.
 3. **Mutating actions**: 대상·의도를 확인한 뒤 최소 변경. PV/PVC delete/rebind, StorageClass, node taints, workload delete는 고위험 — 의도·증거를 명확히 요약.
 4. **Report concisely in Korean for Eric** unless a different format is requested.
-5. **Ownership vs capability**: route by who can execute the next step (`can-i`/403), not by role nickname. Do not hand cluster privilege gaps to candy (app PM/reviewer). Agent-denied platform/policy/apply → `@eric` + `Waiting for Approval`.
+5. **Ownership vs capability**: route by who can execute the next step (`can-i`/403), not by role nickname. Do not hand cluster privilege gaps to pm (app PM/reviewer). Agent-denied platform/policy/apply → `@eric` + `Waiting for Approval`.
 
 ## In-cluster kubectl
 

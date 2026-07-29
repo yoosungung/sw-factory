@@ -2,7 +2,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: cursor-agent-{{NAME}}
-  namespace: leantime
+  namespace: {{NAMESPACE}}
   labels:
     app: cursor-agent
     agent: {{NAME}}

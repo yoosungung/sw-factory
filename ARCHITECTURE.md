@@ -10,7 +10,7 @@ Leantime × Cursor Agent 협업 시스템 계약 및 인터페이스.
 | 코드 | 공장 코드만 | `repos[].git_repo_url`이 가리키는 제품 소스만 |
 | CD | 프레임워크가 해결(dispatch·rollout·smoke·Done 게이트) | CD *대상* + 워크플로/매니페스트/값(`examples/tenant-cd` 어댑터 복사) |
 
-제품 비즈니스 소스를 이 저장소에 두지 않는다. 운영 SW를 PROD에 올리는 CD는 공장 범위다. Review checks·테스트 증거·intake 템플릿·장애→티켓 훅(M6–M9)도 **공장 정책/스킬**이며, 테넌트 CI·E2E·APM 본체는 테넌트 repo에 둔다.
+제품 비즈니스 소스를 이 저장소에 두지 않는다. 운영 SW CD는 공장 범위다. E2E 시나리오·보안/클린/부하/대량품질 기준·Opik 설정은 **고객사(client) repo** 정본이며 공장에 복사하지 않는다(`examples/tenant-cd/`, `examples/tenant-quality/` 어댑터만).
 
 ## 1. 계약사항 (불변 규칙)
 
@@ -23,7 +23,9 @@ Leantime × Cursor Agent 협업 시스템 계약 및 인터페이스.
 7. **읽기 우선** — 에이전트는 Leantime MCP로 `get_ticket` / `get_comments` 후 행동한다.
 8. **K8s namespace** — `leantime` (Leantime과 동일 NS).
 9. **모델** — `deploy/k8s/agents.yaml` 정본: `settings.model` 기본값, bot마다 `agents[].model`로 override. Pod `AGENT_RUNNER_MODEL`에 주입; 기본 `composer-2.5` (비용 예측 가능); `auto`는 선택 사항.
-10. **Tenant CD** — `repos[].tenant_cd.enabled=true`인 제품 repo의 배포는 공장(infra `tenant-cd` 스킬)이 수행한다. agent는 `primary_repo`/`repos`로 그 repo를 참조한다. v1 드라이버는 `workflow_dispatch`만. 상세는 §2.8.
+10. **Tenant CD ≡ Client** — 테넌트 신원은 Leantime **`client_id`(1:1)**. `repos[].tenant_cd`는 그 client 소속 repo의 CD 블록이다. 배포는 공장(TA/ta `tenant-cd`)이 수행한다. v1 드라이버는 `workflow_dispatch`만. 상세는 §2.8.
+11. **Dual-loop factory** — 공장 직원 5인(PM=`pm`, KM=`km`, TA=`ta`, QA, AA)은 **client에 묶이지 않고** 전 고객사에 접근한다. 개발자는 `human` 또는 `sessions`로 client/repo에 귀속 가능. **기능 루프**(티켓): 구현→test 배포→QA(E2E)∥AA(보안)→prod 배포→Done. **비기능 루프**(주간): TA 부하·AA 클린코드·QA 대량품질 → 해당 client 프로젝트에 티켓. 상세는 §2.6.
+12. **품질 기준은 고객사 repo** — E2E·보안·클린코드·부하·bulk/Opik 본문은 테넌트 `.factory/quality.yaml`(또는 동등)과 repo 산출물. 공장은 스킬·증거 스키마·스케줄만.
 
 ## 2. 컴포넌트 간 인터페이스
 
@@ -33,7 +35,7 @@ Leantime × Cursor Agent 협업 시스템 계약 및 인터페이스.
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
-| `agents[]` | array | ≤10; `name`, `leantime_user_id`, `email`, `runner_url`, `git_repo_url`(sync가 `primary_repo` resolve), `persona`, `type`(`human`\|`sessions`\|`openai`). `human`: Pod 없음·`runner_url` 빈 문자열. `sessions`: Pod/Service `cursor-agent-{name}`, sync가 runner_url 생성, `model`(선택), `gh_token_secret_key`(선택, 기본 `GH_TOKEN`). `openai`: YAML `runner_url` 필수(외부 OpenAI-compatible), StatefulSet 없음. `tenant_cd`는 **bridge.json에 넣지 않음** — infra `tenant-cd-registry.json`만(§2.8) |
+| `agents[]` | array | ≤10; `name`, `leantime_user_id`, `email`, `runner_url`, `git_repo_url`(sync가 `primary_repo` resolve), `persona`, `type`(`human`\|`sessions`\|`openai`). `human`: Pod 없음·`runner_url` 빈 문자열. `sessions`: Pod/Service `cursor-agent-{name}`, sync가 runner_url 생성, `model`(선택), `gh_token_secret_key`(선택, 기본 `GH_TOKEN`). `openai`: YAML `runner_url` 필수(외부 OpenAI-compatible), StatefulSet 없음. `tenant_cd`는 **bridge.json에 넣지 않음** — ta `tenant-cd-registry.json`만(§2.8) |
 | `model` | string | 기본 모델 (`agents.yaml` `settings.model`에서 sync; `sessions`별 override는 `agents[].model`) |
 | `debounce_ms` | int | 동일 티켓 이벤트 디바운스 |
 | `prompts` | object | `ticket_created`, `ticket_updated`, `comment_added`, `assignee_changed`, `mention` (`{ticket_id}`), `handoff`. Router가 매 이벤트에 `Active ticket_id=N` 스코프 문장을 붙여 MCP 읽기/쓰기를 그 티켓으로 고정한다. |
@@ -120,57 +122,83 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
 | `rules/**` | `~/.cursor/rules/**` | 번들 내 `.cursor/rules/` — 경로별 overlay (persona wins) |
 | `cli-config.json` | `~/.cursor/cli-config.json` (선택) | persona 파일이 있으면 대체, 없으면 `_default` |
 
-### 2.6 에이전트 협업 프로토콜
+### 2.6 에이전트 협업 프로토콜 (Dual-loop)
+
+**역할 매핑:** PM=`pm` · KM=`km` · TA=`ta` · QA=`qa` · AA=`aa`. 직원 5인은 `agents[].client_id` 없음(전 client 공용).
+
+**고객사 Project 상태 보드** (이름 고정; numeric id는 `clients[].status_map` / `settings.status_board`):
+
+| 이름 | 구간 | 담당 |
+|------|------|------|
+| `New` | Intake | PM |
+| `In Progress` | 로컬 구현 | 개발자 |
+| `Review` | PR 리뷰·머지 | PM |
+| `Deploying Test` | test env CD | TA |
+| `QA` | E2E ∥ AA 보안 | QA / AA |
+| `Deploying Prod` | 운영 CD | TA |
+| `Done` | 운영 반영 완료 | PM 게이트 |
+| `Blocked` | 막힘 | PM |
+| `Waiting for Approval` | 사람 결정 | human |
 
 1. MCP 읽기 우선 — 이벤트 프롬프트의 `Active ticket_id`만 범위.
 2. 쓰기는 `add_comment` 우선 — `module_id`는 Active ticket_id.
-3. 상태(CD 대상 티켓): 구현 완료 → **Review** → (candy merge) → infra **Deploying**(assignee/`@mention`) → smoke 증거 → **Done**. `tenant_cd` 없는 티켓은 기존처럼 Review → Done.
-4. **리뷰 핸드오프 전 배송(ship) 필수** — 봇 runner Pod에는 사람이 없다. `commit` → `git push` → PR(생성 또는 갱신)을 **에이전트가** 완료한 뒤 Leantime Review·`@mention`한다. push/PR을 사람에게 요청하지 않는다. 절차는 persona `git-ship` 스킬이 정본.
-5. 핸드오프: assignee 변경 + **같은 티켓** 코멘트(PR 링크·변경 요약); session은 티켓에 귀속. merge 후 CD 대상이면 infra로 넘기고 `merge_sha`를 코멘트에 넣는다.
-6. `@mention` 시 해당 Leantime user의 runner에도 알림 (M3).
-7. 에이전트 간 코멘트는 허용; 담당자 에이전트가 자기 코멘트로 재기동되는 것만 억제.
-8. `GH_TOKEN`·push 실패 시: 티켓에 blocker를 남기고 플랫폼 담당자(`eric`)에게 `@mention` — **사용자에게 로컬 push를 요청하지 않는다.**
-9. **Done 게이트 (CD 대상):** candy는 §2.8 증거 필드가 모두 있을 때만 Done. merge ≠ Done.
-10. **지식 계층·wiki-first** — §2.9. 조사는 org-wiki를 웹보다 먼저 검색한다. 재사용 지식은 `inbox/` 기여 후 finder가 canonical로 승격한다.
+3. **기능 루프 (CD 대상):** `In Progress` → `Review`(PM merge) → `Deploying Test`(TA) → `QA`(QA E2E ∥ AA 보안) → 둘 다 통과 후 `Deploying Prod`(TA) → 증거 충족 시 `Done`. 실패 시 개발자·`In Progress`/`Blocked`. `tenant_cd` 없으면 Review → Done(기존).
+4. **리뷰 핸드오프 전 배송(ship) 필수** — 봇 runner는 `git-ship`으로 push·PR 후 Review·`@pm`. 사람에게 로컬 push를 요청하지 않는다.
+5. 핸드오프: assignee + 같은 티켓 코멘트. merge 후 CD면 TA에 `merge_sha`; test 성공 후 `@qa` `@aa`; 게이트 통과 후 TA에 prod.
+6. `@mention` 시 해당 runner 알림 (M3).
+7. 에이전트 간 코멘트 허용; 자기 담당 자기 코멘트 self-echo만 억제.
+8. `GH_TOKEN`·push 실패 시 blocker + `@eric` — 사용자 로컬 push 요청 금지.
+9. **Done 게이트 (CD):** §2.8 기능 증거(test + `qa:` + `aa:` + prod) 전부. merge ≠ Done. 부하·클린코드는 티켓 Done 불필요(주간 NF).
+10. **비기능 루프 (주간):** 스케줄 `ta-load-weekly` / `aa-clean-weekly` / `qa-bulk-weekly` — 테넌트 기준 실행 후 **해당 `client_id` 프로젝트**에 `New` 티켓.
+11. **지식 계층·wiki-first** — §2.9.
+12. 상태 id는 프로젝트마다 다를 수 있으므로 스킬·프롬프트는 **이름→id 매핑**을 쓰고 숫자를 하드코딩하지 않는다.
 
 ### 2.7 Goose A안 실행 정책 (부가)
 
 §1–2.6·§2.8·§2.9 계약은 불변이다. Goose 분석 기반 보수 도입(A안)은 Cursor SDK local runner와 Leantime 오케스트레이션을 유지한 채, run `budget`/`policy`/summary/`success_checks`를 prompt·로그 수준에서만 추가한다. 상세·단계는 [`docs/goose/06-gap-with-cursor-agent.md`](docs/goose/06-gap-with-cursor-agent.md), runner 내부는 [`agent-runner/DESIGN.md`](agent-runner/DESIGN.md)를 본다. Goose 실행기·scheduler 교체는 A안 범위가 아니다.
 
-### 2.8 Tenant CD (`repos[].tenant_cd`)
+### 2.8 Tenant CD + Clients (`clients[]` · `repos[].tenant_cd`)
 
-정본: `deploy/k8s/agents.yaml`.
+정본: `deploy/k8s/agents.yaml`. **테넌트 신원 = `leantime_client_id`(Leantime Client).**
 
-- **`repos[]`**: `id`, `git_repo_url`, 선택 `tenant_cd`. CD·clone URL의 정본.
-- **`agents[]`**: `primary_repo`(또는 `repos: [id, …]`의 첫 항목)로 workspace를 참조. agent에 `git_repo_url`/`tenant_cd`를 같이 두면 오류(legacy: `primary_repo` 없을 때만 `agents[].git_repo_url`+`tenant_cd` 허용).
-- `render-agents.sh`가 enabled `tenant_cd`를 infra persona ConfigMap `.cursor/tenant-cd-registry.json`으로 넣는다. **bridge.json에는 실리지 않는다.** 실행 절차는 infra `tenant-cd` 스킬.
-- `repos[]`에 `id: org-wiki`(또는 레거시 `wiki`)가 있으면 Pod에 `ORG_WIKI_URL`을 주입한다. 절차는 persona `org-knowledge` / finder `knowledge-promote` 스킬.
+#### `clients[]`
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
-| `enabled` | bool | `true`일 때만 레지스트리·Done deploy 게이트 대상 |
+| `leantime_client_id` | int | 정본 키 (필수, unique) |
+| `id` | string | 선택 슬러그 (예: `acme`) |
+| `repo_ids` | string[] | 소속 `repos[].id` |
+| `project_id` | int | NF·결함 티켓 기본 Leantime project |
+| `status_map` | object | 보드 이름→numeric status id (선택; 없으면 `settings.status_board`) |
+
+#### `repos[].tenant_cd`
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `enabled` | bool | `true`일 때만 레지스트리·Done 게이트 대상 |
 | `driver` | string | v1: `workflow_dispatch`만 |
-| `workflow` | string | 테넌트 `.github/workflows/` 파일명 (예: `deploy.yml`) |
+| `workflow` | string | 테넌트 `.github/workflows/` 파일명 |
 | `ref` | string | dispatch ref (보통 `main`) |
-| `inputs` | object | workflow_dispatch 고정 입력(문자열 값) |
-| `image_input` | string | merge SHA를 넣을 input 이름(기본 `image_tag`) |
-| `verify.namespace` | string | `kubectl rollout status` 대상 NS |
-| `verify.deployment` | string | Deployment 이름 |
-| `verify.timeout_sec` | int | rollout 대기(초, 기본 300) |
-| `verify.smoke.type` | string | v1: `http` |
-| `verify.smoke.url` | string | in-cluster URL (예: `http://svc.ns.svc:port/healthz`) |
-| `verify.smoke.expect_status` | int | 기대 HTTP 상태(기본 200) |
+| `inputs` | object | 고정 입력; `environment`는 `test` 또는 `production` |
+| `image_input` | string | merge SHA input 이름(기본 `image_tag`) |
+| `verify.*` | object | rollout + HTTP smoke (환경별로 inputs/verify를 테넌트 workflow가 해석) |
 
-`enabled: false` 또는 필드 없음 → CD 비대상(deploy 증거 면제).
+- **`repos[]`**: `id`, `git_repo_url`, 선택 `tenant_cd`, 선택 `client_id`(또는 `clients[].repo_ids`로 소속).
+- **`agents[]`**: `primary_repo`/`repos`로 workspace. 직원 5인에는 `client_id`를 두지 않는다. 개발자 agent는 선택적으로 client/repo 귀속.
+- `render-agents.sh` → TA(ta) `.cursor/tenant-cd-registry.json`. **bridge.json에는 미포함.**
+- `repos[]` `org-wiki`/`wiki` → `ORG_WIKI_URL`. 품질 discovery는 테넌트 `.factory/quality.yaml`(`examples/tenant-quality/`).
 
-**증거 코멘트 필수 필드** (CD 대상 Done 전):
+`enabled: false` 또는 필드 없음 → CD 비대상.
+
+**기능 Done 증거** (CD 대상, 코멘트 합산):
 
 1. `pr_url`, `merge_sha`
-2. `workflow_run_url`, `workflow_conclusion=success`
-3. `rollout:` `namespace`/`deployment` OK (또는 실패 요약)
-4. `smoke:` HTTP `<status>` `<url>`
+2. **test:** `test_workflow_run_url`, `test_workflow_conclusion=success`, `test_rollout:` … OK, `test_smoke:` HTTP …
+3. `qa:` E2E pass (시나리오 id·증거); 해당 시 `bulk_api:` / `opik:`
+4. `aa:` security pass
+5. **prod:** `prod_workflow_run_url`, `prod_workflow_conclusion=success`, `prod_rollout:` … OK, `prod_smoke:` HTTP … (또는 패키지 배포 증거)
 
-레지스트리 JSON shape: `{ "version": 1, "tenants": [ { "agent", "repo_id?", "git_repo_url", "tenant_cd": { ... } } ] }`. infra는 티켓의 agent / `repo_id` / repo URL로 조회한다.
+레지스트리 shape: `{ "version": 2, "tenants": [ { "client_id", "agent?", "repo_id?", "git_repo_url", "tenant_cd" } ] }`. 조회 키: **`client_id` + `repo_id`** (또는 git URL). agent 이름만으로 테넌트를 추론하지 않는 것을 권장(legacy 호환은 agent 필드 유지).
 
 ### 2.9 전사 지식 (org-wiki)
 
@@ -180,17 +208,17 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
 |------|------|------|
 | L0 | 각 제품/공장 repo의 `ARCHITECTURE`/`DESIGN` | 해당 repo 전담. wiki에 **복사 금지**(링크만) |
 | L1 | Leantime 티켓·코멘트 | 담당 agent. 문의·보고·위임·지시 |
-| L2 | org-wiki | **읽기:** 전원. **기여:** `inbox/{agent}/`만(비-finder). **정본:** finder만(`INDEX.md`, `playbooks/` 등 canonical) |
+| L2 | org-wiki | **읽기:** 전원. **기여:** `inbox/{agent}/`만(비-km). **정본:** km만(`INDEX.md`, `playbooks/` 등 canonical) |
 | L3 | persona `MEMORY.md` | 배포 시드(최초 1회)·운영 힌트. Pod 내 수정은 PVC에 **유지**(재시작·재배포 시 ConfigMap으로 덮어쓰지 않음). 시드 재적용은 dest 삭제 후 Pod restart. 조직 사실을 두지 않음 |
 
 규칙:
 
 1. **wiki-first** — 조사·외부 사실 확인 전 `INDEX.md` 및 관련 페이지를 검색한다. miss·stale(`review_after` 경과)·L0에 없는 외부 사실일 때만 웹 검색.
 2. **작업 후** — 재사용 지식이면 `inbox/{agent}/YYYY-MM-DD-slug.md`를 main에 직푸시하고 Active 티켓에 경로를 적는다. 없으면 `wiki: N/A — <사유>`.
-3. **finder** — `inbox/`(및 `@finder` brief)를 canonical로 합성하고 `INDEX.md`를 갱신한 뒤 `inbox/_archived/`로 옮긴다. 스케줄 `finder-wiki`는 리서치 ingest + inbox drain. PR/`git-ship`/feature branch 금지(main 직푸시).
+3. **km** — `inbox/`(및 `@km` brief)를 canonical로 합성하고 `INDEX.md`를 갱신한 뒤 `inbox/_archived/`로 옮긴다. 스케줄 `km-wiki`는 리서치 ingest + inbox drain. PR/`git-ship`/feature branch 금지(main 직푸시).
 4. seewin 정치 위키 등 테넌트 전용 SSoT와 org-wiki는 병합하지 않는다.
 
-절차 정본: `_default` `org-knowledge`, finder `knowledge-promote` / `km-researcher`.
+절차 정본: `_default` `org-knowledge`, km `knowledge-promote` / `km-researcher`.
 
 ## 3. 인증·비용
 

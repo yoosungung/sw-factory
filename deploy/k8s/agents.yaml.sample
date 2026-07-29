@@ -2,8 +2,15 @@
 #   cp deploy/k8s/agents.yaml.sample deploy/k8s/agents.yaml
 # Then: ./deploy/k8s/scripts/render-agents.sh && python deploy/k8s/scripts/sync-bridge-json.py
 #
-# repos[] = git workspaces (+ optional tenant_cd). agents reference via primary_repo / repos.
-# Legacy agents[].git_repo_url + agents[].tenant_cd still resolve for one release.
+# M11: clients[] ≡ Leantime client_id. repos[] + optional tenant_cd.
+# Factory staff (pm/km/ta/qa/aa) are not bound to a client.
+# Developers (human|sessions) bind via primary_repo under a client.
+
+clients:
+  - id: demo-acme
+    leantime_client_id: 1
+    project_id: 1
+    repo_ids: [landing-web, shop-api]
 
 repos:
   - id: bridge-harness
@@ -14,14 +21,14 @@ repos:
 
   - id: landing-web
     git_repo_url: https://github.com/demo-org/landing-web.git
-    # M5 Tenant CD: copied into infra persona as .cursor/tenant-cd-registry.json
+    # Tenant CD: registry key = clients[].leantime_client_id + repo_id
     tenant_cd:
       enabled: true
       driver: workflow_dispatch
       workflow: deploy.yml
       ref: main
       inputs:
-        environment: production
+        environment: test
       image_input: image_tag
       verify:
         namespace: landing
@@ -49,15 +56,16 @@ agents:
     primary_repo: bridge-harness
     type: human
 
-  - name: candy
+  # Factory staff (PM) — cross-client
+  - name: pm
     leantime_user_id: 4
-    email: candy@example.com
-    persona: candy
+    email: pm@example.com
+    persona: pm
     primary_repo: shop-api
     type: sessions
-    # Optional: Secret cursor-api-key key (default GH_TOKEN). Hermes-era candy → GH_TOKEN_candy.
-    gh_token_secret_key: GH_TOKEN_candy
+    gh_token_secret_key: GH_TOKEN_pm
 
+  # Example developer agent (sessions) — repo under client
   - name: asky
     leantime_user_id: 5
     email: asky@example.com
@@ -72,18 +80,36 @@ agents:
     primary_repo: topology-lib
     type: sessions
 
-  - name: infra
+  # Factory staff (TA)
+  - name: ta
     leantime_user_id: 13
-    email: infra@example.com
-    persona: infra
+    email: ta@example.com
+    persona: ta
     primary_repo: k8s-test
     type: sessions
 
-  - name: finder
+  # Factory staff (KM)
+  - name: km
     leantime_user_id: 9
-    email: finder@example.com
-    persona: finder
+    email: km@example.com
+    persona: km
     primary_repo: org-wiki
+    type: sessions
+
+  # Factory staff (QA)
+  - name: qa
+    leantime_user_id: 15
+    email: qa@example.com
+    persona: qa
+    primary_repo: bridge-harness
+    type: sessions
+
+  # Factory staff (AA)
+  - name: aa
+    leantime_user_id: 16
+    email: aa@example.com
+    persona: aa
+    primary_repo: bridge-harness
     type: sessions
 
 settings:
@@ -92,6 +118,20 @@ settings:
   replicas_max: 10
   runner_image: ghcr.io/example/agent-runner:latest
   model: auto
+  # Soft-factory NS (override for leantime NS demos)
+  k8s_namespace: sw-factory
+  leantime_url: http://leantime.sw-factory.svc
+  # Dual-loop board: configure same names/ids on each client Leantime project
+  status_board:
+    New: 3
+    Blocked: 1
+    In Progress: 4
+    Waiting for Approval: 2
+    Review: 10
+    Deploying Test: 11
+    QA: 12
+    Deploying Prod: 13
+    Done: 0
   budget:
     timeout_ms: 600000
   success_retry:
@@ -100,23 +140,18 @@ settings:
     - "Read Active ticket via Leantime MCP before writing."
     - "Leave an add_comment outcome on the Active ticket."
     - "If Review-ready: git-ship (push + PR) before handoff."
-    - "If tenant_cd-enabled and merged: deploy/smoke evidence fields before Done."
+    - "If tenant_cd-enabled: feature Done needs test+qa+aa+prod evidence (ARCHITECTURE §2.8)."
     - "Wiki-first (org-knowledge); after work: inbox path or wiki: N/A on Active ticket."
   schedules:
-    - id: candy-pm-checkpoint
+    - id: pm-checkpoint
       cron: "5,20,35,50 * * * *"
-      agents: [candy]
+      agents: [pm]
       gates: [in_progress]
       prompt: >-
-        Use the leantime-pm skill. 30분 체크포인트 감시. In Progress 개발 티켓/서브태스크만.
-        Done·Archived·Waiting for Approval는 스킵(새 개발 요청 코멘트 없으면).
-        최근 30분 내 PM 체크포인트 코멘트가 있으면 중복 금지.
-        마지막 actionable 코멘트가 30분 넘고 PR/테스트/완료/blocker 증거가 없으면
-        체크포인트 요청 코멘트 1건(시도·원인·branch/PR·다음 최소 단계).
-        원인은 하나만: (1) 과대/모호→서브태스크 분할 (2) 실패/차단→해제·재배정·Blocked·에스컬
-        (3) 단순 중단→재개+다음 30분 증거 요청.
-        멘션은 알려진 id만(eric=1,candy=4,asky=5,path=6,finder=9,infra=13,seewin=14).
-        코드/메일/장문 금지. 실행당 코멘트 ≤5. 끝나면 조치·분류·스킵 사유만 짧게.
+        Use the leantime-pm skill. 30분 체크포인트. In Progress 개발 티켓만.
+        Dual-loop: Review→Deploying Test→QA→Deploying Prod→Done.
+        Done는 test+qa+aa+prod 증거 있을 때만. 멘션 id: eric=1,pm=4,asky=5,path=6,km=9,ta=13,qa=15,aa=16.
+        실행당 코멘트 ≤5.
       success_checks:
         - "At most 5 checkpoint comments added this run."
         - "No duplicate PM checkpoint within 30 minutes on the same ticket."
@@ -125,13 +160,13 @@ settings:
       cron: "0 23 * * *"
       prompt: >-
         github issue 점검하여 신규는 티켓으로 변환하고, 블로커가 있으면 add_comment 처리.
-        (M9 feedback hook: configured GH repos only; no product support portal in the factory repo.)
+        QA가 재현·시나리오 등록할 수 있게 client 프로젝트에 둔다.
       success_checks:
         - "New GitHub issues are reflected as Leantime tickets or explicitly skipped with a comment."
         - "Blockers are reported via add_comment."
-    - id: finder-wiki
+    - id: km-wiki
       cron: "30 23 * * *"
-      agents: [finder]
+      agents: [km]
       prompt: >-
         Use km-researcher then knowledge-promote as needed.
         Inbox drain + wiki research ingest; commit·push directly to default branch(main).
@@ -141,21 +176,44 @@ settings:
         - "Do not run git-ship or gh pr create."
         - "Inbox drain attempted (or explicitly no pending inbox)."
         - "On success create/update a Done ticket; on failure a New ticket with blocker."
-    - id: infra-k8s-daily
+    - id: ta-k8s-daily
       cron: "0 1 * * *"
-      agents: [infra]
+      agents: [ta]
       prompt: >-
         Use the k8s-operator-operations skill. 일일 k8s 운영 리포트(read-only).
-        worktree가 clean일 때만 git pull --ff-only origin main; 아니면 blocker만 보고.
-        전체 discovery 후 이상 Pod·rollout·svc/endpoints·PV/PVC·node pressure·Warning 이벤트 점검.
-        mutate/배포 금지. 조치 가능한 CrashLoop·rollout·PV 장애는 incident-tickets.md대로
-        Leantime 티켓 생성/갱신만 하고 리포트 Incident tickets 칸에 id를 적는다.
-        결과는 스킬의 한국어 리포트 포맷으로 짧게.
+        mutate/배포 금지. 조치 가능 장애는 incident-tickets.md대로 client 프로젝트 티켓.
       success_checks:
         - "Report uses the k8s 운영 리포트 format with a clear status summary."
         - "No mutating kubectl actions in this scheduled run."
-        - "Partial RBAC denials are reported distinctly from cluster faults."
         - "Actionable incidents are ticketed or explicitly listed as none."
+    - id: ta-load-weekly
+      cron: "0 2 * * 1"
+      agents: [ta]
+      prompt: >-
+        Use load-weekly skill. For each clients[] entry, run tenant .factory/quality.yaml load
+        commands against test env. Failures → New ticket in that client's project_id.
+        Do not mark feature tickets Done from this run.
+      success_checks:
+        - "Each client load was run or explicitly skipped with reason."
+        - "Failures created New tickets in the correct client project."
+    - id: aa-clean-weekly
+      cron: "30 2 * * 1"
+      agents: [aa]
+      prompt: >-
+        Use clean-code-weekly skill. For each client repo, run tenant clean_code checks.
+        Findings → New ticket in client project_id. Not a prod gate for feature tickets.
+      success_checks:
+        - "Each client clean-code check ran or was skipped with reason."
+        - "Findings filed as New tickets on the client project."
+    - id: qa-bulk-weekly
+      cron: "0 3 * * 1"
+      agents: [qa]
+      prompt: >-
+        Use bulk-api-probe and opik-eval as configured in tenant .factory/quality.yaml.
+        Weekly bulk quality across clients. Failures → New tickets on client project_id.
+      success_checks:
+        - "Bulk/Opik suites ran per tenant config or skipped with reason."
+        - "Failures filed as New tickets on the client project."
     - id: seewin-people-curation
       cron: "0 9 * * *"
       agents: [seewin]

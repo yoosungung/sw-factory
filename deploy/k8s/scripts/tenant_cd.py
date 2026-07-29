@@ -1,4 +1,4 @@
-"""Build and validate tenant_cd registry from agents.yaml (M5)."""
+"""Build and validate tenant_cd registry from agents.yaml (M5/M11)."""
 
 from __future__ import annotations
 
@@ -6,12 +6,14 @@ import json
 import re
 from typing import Any
 
+from clients import index_clients
 from repos import index_repos, resolve_agent_repo
 
-REGISTRY_VERSION = 1
+REGISTRY_VERSION = 2
 REGISTRY_CURSOR_PATH = ".cursor/tenant-cd-registry.json"
 ALLOWED_DRIVERS = frozenset({"workflow_dispatch"})
 ALLOWED_SMOKE_TYPES = frozenset({"http"})
+ALLOWED_ENVIRONMENTS = frozenset({"test", "production"})
 
 
 def _require_str(value: object, label: str) -> str:
@@ -50,6 +52,14 @@ def normalize_tenant_cd(raw: object, label: str) -> dict[str, Any] | None:
             if not isinstance(val, (str, int, float)) or isinstance(val, bool):
                 raise ValueError(f"{label}.inputs.{k} must be a string or number")
             inputs[k] = str(val)
+
+    env = inputs.get("environment", "test")
+    if env not in ALLOWED_ENVIRONMENTS:
+        raise ValueError(
+            f"{label}.inputs.environment must be one of "
+            f"{sorted(ALLOWED_ENVIRONMENTS)}, got {env!r}"
+        )
+    inputs["environment"] = env
 
     verify_raw = raw.get("verify")
     if not isinstance(verify_raw, dict):
@@ -101,13 +111,11 @@ def normalize_tenant_cd(raw: object, label: str) -> dict[str, Any] | None:
 def build_tenant_cd_registry(
     agents: list[dict],
     repos: list[dict] | None = None,
+    clients: list[dict] | None = None,
 ) -> dict[str, Any]:
-    """Collect enabled tenant_cd entries keyed for infra lookup.
-
-    Prefer top-level `repos[].tenant_cd` via agent `primary_repo`/`repos`.
-    Legacy `agents[].tenant_cd` + `git_repo_url` still works.
-    """
+    """Collect enabled tenant_cd entries keyed for TA lookup (client_id + repo)."""
     repos_by_id = index_repos(repos)
+    _by_client, repo_to_client = index_clients(clients)
     tenants: list[dict[str, Any]] = []
     for i, agent in enumerate(agents):
         if not isinstance(agent, dict):
@@ -133,8 +141,16 @@ def build_tenant_cd_registry(
             "git_repo_url": git_repo,
             "tenant_cd": cd,
         }
-        if resolved.get("repo_id"):
-            entry["repo_id"] = resolved["repo_id"]
+        repo_id = resolved.get("repo_id")
+        if repo_id:
+            entry["repo_id"] = repo_id
+            if repo_id in repo_to_client:
+                entry["client_id"] = repo_to_client[repo_id]
+            elif clients:
+                raise ValueError(
+                    f"{label}: repos[{repo_id}] has tenant_cd but is not in any "
+                    "clients[].repo_ids (tenant ≡ client_id)"
+                )
         tenants.append(entry)
     return {"version": REGISTRY_VERSION, "tenants": tenants}
 
@@ -142,9 +158,12 @@ def build_tenant_cd_registry(
 def registry_json(
     agents: list[dict],
     repos: list[dict] | None = None,
+    clients: list[dict] | None = None,
 ) -> str:
     """Pretty JSON for ConfigMap / file seed."""
-    return json.dumps(build_tenant_cd_registry(agents, repos), indent=2) + "\n"
+    return (
+        json.dumps(build_tenant_cd_registry(agents, repos, clients), indent=2) + "\n"
+    )
 
 
 def lookup_tenant(
@@ -153,18 +172,31 @@ def lookup_tenant(
     agent: str | None = None,
     git_repo_url: str | None = None,
     repo_id: str | None = None,
+    client_id: int | None = None,
 ) -> dict[str, Any] | None:
-    """Find a tenant entry by agent name, repo_id, or git_repo_url."""
+    """Find a tenant entry by client_id+repo, repo_id, agent, or git_repo_url."""
     tenants = registry.get("tenants") or []
-    if agent:
-        key = agent.strip().lower()
+    if client_id is not None and repo_id:
+        rid = repo_id.strip().lower()
         for item in tenants:
-            if str(item.get("agent", "")).strip().lower() == key:
+            if (
+                item.get("client_id") == client_id
+                and str(item.get("repo_id", "")).strip().lower() == rid
+            ):
                 return item
+    if client_id is not None and not repo_id:
+        matches = [t for t in tenants if t.get("client_id") == client_id]
+        if len(matches) == 1:
+            return matches[0]
     if repo_id:
         key = repo_id.strip().lower()
         for item in tenants:
             if str(item.get("repo_id", "")).strip().lower() == key:
+                return item
+    if agent:
+        key = agent.strip().lower()
+        for item in tenants:
+            if str(item.get("agent", "")).strip().lower() == key:
                 return item
     if git_repo_url:
         repo = git_repo_url.strip().rstrip("/").lower()
@@ -174,6 +206,7 @@ def lookup_tenant(
     return None
 
 
+# Legacy M5 single-env evidence (still used by older comments / tests)
 _EVIDENCE_REQUIRED = (
     ("pr_url", r"(?im)^\s*pr_url:\s*(\S+)"),
     ("merge_sha", r"(?im)^\s*merge_sha:\s*(\S+)"),
@@ -185,7 +218,7 @@ _EVIDENCE_REQUIRED = (
 
 
 def parse_evidence_fields(comment_text: str) -> dict[str, str]:
-    """Extract tenant_cd evidence fields from a Leantime comment body."""
+    """Extract legacy tenant_cd evidence fields from a Leantime comment body."""
     found: dict[str, str] = {}
     for name, pattern in _EVIDENCE_REQUIRED:
         match = re.search(pattern, comment_text)
@@ -195,7 +228,7 @@ def parse_evidence_fields(comment_text: str) -> dict[str, str]:
 
 
 def evidence_complete(comment_text: str) -> bool:
-    """True when all Done-gate fields are present and workflow succeeded."""
+    """True when all legacy Done-gate fields are present and workflow succeeded."""
     fields = parse_evidence_fields(comment_text)
     required = {name for name, _ in _EVIDENCE_REQUIRED}
     if set(fields) != required:

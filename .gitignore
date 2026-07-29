@@ -22,9 +22,11 @@ deploy/k8s/agents.yaml*
 leantime-plugin/bridge.json
 deploy/personas/**
 !deploy/personas/_default/
-!deploy/personas/candy/
-!deploy/personas/finder/
-!deploy/personas/infra/
+!deploy/personas/pm/
+!deploy/personas/km/
+!deploy/personas/ta/
+!deploy/personas/qa/
+!deploy/personas/aa/
 !deploy/personas/*/.cursor/
 !deploy/personas/*/.cursor/**
 !deploy/personas/*/MEMORY.md.sample

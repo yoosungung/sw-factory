@@ -31,4 +31,4 @@ Do not print tokens or full secret values when pulling credentials for SQL check
 
 - Inventory: node `nvidia.com/gpu` capacity/allocatable + pod requests/limits.
 - Utilization: DCGM exporter / node exporter / controlled `nvidia-smi` only.
-- Missing DCGM: prepare `gpu-operator` + `dcgm-exporter` DaemonSet/ClusterIP under `manifests/infra/`, `kubectl apply --dry-run=client`, ask Eric/admin to apply.
+- Missing DCGM: prepare `gpu-operator` + `dcgm-exporter` DaemonSet/ClusterIP under `manifests/ta/`, `kubectl apply --dry-run=client`, ask Eric/admin to apply.

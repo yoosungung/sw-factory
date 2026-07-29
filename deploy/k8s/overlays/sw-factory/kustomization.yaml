@@ -1,0 +1,38 @@
+# Soft factory staff stack — namespace sw-factory (no seewin/candydate).
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: sw-factory
+resources:
+  - ../../base
+patches:
+  - path: patch-flush.yaml
+  - path: patch-tick.yaml
+  - path: patch-pvc.yaml
+  - path: patch-spend.yaml
+  - patch: |-
+      $patch: delete
+      apiVersion: batch/v1
+      kind: CronJob
+      metadata:
+        name: candydate-pass-ab-launch
+    target:
+      kind: CronJob
+      name: candydate-pass-ab-launch
+  - patch: |-
+      $patch: delete
+      apiVersion: batch/v1
+      kind: CronJob
+      metadata:
+        name: candydate-pass-ab-monitor
+    target:
+      kind: CronJob
+      name: candydate-pass-ab-monitor
+  - patch: |-
+      $patch: delete
+      apiVersion: batch/v1
+      kind: CronJob
+      metadata:
+        name: candydate-pass-d
+    target:
+      kind: CronJob
+      name: candydate-pass-d

@@ -47,10 +47,10 @@ final class ScheduleTickerTest extends TestCase
                     'runner_url' => 'http://cursor-agent-path.leantime.svc:8080',
                 ],
                 [
-                    'name' => 'finder',
+                    'name' => 'km',
                     'leantime_user_id' => 9,
                     'type' => 'sessions',
-                    'runner_url' => 'http://cursor-agent-finder.leantime.svc:8080',
+                    'runner_url' => 'http://cursor-agent-km.leantime.svc:8080',
                 ],
             ],
             'budget' => ['timeout_ms' => 600000],
@@ -91,7 +91,7 @@ final class ScheduleTickerTest extends TestCase
             function (string $url, array $body) use (&$urls): array {
                 $urls[] = $url;
 
-                return ['agent_id' => 'agent-finder'];
+                return ['agent_id' => 'agent-km'];
             },
             static function (string $url): void {
             }
@@ -105,17 +105,17 @@ final class ScheduleTickerTest extends TestCase
                     'runner_url' => 'http://cursor-agent-path.leantime.svc:8080',
                 ],
                 [
-                    'name' => 'finder',
+                    'name' => 'km',
                     'leantime_user_id' => 9,
                     'type' => 'sessions',
-                    'runner_url' => 'http://cursor-agent-finder.leantime.svc:8080',
+                    'runner_url' => 'http://cursor-agent-km.leantime.svc:8080',
                 ],
             ],
             'schedules' => [
                 [
-                    'id' => 'finder-wiki',
+                    'id' => 'km-wiki',
                     'cron' => '0 10 * * 1',
-                    'agents' => ['finder'],
+                    'agents' => ['km'],
                     'prompt' => 'wiki check',
                 ],
             ],
@@ -124,7 +124,7 @@ final class ScheduleTickerTest extends TestCase
         $now = new DateTimeImmutable('2026-07-13 10:00:00', new DateTimeZone('UTC'));
         $this->assertSame(1, $ticker->tick($now));
         $this->assertCount(1, $urls);
-        $this->assertStringContainsString('cursor-agent-finder', $urls[0]);
+        $this->assertStringContainsString('cursor-agent-km', $urls[0]);
         $this->assertStringEndsWith('/sessions', $urls[0]);
     }
 
@@ -172,7 +172,7 @@ final class ScheduleTickerTest extends TestCase
             function (string $url, array $body) use (&$calls): array {
                 $calls++;
 
-                return ['agent_id' => 'agent-candy'];
+                return ['agent_id' => 'agent-pm'];
             },
             static function (string $url): void {
             }
@@ -180,17 +180,17 @@ final class ScheduleTickerTest extends TestCase
         $config = new BridgeConfig([
             'agents' => [
                 [
-                    'name' => 'candy',
+                    'name' => 'pm',
                     'leantime_user_id' => 4,
                     'type' => 'sessions',
-                    'runner_url' => 'http://cursor-agent-candy.leantime.svc:8080',
+                    'runner_url' => 'http://cursor-agent-pm.leantime.svc:8080',
                 ],
             ],
             'schedules' => [
                 [
                     'id' => 'no-gates',
                     'cron' => '5 * * * *',
-                    'agents' => ['candy'],
+                    'agents' => ['pm'],
                     'prompt' => 'always',
                 ],
             ],
@@ -220,7 +220,7 @@ final class ScheduleTickerTest extends TestCase
             function (string $url, array $body) use (&$calls): array {
                 $calls++;
 
-                return ['agent_id' => 'agent-candy'];
+                return ['agent_id' => 'agent-pm'];
             },
             static function (string $url): void {
             }
@@ -228,17 +228,17 @@ final class ScheduleTickerTest extends TestCase
         $config = new BridgeConfig([
             'agents' => [
                 [
-                    'name' => 'candy',
+                    'name' => 'pm',
                     'leantime_user_id' => 4,
                     'type' => 'sessions',
-                    'runner_url' => 'http://cursor-agent-candy.leantime.svc:8080',
+                    'runner_url' => 'http://cursor-agent-pm.leantime.svc:8080',
                 ],
             ],
             'schedules' => [
                 [
-                    'id' => 'candy-pm-checkpoint',
+                    'id' => 'pm-checkpoint',
                     'cron' => '5 * * * *',
-                    'agents' => ['candy'],
+                    'agents' => ['pm'],
                     'gates' => ['in_progress'],
                     'prompt' => 'checkpoint',
                 ],
@@ -269,7 +269,7 @@ final class ScheduleTickerTest extends TestCase
             function (string $url, array $body) use (&$calls): array {
                 $calls++;
 
-                return ['agent_id' => 'agent-candy'];
+                return ['agent_id' => 'agent-pm'];
             },
             static function (string $url): void {
             }
@@ -277,17 +277,17 @@ final class ScheduleTickerTest extends TestCase
         $config = new BridgeConfig([
             'agents' => [
                 [
-                    'name' => 'candy',
+                    'name' => 'pm',
                     'leantime_user_id' => 4,
                     'type' => 'sessions',
-                    'runner_url' => 'http://cursor-agent-candy.leantime.svc:8080',
+                    'runner_url' => 'http://cursor-agent-pm.leantime.svc:8080',
                 ],
             ],
             'schedules' => [
                 [
-                    'id' => 'candy-pm-checkpoint',
+                    'id' => 'pm-checkpoint',
                     'cron' => '5 * * * *',
-                    'agents' => ['candy'],
+                    'agents' => ['pm'],
                     'gates' => ['in_progress'],
                     'prompt' => 'checkpoint',
                 ],

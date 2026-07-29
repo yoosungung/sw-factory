@@ -3,7 +3,7 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PLUGIN="${ROOT}/leantime-plugin"
-NS=leantime
+NS="${CURSORBRIDGE_NS:-leantime}"
 CM=cursorbridge-plugin
 
 tmpdir=$(mktemp -d)
@@ -49,36 +49,36 @@ kubectl -n "$NS" create configmap "$CM" \
   --dry-run=client -o yaml | kubectl apply -f -
 
 # Patch deployment volumes (idempotent apply of overlay)
-kubectl apply -f - <<'EOF'
+kubectl apply -f - <<EOF
 apiVersion: v1
 kind: ConfigMap
 metadata:
   name: cursorbridge-install-script
-  namespace: leantime
+  namespace: ${NS}
 data:
   install.sh: |
     #!/bin/sh
     set -eu
     DEST=/var/www/html/app/Plugins/CursorBridge
-    mkdir -p "$DEST/Services" "$DEST/data"
+    mkdir -p "\$DEST/Services" "\$DEST/data"
     SRC=/plugin-src
-    for f in BridgeConfig.php Listener.php Plugin.php ResilientRunnerClient.php Router.php \
-             RunnerClient.php RunnerTransport.php OpenAIRunnerClient.php DelegatingRunnerClient.php \
-             RunnerSessionNotFoundException.php SessionStore.php \
-             ScheduleCron.php ScheduleTicker.php ScheduleGates.php DefaultScheduleGates.php \
-             InProgressTicketProbe.php NullInProgressTicketProbe.php LeantimeInProgressTicketProbe.php \
-             TicketLookup.php NullTicketLookup.php \
-             LeantimeTicketLookup.php CommentLookup.php NullCommentLookup.php LeantimeCommentLookup.php \
+    for f in BridgeConfig.php Listener.php Plugin.php ResilientRunnerClient.php Router.php \\
+             RunnerClient.php RunnerTransport.php OpenAIRunnerClient.php DelegatingRunnerClient.php \\
+             RunnerSessionNotFoundException.php SessionStore.php \\
+             ScheduleCron.php ScheduleTicker.php ScheduleGates.php DefaultScheduleGates.php \\
+             InProgressTicketProbe.php NullInProgressTicketProbe.php LeantimeInProgressTicketProbe.php \\
+             TicketLookup.php NullTicketLookup.php \\
+             LeantimeTicketLookup.php CommentLookup.php NullCommentLookup.php LeantimeCommentLookup.php \\
              register.php composer.json bridge.json; do
-      cp "$SRC/$f" "$DEST/$f"
+      cp "\$SRC/\$f" "\$DEST/\$f"
     done
-    mkdir -p "$DEST/bin"
-    cp "$SRC/bin.flush-retries.php" "$DEST/bin/flush-retries.php"
-    cp "$SRC/bin.tick-schedules.php" "$DEST/bin/tick-schedules.php"
-    chmod 755 "$DEST/bin/flush-retries.php" "$DEST/bin/tick-schedules.php"
-    cp "$SRC/Services.CursorBridge.php" "$DEST/Services/CursorBridge.php"
-    chown -R www-data:www-data "$DEST" || true
-    echo "CursorBridge installed into $DEST"
+    mkdir -p "\$DEST/bin"
+    cp "\$SRC/bin.flush-retries.php" "\$DEST/bin/flush-retries.php"
+    cp "\$SRC/bin.tick-schedules.php" "\$DEST/bin/tick-schedules.php"
+    chmod 755 "\$DEST/bin/flush-retries.php" "\$DEST/bin/tick-schedules.php"
+    cp "\$SRC/Services.CursorBridge.php" "\$DEST/Services/CursorBridge.php"
+    chown -R www-data:www-data "\$DEST" || true
+    echo "CursorBridge installed into \$DEST"
 EOF
 
 # Add/update volume mounts via strategic merge patch
@@ -89,10 +89,10 @@ kubectl -n "$NS" patch deploy leantime --type='json' -p='[
 ]' 2>/dev/null || true
 
 # Ensure initContainers / volumeMounts exist — fetch current and rewrite carefully
-python3 - <<'PY'
-import json, subprocess, copy
+NS="$NS" python3 - <<'PY'
+import json, os, subprocess
 
-ns = "leantime"
+ns = os.environ["NS"]
 raw = subprocess.check_output(["kubectl","-n",ns,"get","deploy","leantime","-o","json"])
 dep = json.loads(raw)
 spec = dep["spec"]["template"]["spec"]
@@ -139,18 +139,15 @@ mounts.append({"name":"cursorbridge-plugin-dir","mountPath":"/var/www/html/app/P
 mounts.append({"name":"cursorbridge-data","mountPath":"/var/www/html/app/Plugins/CursorBridge/data"})
 c["volumeMounts"] = mounts
 
-# Fix install script paths: data needs to exist inside plugin dir emptyDir before copy
-# Update ConfigMap install to also mkdir data — already does
-
 subprocess.run(["kubectl","-n",ns,"replace","-f","-"], input=json.dumps(dep).encode(), check=True)
-print("Patched deploy/leantime with CursorBridge initContainer + mounts")
+print(f"Patched deploy/leantime in ns={ns} with CursorBridge initContainer + mounts")
 PY
 
 echo "Restarting Leantime to run the plugin initContainer..."
 kubectl -n "$NS" rollout restart deploy/leantime
 echo "Waiting for rollout..."
-kubectl -n "$NS" rollout status deploy/leantime --timeout=120s
+kubectl -n "$NS" rollout status deploy/leantime --timeout=180s
 POD=$(kubectl -n "$NS" get pod -l app.kubernetes.io/name=leantime -o jsonpath='{.items[0].metadata.name}')
 kubectl -n "$NS" exec "$POD" -- ls -la /var/www/html/app/Plugins/CursorBridge/
 kubectl -n "$NS" exec "$POD" -- head -12 /var/www/html/app/Plugins/CursorBridge/Listener.php
-echo "Done. Pod=$POD"
+echo "Done. Pod=$POD NS=$NS"

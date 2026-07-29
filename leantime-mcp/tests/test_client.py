@@ -128,12 +128,12 @@ async def test_get_comments_filters_since_and_mentioned_user(client: LeantimeCli
         {
             "id": 1,
             "date": "2026-07-20 10:00:00",
-            "text": '<a class="tiptap-mention" data-tagged-user-id="4">@candy</a> hi',
+            "text": '<a class="tiptap-mention" data-tagged-user-id="4">@pm</a> hi',
         },
         {
             "id": 2,
             "date": "2026-07-10 10:00:00",
-            "text": '<a data-tagged-user-id="4">@candy</a> old',
+            "text": '<a data-tagged-user-id="4">@pm</a> old',
         },
         {
             "id": 3,
@@ -143,7 +143,7 @@ async def test_get_comments_filters_since_and_mentioned_user(client: LeantimeCli
         {
             "id": 4,
             "date": "2026-07-22 10:00:00",
-            "text": "plain @candy text is not a mention",
+            "text": "plain @pm text is not a mention",
         },
     ]
     with patch.object(client, "call", new_callable=AsyncMock) as call:

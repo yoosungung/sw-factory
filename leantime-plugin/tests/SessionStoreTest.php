@@ -23,7 +23,7 @@ final class SessionStoreTest extends TestCase
     {
         $store = SessionStore::inMemory();
         $store->upsert(10, 'a-path', 6);
-        $store->upsert(11, 'a-finder', 9);
+        $store->upsert(11, 'a-km', 9);
         $store->upsert(12, 'a-path-2', 6);
         $this->assertSame(
             [

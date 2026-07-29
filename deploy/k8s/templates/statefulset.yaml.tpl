@@ -2,7 +2,7 @@ apiVersion: apps/v1
 kind: StatefulSet
 metadata:
   name: cursor-agent-{{NAME}}
-  namespace: leantime
+  namespace: {{NAMESPACE}}
   labels:
     app: cursor-agent
     agent: {{NAME}}
@@ -89,6 +89,8 @@ spec:
                 secretKeyRef:
                   name: cursor-api-key
                   key: LEANTIME_ACCESS_TOKEN_{{NAME}}
+            - name: LEANTIME_URL
+              value: "{{LEANTIME_URL}}"
             - name: AGENT_RUNNER_MODEL
               value: "{{MODEL}}"
             - name: AGENT_NAME
@@ -96,7 +98,7 @@ spec:
             - name: AGENT_EMAIL
               value: "{{EMAIL}}"
             - name: KUBERNETES_NAMESPACE
-              value: leantime
+              value: "{{NAMESPACE}}"
             - name: GH_TOKEN
               valueFrom:
                 secretKeyRef:

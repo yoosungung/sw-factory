@@ -48,7 +48,7 @@ spec:
                   valueFrom:
                     secretKeyRef:
                       name: cursor-api-key
-                      key: LEANTIME_ACCESS_TOKEN_infra
+                      key: LEANTIME_ACCESS_TOKEN_ta
               volumeMounts:
                 - name: ops-scripts
                   mountPath: /ops
