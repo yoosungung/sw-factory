@@ -212,10 +212,11 @@ async def get_comments(
 ) -> str:
     """Get comments for a module (ticket, project, etc.).
 
-    since: ISO date/datetime; keep comments with `date` on/after that instant
-    (comments have no reliable `modified` field).
-    mentioned_user_id: keep only comments whose HTML mentions that user via
-    `data-tagged-user-id` (plain `@name` text does not count).
+    Includes reply comments (Leantime parent=-1). since: ISO date/datetime;
+    keep comments with `date` on/after that instant (comments have no reliable
+    `modified` field). mentioned_user_id: keep only comments whose HTML
+    mentions that user via `data-tagged-user-id` (plain `@name` text does not
+    count).
     """
     client = get_client()
     result = await client.get_comments(

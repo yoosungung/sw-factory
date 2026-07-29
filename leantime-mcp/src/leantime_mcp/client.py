@@ -261,9 +261,12 @@ class LeantimeClient:
         since: Optional[str] = None,
         mentioned_user_id: Optional[int] = None,
     ) -> list:
+        # parent=-1: Leantime Comments repo skips commentParent WHERE (include replies).
+        # Default parent=0 returns only top-level comments.
         params = {
             "module": module,
             "entityId": module_id,
+            "parent": -1,
         }
         result = await self.call("leantime.rpc.Comments.Comments.getComments", params)
         if not isinstance(result, list):
