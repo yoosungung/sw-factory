@@ -100,6 +100,9 @@ if [[ "$SKIP_SEED" -eq 0 ]]; then
   CURSORBRIDGE_NS="$NS" "$PYTHON" deploy/k8s/scripts/seed_factory_users.py
 fi
 
+echo "==> Dual-loop To-Do Status on all clients[].project_id"
+CURSORBRIDGE_NS="$NS" "$PYTHON" deploy/k8s/scripts/status_board.py --all-clients || true
+
 echo "==> sync bridge.json + render agents"
 "$PYTHON" deploy/k8s/scripts/sync-bridge-json.py
 RENDER_BIN="$(mktemp -d)"

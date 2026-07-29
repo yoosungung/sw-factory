@@ -61,8 +61,9 @@ kubectl -n sw-factory get pods,sts,cronjob,ing
 ### B.1 Leantime
 
 1. **Company → Clients**에 클라이언트 생성 → `leantime_client_id` 기록  
-2. 그 client 소속 **Project** 생성 (이름 **`My Project` 금지**, 예: `sw-factory`)  
-3. Project 상태 라벨을 Dual-loop 보드로 맞춤 ([§1 Dual-loop](#dual-loop-status-board-m11)) → `project_id` 기록  
+2. 그 client 소속 **Project** 생성 (이름 **`My Project` 금지**, 예: `sw-factory`) → `project_id` 기록  
+3. **To-Do Status**를 Dual-loop 보드로 맞춤 ([§1](#dual-loop-status-board-m11)):  
+   `.venv/bin/python deploy/k8s/scripts/status_board.py --project-id <project_id>`  
 4. 개발자 유저 생성 → Profile → **Personal Access Token** 발급 → `leantime_user_id` 기록  
 5. Project Team에 개발자(+ 필요 시 직원 5인) 배정  
 
@@ -106,6 +107,8 @@ kubectl -n "$NS" patch secret cursor-api-key --type merge \
 
 ```bash
 NS=sw-factory
+# Dual-loop To-Do Status (프로젝트 설정에 반영)
+.venv/bin/python deploy/k8s/scripts/status_board.py --project-id <B.1 project_id>
 .venv/bin/python deploy/k8s/scripts/sync-bridge-json.py
 ./deploy/k8s/scripts/render-agents.sh
 kubectl apply -k deploy/k8s/overlays/sw-factory

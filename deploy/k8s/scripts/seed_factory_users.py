@@ -432,6 +432,12 @@ def seed_staff(
         cid = int(client.get("leantime_client_id") or 1)
         pname = client_project_name(client)
         project_id = ensure_client_project(ns, name=pname, client_id=cid)
+        from status_board import apply_status_board_to_project
+
+        board = (data.get("settings") or {}).get("status_board")
+        apply_status_board_to_project(
+            ns, project_id, board if isinstance(board, dict) else None, mysql_exec=mysql_exec
+        )
         for uid in ids.values():
             assign_user_to_project(ns, uid, project_id)
         # also assign eric/owner id 1 if present
