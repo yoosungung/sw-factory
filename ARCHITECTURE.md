@@ -21,7 +21,7 @@ Leantime × Cursor Agent 협업 시스템 계약 및 인터페이스.
 5. **이벤트 기반 실행** — Leantime 이벤트 또는 플러그인 `schedules[]` 틱이 있을 때만 runner에 inference를 요청한다. 스케줄 틱도 CursorBridge가 오케스트레이션하며 runner를 직접 cron하지 않는다.
 6. **자기 반향(self-echo) 억제** — `type`이 `human`이 아닌 에이전트가 **자기 담당 티켓**에 낸 이벤트만 담당 runner 디스패치를 생략한다. 다른 에이전트·인간이 낸 이벤트(에이전트 간 코멘트 포함)는 정상 라우팅한다.
 7. **읽기 우선** — 에이전트는 Leantime MCP로 `get_ticket` / `get_comments` 후 행동한다.
-8. **K8s namespace** — `leantime` (Leantime과 동일 NS).
+8. **K8s namespace** — `sw-factory` (Leantime과 동일 NS; 레거시 `leantime` NS는 SETUP 참고).
 9. **모델** — `deploy/k8s/agents.yaml` 정본: `settings.model` 기본값, bot마다 `agents[].model`로 override. Pod `AGENT_RUNNER_MODEL`에 주입; 기본 `composer-2.5` (비용 예측 가능); `auto`는 선택 사항.
 10. **Tenant CD ≡ Client** — 테넌트 신원은 Leantime **`client_id`(1:1)**. `repos[].tenant_cd`는 그 client 소속 repo의 CD 블록이다. 배포는 공장(TA/ta `tenant-cd`)이 수행한다. v1 드라이버는 `workflow_dispatch`만. 상세는 §2.8.
 11. **Dual-loop factory** — 공장 직원 5인(PM=`pm`, KM=`km`, TA=`ta`, QA, AA)은 **client에 묶이지 않고** 전 고객사에 접근한다. 개발자는 `human` 또는 `sessions`로 client/repo에 귀속 가능. **기능 루프**(티켓): 구현→test 배포→QA(E2E)∥AA(보안)→prod 배포→Done. **비기능 루프**(주간): TA 부하·AA 클린코드·QA 대량품질 → 해당 client 프로젝트에 티켓. 상세는 §2.6.

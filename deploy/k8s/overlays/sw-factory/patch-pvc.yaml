@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: cursorbridge-pvc-retention
-  namespace: leantime
+  namespace: sw-factory
 spec:
   jobTemplate:
     spec:

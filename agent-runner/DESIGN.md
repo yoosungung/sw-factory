@@ -99,7 +99,7 @@ HTTP 계약(`POST /sessions`, `202` prompt, ticket↔session)은 유지한다. o
 예시:
 
 ```bash
-kubectl -n leantime logs -f cursor-agent-path-0 -c agent-runner | rg 'run\.(started|completed)|worker\.'
+kubectl -n sw-factory logs -f cursor-agent-path-0 -c agent-runner | rg 'run\.(started|completed)|worker\.'
 ```
 
 긴 텍스트·도구 결과는 500자에서 잘린다 (`run-logger.ts`).

@@ -9,7 +9,7 @@ Factory-side automated chain: `pytest deploy/k8s/scripts/test_tenant_cd.py`.
 1. 테넌트 repo에 [`workflow-dispatch/deploy.yml`](workflow-dispatch/deploy.yml)을 `.github/workflows/deploy.yml`로 복사하고, build/push/apply TODO를 **실제로** 채운다 (`workflow_dispatch` inputs `image_tag`·`environment` 유지).
 2. 공장 `deploy/k8s/agents.yaml`의 **`repos[]`**에 제품 repo + `tenant_cd`를 넣고, 제품 agent에 `primary_repo: <id>`를 건다 (`agents.yaml.sample` asky/`landing-web` 참고). `verify.smoke.url`은 클러스터에서 실제로 응답하는 Service URL로 확정.
 3. `./deploy/k8s/scripts/render-agents.sh && python deploy/k8s/scripts/sync-bridge-json.py`
-4. ta persona ConfigMap 반영 후 `kubectl -n leantime rollout restart statefulset/cursor-agent-ta` — `.cursor/tenant-cd-registry.json`이 Pod에 시드됐는지 확인.
+4. ta persona ConfigMap 반영 후 `kubectl -n sw-factory rollout restart statefulset/cursor-agent-ta` — `.cursor/tenant-cd-registry.json`이 Pod에 시드됐는지 확인.
 
 ## Ticket loop (1건)
 

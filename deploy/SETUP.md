@@ -1,10 +1,127 @@
-# K8s 배포 (namespace: leantime)
+# K8s 배포 런북
 
-## 사전 요구
+운영 NS는 **`sw-factory`**(소프트 팩토리) 또는 레거시 **`leantime`**. 절차 정본은 이 파일이다.
 
-- Leantime이 `leantime` namespace에 배포됨
-- `CURSOR_API_KEY` · agent별 `LEANTIME_ACCESS_TOKEN_{name}` Secret (`cursor-api-key`)
-- agent-runner 이미지 (`cursor-agent-runner:latest`)
+| 절차 | 섹션 |
+|------|------|
+| **초기 설치** (직원 5인 + CursorBridge) | [§A](#a-초기-설치-ns-sw-factory) |
+| **클라이언트 추가** (wipe 없이 repo·개발자 agent) | [§B](#b-클라이언트-추가-wipe-없음) |
+| agents.yaml / Secret / 렌더 상세 | §1– |
+| E2E·CronJob | §7– |
+
+---
+
+## A. 초기 설치 (NS `sw-factory`)
+
+공장 스택을 **한 번** 올리는 절차. Leantime Helm·Ingress·Secret은 이 저장소 밖(클러스터 차트)에서 미리 둔다.
+
+### A.1 사전 요구
+
+- NS `sw-factory`에 Leantime Helm release + MariaDB + Ingress(`sw-factory.k8s-test`)
+- Secret: `cursor-api-key`(`CURSOR_API_KEY`, `GH_TOKEN` 최소), `ghcr-pull`, SMTP
+- 로컬: `deploy/k8s/agents.yaml`(없으면 bootstrap), `.venv` + PyYAML
+
+```bash
+./scripts/bootstrap-config.sh
+# agents.yaml: settings.k8s_namespace=sw-factory, runner_image, 실 email 등
+```
+
+### A.2 원샷
+
+```bash
+./scripts/install-sw-factory.sh          # 깨끗할 때
+./scripts/install-sw-factory.sh --wipe   # 기존 factory STS/PVC만 지우고 재설치 (Leantime Helm·DB 유지)
+```
+
+스크립트가 하는 일:
+
+1. (선택) factory STS/Service/persona CM/PVC/CronJob 삭제 — **Helm Leantime·Secret은 유지**
+2. `seed_factory_users.py` — 직원 5인(pm/km/ta/qa/aa) 유저·PAT·Secret, **My Project 삭제(미생성)**, `clients[0]` 프로젝트 확보
+3. `sync-bridge-json.py` → `render-agents.sh` → `kubectl apply -k deploy/k8s/overlays/sw-factory`
+4. CursorBridge 파일 설치 + `didim/cursor-bridge` enable
+5. staff Pod Ready 대기
+
+확인:
+
+```bash
+kubectl -n sw-factory get pods,sts,cronjob,ing
+# UI: https://sw-factory.k8s-test  — Owner는 최초 Leantime 설치 계정
+```
+
+수동으로 쪼개 적용할 때는 [§5](#5-배포) 참고.
+
+---
+
+## B. 클라이언트 추가 (wipe 없음)
+
+이미 돌아가는 `sw-factory`에 **고객사(client) + GitHub repo + (선택) 개발자 agent-runner**만 붙인다. `install-sw-factory.sh --wipe`를 쓰지 않는다. `agents[]` ≤10.
+
+예: 클라이언트 `sw-factory`, repo `https://github.com/yoosungung/sw-factory.git`, agent `sw-factory`.
+
+### B.1 Leantime
+
+1. **Company → Clients**에 클라이언트 생성 → `leantime_client_id` 기록  
+2. 그 client 소속 **Project** 생성 (이름 **`My Project` 금지**, 예: `sw-factory`)  
+3. Project 상태 라벨을 Dual-loop 보드로 맞춤 ([§1 Dual-loop](#dual-loop-status-board-m11)) → `project_id` 기록  
+4. 개발자 유저 생성 → Profile → **Personal Access Token** 발급 → `leantime_user_id` 기록  
+5. Project Team에 개발자(+ 필요 시 직원 5인) 배정  
+
+### B.2 `deploy/k8s/agents.yaml`
+
+```yaml
+clients:
+  - id: sw-factory
+    leantime_client_id: <B.1>
+    project_id: <B.1>
+    repo_ids: [sw-factory]
+
+repos:
+  - id: sw-factory
+    git_repo_url: https://github.com/yoosungung/sw-factory.git
+    # CD면 tenant_cd: …  (examples/tenant-cd/)
+    # 품질이면 테넌트 repo에 .factory/quality.yaml  (examples/tenant-quality/)
+
+agents:
+  - name: sw-factory
+    leantime_user_id: <B.1>
+    email: sw-factory@example.com
+    persona: sw-factory      # 없으면 _default; 선택: deploy/personas/sw-factory/
+    primary_repo: sw-factory
+    type: sessions
+```
+
+직원 5인(pm/km/ta/qa/aa)에는 `client_id`를 두지 않는다. 개발자만 `primary_repo`로 client repo에 묶는다.
+
+### B.3 Secret·GitHub
+
+```bash
+NS=sw-factory
+kubectl -n "$NS" patch secret cursor-api-key --type merge \
+  -p '{"stringData":{"LEANTIME_ACCESS_TOKEN_sw-factory":"<PAT>"}}'
+```
+
+공유 `GH_TOKEN`에 해당 repo **Contents/PR write**를 추가하거나, agent별 `GH_TOKEN_sw-factory`를 넣어 `gh_token_secret_key: GH_TOKEN_sw-factory`로 지정한다.
+
+### B.4 반영 (기존 Pod 유지)
+
+```bash
+NS=sw-factory
+.venv/bin/python deploy/k8s/scripts/sync-bridge-json.py
+./deploy/k8s/scripts/render-agents.sh
+kubectl apply -k deploy/k8s/overlays/sw-factory
+CURSORBRIDGE_NS="$NS" ./scripts/install-plugin-k8s.sh   # bridge.json 갱신
+kubectl -n "$NS" rollout status "statefulset/cursor-agent-sw-factory"
+```
+
+기존 staff STS/PVC·DB는 그대로다. render가 새 StatefulSet·Service·persona ConfigMap만 추가한다.
+
+### B.5 스모크
+
+1. 해당 Project에 티켓 생성, Assignee = 개발자 이메일  
+2. `kubectl -n sw-factory logs -f cursor-agent-sw-factory-0 -c agent-runner` → `session.create`  
+3. (tenant_cd 있으면) Review→Deploying Test 핸드오프는 TA(`ta`) 경로로 검증  
+
+---
 
 ## 1. agents 정의
 
@@ -69,26 +186,26 @@ python deploy/k8s/scripts/sync-bridge-json.py
 `openai` runner용 키 등록 예:
 
 ```bash
-kubectl -n leantime patch secret cursor-api-key --type merge \
+kubectl -n sw-factory patch secret cursor-api-key --type merge \
   -p '{"stringData":{"CURSORBRIDGE_OPENAI_API_KEY":"<HERMES_API_SERVER_KEY>"}}'
 # Leantime Deployment에 secretKeyRef env CURSORBRIDGE_OPENAI_API_KEY 연결 후
-kubectl -n leantime rollout restart deployment/leantime
+kubectl -n sw-factory rollout restart deployment/leantime
 ```
 
 PAT 등록 예:
 
 ```bash
-kubectl -n leantime patch secret cursor-api-key --type merge \
+kubectl -n sw-factory patch secret cursor-api-key --type merge \
   -p '{"stringData":{"LEANTIME_ACCESS_TOKEN_path":"<PAT>"}}'
-kubectl -n leantime rollout restart statefulset/cursor-agent-path
+kubectl -n sw-factory rollout restart statefulset/cursor-agent-path
 ```
 
 agent별 GitHub 토큰 예 (pm = Hermes/`berryking404` PAT):
 
 ```bash
-kubectl -n leantime patch secret cursor-api-key --type merge \
+kubectl -n sw-factory patch secret cursor-api-key --type merge \
   -p '{"stringData":{"GH_TOKEN_pm":"<PAT>"}}'
-kubectl -n leantime rollout restart statefulset/cursor-agent-pm
+kubectl -n sw-factory rollout restart statefulset/cursor-agent-pm
 ```
 
 agent identity는 `agents.yaml` `email` / `bridge.json`이 담당. Leantime MCP 인증은 Pod `LEANTIME_ACCESS_TOKEN` → persona `mcp.json`만 사용.
@@ -113,15 +230,15 @@ agent identity는 `agents.yaml` `email` / `bridge.json`이 담당. Leantime MCP 
 **클러스터에 등록**
 
 ```bash
-kubectl -n leantime patch secret cursor-api-key --type merge \
+kubectl -n sw-factory patch secret cursor-api-key --type merge \
   -p '{"stringData":{"GH_TOKEN":"ghp_xxxxxxxx"}}'
-kubectl -n leantime rollout restart statefulset -l app=cursor-agent
+kubectl -n sw-factory rollout restart statefulset -l app=cursor-agent
 ```
 
 **Pod에서 확인**
 
 ```bash
-kubectl -n leantime exec cursor-agent-runtime-0 -c agent-runner -- gh auth status
+kubectl -n sw-factory exec cursor-agent-runtime-0 -c agent-runner -- gh auth status
 # "Logged in to github.com account ... (GH_TOKEN)" — 정상
 ```
 
@@ -140,7 +257,7 @@ docker buildx build --platform linux/amd64 \
 `agents.yaml` `settings.runner_image`에 태그 지정. private GHCR:
 
 ```bash
-kubectl -n leantime create secret docker-registry ghcr-pull \
+kubectl -n sw-factory create secret docker-registry ghcr-pull \
   --docker-server=ghcr.io --docker-username=USER \
   --docker-password="$(gh auth token)"
 ```
@@ -149,28 +266,17 @@ StatefulSet에 `imagePullSecrets: ghcr-pull` 포함됨.
 
 ## 5. 배포
 
-### 원샷 (NS `sw-factory`, release)
+**소프트 팩토리 초기 설치·클라이언트 추가**는 각각 [§A](#a-초기-설치-ns-sw-factory)·[§B](#b-클라이언트-추가-wipe-없음)이 정본이다.
 
-Leantime Helm·Ingress·Secret(`cursor-api-key`, `ghcr-pull`)이 NS에 있다고 가정. **My Project는 만들지 않으며**, 있으면 시드 단계에서 삭제한다. 직원 5인(pm/km/ta/qa/aa) 유저·PAT·Secret·CursorBridge 활성까지 한 번에:
-
-```bash
-./scripts/bootstrap-config.sh          # 최초만
-# agents.yaml 이메일/이미지/시크릿을 실값으로 맞춘 뒤
-./scripts/install-sw-factory.sh --wipe # 기존 factory STS/PVC 제거 후 재설치
-# 이미 깨끗하면: ./scripts/install-sw-factory.sh
-```
-
-시드 스크립트: `deploy/k8s/scripts/seed_factory_users.py` (idempotent). PAT는 `php bin/leantime auth:create-bearer-token`으로 발급해 `LEANTIME_ACCESS_TOKEN_{name}`에 넣는다.
-
-### 기본(NS `leantime`)
+### 기본(NS `sw-factory`)
 
 ```bash
 kubectl apply -k deploy/k8s/base
-kubectl -n leantime rollout status statefulset/cursor-agent-asky
-kubectl -n leantime get pods -l app=cursor-agent
+kubectl -n sw-factory rollout status statefulset/cursor-agent-asky
+kubectl -n sw-factory get pods -l app=cursor-agent
 ```
 
-직원 5인 스택을 수동으로 나누어 적용할 때:
+직원 5인 스택을 원샷 없이 수동 적용:
 
 ```bash
 ./deploy/k8s/scripts/render-agents.sh
@@ -179,13 +285,13 @@ CURSORBRIDGE_NS=sw-factory ./scripts/install-plugin-k8s.sh
 kubectl -n sw-factory get pods,sts,ing,cronjob
 ```
 
-Leantime Helm·Ingress(`sw-factory.k8s-test`)는 클러스터 차트/인그레스로 별도 설치. Secret(`cursor-api-key`, `ghcr-pull`, SMTP)도 NS에 미리 둔다. 직원 bot의 `primary_repo`를 비우면 git-clone init이 skip된다(데모 URL 404 방지).
+Leantime Helm·Ingress(`sw-factory.k8s-test`)·Secret(`cursor-api-key`, `ghcr-pull`, SMTP)은 NS에 미리 둔다. 직원 bot의 `primary_repo`를 비우면 git-clone init이 skip된다(데모 URL 404 방지).
 
 ## 6. Leantime 플러그인
 
 ```bash
-./scripts/install-plugin-k8s.sh   # ConfigMap 갱신 + Leantime 재시작 + initContainer 설치
-# 다른 NS: CURSORBRIDGE_NS=sw-factory ./scripts/install-plugin-k8s.sh
+./scripts/install-plugin-k8s.sh   # 기본 NS=sw-factory; ConfigMap 갱신 + Leantime 재시작 + initContainer 설치
+# 레거시 NS: CURSORBRIDGE_NS=leantime ./scripts/install-plugin-k8s.sh
 ```
 
 UI: My Apps에서 CursorBridge 설치·활성화(이미 DB에 있으면 활성만 확인).
@@ -197,14 +303,14 @@ UI: My Apps에서 CursorBridge 설치·활성화(이미 DB에 있으면 활성�
 `kubectl apply -k deploy/k8s/base`에 `cursorbridge-flush-retries` CronJob이 포함된다. **5분마다** Leantime Pod에 `exec`해 `flushRetries()`를 실행한다 (SQLite·`bridge.json`은 Leantime Pod `emptyDir`에만 있음). 이미지는 클러스터에 이미 있는 `ghcr.io/yoosungung/cursor-agent-runner:latest` + `ghcr-pull` Secret을 사용한다.
 
 ```bash
-kubectl -n leantime get cronjob cursorbridge-flush-retries
-kubectl -n leantime logs -l component=flush-retries --tail=20
+kubectl -n sw-factory get cronjob cursorbridge-flush-retries
+kubectl -n sw-factory logs -l component=flush-retries --tail=20
 ```
 
 수동 flush:
 
 ```bash
-kubectl -n leantime exec deploy/leantime -- \
+kubectl -n sw-factory exec deploy/leantime -- \
   php /var/www/html/app/Plugins/CursorBridge/bin/flush-retries.php
 # 또는 로컬
 ./scripts/flush-retries.sh
@@ -236,8 +342,8 @@ kubectl -n leantime exec deploy/leantime -- \
 #         - "Inbox drain attempted (or explicitly no pending inbox)."
 
 python3 deploy/k8s/scripts/sync-bridge-json.py
-kubectl -n leantime get cronjob cursorbridge-schedule-tick
-kubectl -n leantime exec deploy/leantime -- \
+kubectl -n sw-factory get cronjob cursorbridge-schedule-tick
+kubectl -n sw-factory exec deploy/leantime -- \
   php /var/www/html/app/Plugins/CursorBridge/bin/tick-schedules.php
 ```
 
@@ -245,11 +351,11 @@ kubectl -n leantime exec deploy/leantime -- \
 
 ## 7. E2E (assignee = bot)
 
-1. https://leantime.k8s-test — **사람** 계정으로 로그인  
+1. https://sw-factory.k8s-test — **사람** 계정으로 로그인  
 2. 티켓 생성, Assignee = `path@example.com` (또는 로컬 `agents.yaml`의 path 이메일, user 6)  
 3. 확인:
-   - `kubectl -n leantime logs -f cursor-agent-path-0 -c agent-runner` → `session.create`  
-   - `kubectl -n leantime exec deploy/leantime -- php -r '… sqlite sessions …'` 에 행 추가  
+   - `kubectl -n sw-factory logs -f cursor-agent-path-0 -c agent-runner` → `session.create`  
+   - `kubectl -n sw-factory exec deploy/leantime -- php -r '… sqlite sessions …'` 에 행 추가  
 
 참고: Leantime 3.9는 티켓 이벤트 payload에 assignee가 없어 플러그인이 `getTicket`으로 보강한다. 코멘트는 `Comments` 도메인 이벤트가 없어 `notifyProjectUsers`(module=comments)로 수신한다.
 

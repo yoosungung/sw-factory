@@ -52,7 +52,7 @@ This file provides guidance to AI coding assistants (Claude Code, Codex, Gemini,
 
 - 파일이 새로 생기거나 용도가 바뀌면 위 표를 즉시 갱신한다.
 
-- 배포 런북은 `deploy/SETUP.md`, Kustomize 베이스는 `deploy/k8s/base/`, PR/push CI는 `.github/workflows/ci.yml`. 빈 stub을 만들지 않는다.
+- 배포 런북은 `deploy/SETUP.md`(**§A 초기 설치** · **§B 클라이언트 추가**), Kustomize 베이스는 `deploy/k8s/base/`, PR/push CI는 `.github/workflows/ci.yml`. 빈 stub을 만들지 않는다.
 
  
 

@@ -2,7 +2,7 @@ apiVersion: batch/v1
 kind: CronJob
 metadata:
   name: cursorbridge-schedule-tick
-  namespace: leantime
+  namespace: sw-factory
   labels:
     app: cursorbridge
 spec:
@@ -33,7 +33,7 @@ spec:
                 - -c
                 - |
                   set -eu
-                  NS=leantime
+                  NS=sw-factory
                   POD=$(kubectl -n "$NS" get pod -l app.kubernetes.io/name=leantime \
                     -o jsonpath='{.items[0].metadata.name}')
                   kubectl -n "$NS" exec "$POD" -- \

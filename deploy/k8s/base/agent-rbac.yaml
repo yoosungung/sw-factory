@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: cursor-agent
-  namespace: leantime
+  namespace: sw-factory
   labels:
     app: cursor-agent
 ---
@@ -76,7 +76,7 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: cursor-agent
-    namespace: leantime
+    namespace: sw-factory
 ---
 # path-graph Argo: path agent get/list Failed·파라미터, create(+delete/patch) 재실행·정리.
 apiVersion: rbac.authorization.k8s.io/v1
@@ -105,4 +105,4 @@ roleRef:
 subjects:
   - kind: ServiceAccount
     name: cursor-agent
-    namespace: leantime
+    namespace: sw-factory

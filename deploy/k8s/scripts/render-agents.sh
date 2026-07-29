@@ -31,7 +31,7 @@ settings = data.get("settings", {})
 max_replicas = int(settings.get("replicas_max", 10))
 runner_image = settings.get("runner_image", "cursor-agent-runner:latest")
 default_model = settings.get("model", "composer-2.5")
-k8s_ns = str(settings.get("k8s_namespace") or "leantime").strip() or "leantime"
+k8s_ns = str(settings.get("k8s_namespace") or "sw-factory").strip() or "sw-factory"
 leantime_url = str(
     settings.get("leantime_url") or f"http://leantime.{k8s_ns}.svc"
 ).strip().rstrip("/")
