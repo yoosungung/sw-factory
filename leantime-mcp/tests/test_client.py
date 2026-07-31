@@ -178,6 +178,32 @@ async def test_get_comments_requests_all_parents_including_replies(client: Leant
 
 
 @pytest.mark.asyncio
+async def test_get_status_labels_passes_project_id(client: LeantimeClient):
+    """Optional project_id must reach JSON-RPC as projectId (#60 cache poison)."""
+    with patch.object(client, "call", new_callable=AsyncMock) as call:
+        call.return_value = {"3": {"name": "New"}}
+
+        result = await client.get_status_labels(project_id=5)
+
+        method, params = call.await_args.args
+        assert method == "leantime.rpc.Tickets.Tickets.getStatusLabels"
+        assert params == {"projectId": 5}
+        assert result == {"3": {"name": "New"}}
+
+
+@pytest.mark.asyncio
+async def test_get_status_labels_omits_params_when_no_project(client: LeantimeClient):
+    with patch.object(client, "call", new_callable=AsyncMock) as call:
+        call.return_value = {}
+
+        await client.get_status_labels()
+
+        method, params = call.await_args.args
+        assert method == "leantime.rpc.Tickets.Tickets.getStatusLabels"
+        assert params == {}
+
+
+@pytest.mark.asyncio
 async def test_update_ticket_uses_patch_not_full_update(client: LeantimeClient):
     """updateTicket wipes omitted fields; patchTicket is partial-safe."""
     with patch.object(client, "call", new_callable=AsyncMock) as call:

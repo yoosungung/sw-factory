@@ -156,10 +156,14 @@ async def update_ticket(ticket_id: int, project_id: int, headline: str = None, d
 
 
 @app.tool()
-async def get_status_labels() -> str:
-    """Get available status labels."""
+async def get_status_labels(project_id: int | None = None) -> str:
+    """Get available status labels.
+
+    Prefer passing project_id (Active ticket projectId) so Leantime does not
+    cache seed labels under the empty key projectsettings..ticketlabels (#60).
+    """
     client = get_client()
-    result = await client.get_status_labels()
+    result = await client.get_status_labels(project_id=project_id)
     return json.dumps(result, indent=2)
 
 
