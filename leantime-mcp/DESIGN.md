@@ -36,6 +36,12 @@ pytest
 
 Leantime JSON-RPC `Tickets.updateTicket`은 미전달 필드를 `''`로 덮어쓴다(본문·담당자 소실). MCP `update_ticket`은 **`Tickets.patchTicket`** 으로 넘긴 필드만 갱신한다. 도구 인자 `assignedTo`는 Leantime 컬럼 `editorId`로 매핑한다. `project_id`는 도구 시그니처 호환용이며 patch에 보내지 않는다.
 
+## MCP tools (status labels)
+
+| tool | 인자 | 동작 |
+|------|------|------|
+| `get_status_labels` | `project_id?` | JSON-RPC `Tickets.Tickets.getStatusLabels` — `project_id`가 있으면 `projectId`로 전달. 생략 시 세션리스 seed 캐시 오염(#60) 가능 → Active ticket의 `projectId` 권장 |
+
 ## MCP tools (tickets list filter)
 
 | tool | 인자 | 동작 |

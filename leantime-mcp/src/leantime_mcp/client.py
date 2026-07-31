@@ -209,8 +209,14 @@ class LeantimeClient:
             {"id": ticket_id, "values": values},
         )
 
-    async def get_status_labels(self) -> dict:
-        return await self.call("leantime.rpc.Tickets.Tickets.getStatusLabels")
+    async def get_status_labels(self, project_id: Optional[int] = None) -> dict:
+        """Fetch status labels. Pass project_id to avoid empty-key cache poison (#60)."""
+        params: dict[str, Any] = {}
+        if project_id is not None:
+            params["projectId"] = project_id
+        return await self.call(
+            "leantime.rpc.Tickets.Tickets.getStatusLabels", params
+        )
 
     async def get_user(self, user_id: int) -> dict:
         return await self.call("leantime.rpc.Users.getUser", {"id": user_id})

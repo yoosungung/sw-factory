@@ -107,6 +107,21 @@ async def test_delete_comment_tool_delegates_to_client(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_get_status_labels_tool_passes_project_id(monkeypatch):
+    monkeypatch.setenv("LEANTIME_URL", "https://leantime.example.com")
+    monkeypatch.setenv("LEANTIME_ACCESS_TOKEN", "pat")
+
+    mock_client = AsyncMock()
+    mock_client.get_status_labels.return_value = {"3": {"name": "New"}}
+    monkeypatch.setattr(server, "get_client", lambda: mock_client)
+
+    result = await server.get_status_labels(project_id=5)
+
+    mock_client.get_status_labels.assert_awaited_once_with(project_id=5)
+    assert json.loads(result) == {"3": {"name": "New"}}
+
+
+@pytest.mark.asyncio
 async def test_list_tickets_tool_passes_updated_since(monkeypatch):
     monkeypatch.setenv("LEANTIME_URL", "https://leantime.example.com")
     monkeypatch.setenv("LEANTIME_ACCESS_TOKEN", "pat")

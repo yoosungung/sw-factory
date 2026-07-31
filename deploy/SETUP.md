@@ -164,6 +164,8 @@ python deploy/k8s/scripts/sync-bridge-json.py
 
 흐름: `New` → `In Progress` → `Review` → `Deploying Test` → `QA` → `Deploying Prod` → `Done`. `clients[]`로 `leantime_client_id` ≡ tenant. 품질 어댑터: `examples/tenant-quality/`.
 
+함정: MCP/`getStatusLabels`가 `projectId` 없이 호출되면 seed labels가 `projectsettings..ticketlabels` 캐시를 오염시켜 Kanban 열이 초기값↔dual-loop로 플립할 수 있다 — `getStateLabels`는 projectId를 캐시 조회 **전**에 resolve하고, MCP `get_status_labels`에 `project_id`를 넘긴다 (`deploy/k8s/leantime-app-patch/`).
+
 ## 2. 렌더 및 bridge 동기화
 
 ```bash
