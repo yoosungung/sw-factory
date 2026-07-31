@@ -6,39 +6,46 @@ namespace Leantime\Plugins\CursorBridge;
 
 /**
  * Runtime probe: any ticket/subtask with status=4 (In Progress).
- * Fail-closed on missing Leantime / errors (skip schedule fire).
+ * Uses DB (not Tickets service) so CLI ticks work without a web session.
+ * Fail-closed on missing DB / errors (skip schedule fire).
  */
 final class LeantimeInProgressTicketProbe implements InProgressTicketProbe
 {
+    /** @var null|callable(): mixed */
+    private $query;
+
+    /**
+     * @param  null|callable(): mixed  $query  injectable for unit tests
+     */
+    public function __construct(?callable $query = null)
+    {
+        $this->query = $query;
+    }
+
     public function hasInProgress(): bool
     {
-        if (!function_exists('app')) {
-            return false;
-        }
-
         try {
-            $svc = app()->make(\Leantime\Domain\Tickets\Services\Tickets::class);
-            foreach ([['status' => 4], ['status' => '4'], ['statusType' => 'INPROGRESS']] as $criteria) {
-                $tickets = $svc->getAll($criteria);
-                if (!is_array($tickets) || $tickets === []) {
-                    continue;
-                }
-                if ($criteria === ['statusType' => 'INPROGRESS']) {
-                    return true;
-                }
-                foreach ($tickets as $ticket) {
-                    $status = is_array($ticket)
-                        ? ($ticket['status'] ?? null)
-                        : ($ticket->status ?? null);
-                    if ((int) $status === 4) {
-                        return true;
-                    }
-                }
-            }
+            $rows = ($this->query ?? self::defaultQuery(...))();
+            return is_array($rows) && $rows !== [];
         } catch (\Throwable) {
             return false;
         }
+    }
 
-        return false;
+    /**
+     * @return list<object>
+     */
+    private static function defaultQuery(): array
+    {
+        if (! class_exists(\Illuminate\Support\Facades\DB::class)) {
+            return [];
+        }
+
+        /** @var list<object> $rows */
+        $rows = \Illuminate\Support\Facades\DB::select(
+            'SELECT 1 AS ok FROM zp_tickets WHERE status = 4 LIMIT 1'
+        );
+
+        return $rows;
     }
 }

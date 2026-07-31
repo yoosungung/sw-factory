@@ -3,8 +3,9 @@
 
 declare(strict_types=1);
 
+$appRoot = dirname(__DIR__, 4);
 $candidates = [
-    dirname(__DIR__, 4) . '/vendor/autoload.php',
+    $appRoot . '/vendor/autoload.php',
     dirname(__DIR__) . '/vendor/autoload.php',
 ];
 
@@ -23,6 +24,9 @@ if ($autoload === null) {
 
 require_once $autoload;
 
+use Leantime\Plugins\CursorBridge\LeantimeCliBootstrap;
 use Leantime\Plugins\CursorBridge\Plugin;
+
+LeantimeCliBootstrap::boot($appRoot);
 
 echo 'scheduled=' . Plugin::createDefault()->tickSchedules() . PHP_EOL;
