@@ -34,14 +34,19 @@ cp "$PLUGIN"/BridgeConfig.php \
    "$PLUGIN"/CommentLookup.php \
    "$PLUGIN"/NullCommentLookup.php \
    "$PLUGIN"/LeantimeCommentLookup.php \
+   "$PLUGIN"/NotificationCoalesce.php \
    "$PLUGIN"/register.php \
    "$PLUGIN"/composer.json \
    "$PLUGIN"/bridge.json \
    "$tmpdir/"
 cp "$PLUGIN"/bin/flush-retries.php "$tmpdir/bin.flush-retries.php"
 cp "$PLUGIN"/bin/tick-schedules.php "$tmpdir/bin.tick-schedules.php"
+cp "$PLUGIN"/bin/dedupe-ticket-notifications.php "$tmpdir/bin.dedupe-ticket-notifications.php"
 mkdir -p "$tmpdir/Services"
 cp "$PLUGIN"/Services/CursorBridge.php "$tmpdir/Services/"
+# Deploy-only Leantime 3.9.7 core monkey patch (ticket notification coalesce).
+cp "$PLUGIN"/patches/3.9.7/NotificationsRepository.php \
+  "$tmpdir/patches.3.9.7.NotificationsRepository.php"
 
 kubectl -n "$NS" create configmap "$CM" \
   --from-file="$tmpdir" \
@@ -69,13 +74,16 @@ data:
              InProgressTicketProbe.php NullInProgressTicketProbe.php LeantimeInProgressTicketProbe.php \\
              TicketLookup.php NullTicketLookup.php \\
              LeantimeTicketLookup.php CommentLookup.php NullCommentLookup.php LeantimeCommentLookup.php \\
+             NotificationCoalesce.php \\
              register.php composer.json bridge.json; do
       cp "\$SRC/\$f" "\$DEST/\$f"
     done
     mkdir -p "\$DEST/bin"
     cp "\$SRC/bin.flush-retries.php" "\$DEST/bin/flush-retries.php"
     cp "\$SRC/bin.tick-schedules.php" "\$DEST/bin/tick-schedules.php"
-    chmod 755 "\$DEST/bin/flush-retries.php" "\$DEST/bin/tick-schedules.php"
+    cp "\$SRC/bin.dedupe-ticket-notifications.php" "\$DEST/bin/dedupe-ticket-notifications.php"
+    chmod 755 "\$DEST/bin/flush-retries.php" "\$DEST/bin/tick-schedules.php" \\
+              "\$DEST/bin/dedupe-ticket-notifications.php"
     cp "\$SRC/Services.CursorBridge.php" "\$DEST/Services/CursorBridge.php"
     chown -R www-data:www-data "\$DEST" || true
     echo "CursorBridge installed into \$DEST"
@@ -134,13 +142,28 @@ spec["initContainers"] = inits
 
 # container mounts
 c = spec["containers"][0]
-mounts = [m for m in c.get("volumeMounts", []) if m.get("name") not in ("cursorbridge-plugin-dir","cursorbridge-data")]
+drop_names = {"cursorbridge-plugin-dir", "cursorbridge-data"}
+drop_paths = {
+    "/var/www/html/app/Plugins/CursorBridge",
+    "/var/www/html/app/Plugins/CursorBridge/data",
+    "/var/www/html/app/Domain/Notifications/Repositories/Notifications.php",
+}
+mounts = [
+    m for m in c.get("volumeMounts", [])
+    if m.get("name") not in drop_names and m.get("mountPath") not in drop_paths
+]
 mounts.append({"name":"cursorbridge-plugin-dir","mountPath":"/var/www/html/app/Plugins/CursorBridge"})
 mounts.append({"name":"cursorbridge-data","mountPath":"/var/www/html/app/Plugins/CursorBridge/data"})
+# Monkey-patch Leantime core Notifications repository (subPath overlay).
+mounts.append({
+    "name": "cursorbridge-src",
+    "mountPath": "/var/www/html/app/Domain/Notifications/Repositories/Notifications.php",
+    "subPath": "patches.3.9.7.NotificationsRepository.php",
+})
 c["volumeMounts"] = mounts
 
 subprocess.run(["kubectl","-n",ns,"replace","-f","-"], input=json.dumps(dep).encode(), check=True)
-print(f"Patched deploy/leantime in ns={ns} with CursorBridge initContainer + mounts")
+print(f"Patched deploy/leantime in ns={ns} with CursorBridge initContainer + mounts + notif coalesce")
 PY
 
 echo "Restarting Leantime to run the plugin initContainer..."
@@ -150,4 +173,6 @@ kubectl -n "$NS" rollout status deploy/leantime --timeout=180s
 POD=$(kubectl -n "$NS" get pod -l app.kubernetes.io/name=leantime -o jsonpath='{.items[0].metadata.name}')
 kubectl -n "$NS" exec "$POD" -- ls -la /var/www/html/app/Plugins/CursorBridge/
 kubectl -n "$NS" exec "$POD" -- head -12 /var/www/html/app/Plugins/CursorBridge/Listener.php
+kubectl -n "$NS" exec "$POD" -- head -8 /var/www/html/app/Domain/Notifications/Repositories/Notifications.php
+kubectl -n "$NS" exec "$POD" -- test -f /var/www/html/app/Plugins/CursorBridge/NotificationCoalesce.php
 echo "Done. Pod=$POD NS=$NS"
