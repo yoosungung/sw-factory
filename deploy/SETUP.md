@@ -301,6 +301,8 @@ UI: My Apps에서 CursorBridge 설치·활성화(이미 DB에 있으면 활성�
 
 스크립트는 ConfigMap 적용 후 `deploy/leantime`을 rolling restart한다. 플러그인 파일은 새 Pod의 initContainer가 `emptyDir`에 복사하므로, 재시작 없이 ConfigMap만 갱신하면 실행 중인 Pod에는 새 코드가 반영되지 않는다.
 
+추가로 **배포 전용**으로 Leantime 3.9.7 `Notifications` Repository를 subPath로 덮어써, 티켓 URL 기준 in-app 알림을 `(user, ticket)`당 1건으로 coalesce한다(갱신 시 unread 복귀). 상세는 `leantime-plugin/DESIGN.md`.
+
 ### Retry queue flush (CronJob)
 
 `kubectl apply -k deploy/k8s/base`에 `cursorbridge-flush-retries` CronJob이 포함된다. **5분마다** Leantime Pod에 `exec`해 `flushRetries()`를 실행한다 (SQLite·`bridge.json`은 Leantime Pod `emptyDir`에만 있음). 이미지는 클러스터에 이미 있는 `ghcr.io/yoosungung/cursor-agent-runner:latest` + `ghcr-pull` Secret을 사용한다.
