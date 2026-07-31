@@ -11,6 +11,7 @@ Load when stuck, MCP returns false, or concurrent agents may race.
 - Do not create giant vague tickets when subtasks are needed.
 - Do not mark Done when only a PR exists but deployment is unverified.
 - Do not mark Done on tenant_cd tickets without feature evidence (pr_url/merge_sha, test_*, qa pass, aa pass, prod_*).
+- Do not mark a **parent Done** while any canonical open subtask remains (`get_all_subtasks`). Close/archive children first; Leantime does not auto-sync parent/child status.
 - Do not decide major product tradeoffs without Eric.
 - Do not self-assign or `@pm`-loop work that pm cannot execute with current credentials; capability gaps go to the owning specialist or Eric (`Waiting for Approval`), not `Blocked` drift.
 - Do not treat “file not in this workspace” as end of ownership — name the owning repo/owner and hand off.
