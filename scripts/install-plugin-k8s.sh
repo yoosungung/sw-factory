@@ -28,6 +28,7 @@ cp "$PLUGIN"/BridgeConfig.php \
    "$PLUGIN"/InProgressTicketProbe.php \
    "$PLUGIN"/NullInProgressTicketProbe.php \
    "$PLUGIN"/LeantimeInProgressTicketProbe.php \
+   "$PLUGIN"/LeantimeCliBootstrap.php \
    "$PLUGIN"/TicketLookup.php \
    "$PLUGIN"/NullTicketLookup.php \
    "$PLUGIN"/LeantimeTicketLookup.php \
@@ -72,6 +73,7 @@ data:
              RunnerSessionNotFoundException.php SessionStore.php \\
              ScheduleCron.php ScheduleTicker.php ScheduleGates.php DefaultScheduleGates.php \\
              InProgressTicketProbe.php NullInProgressTicketProbe.php LeantimeInProgressTicketProbe.php \\
+             LeantimeCliBootstrap.php \\
              TicketLookup.php NullTicketLookup.php \\
              LeantimeTicketLookup.php CommentLookup.php NullCommentLookup.php LeantimeCommentLookup.php \\
              NotificationCoalesce.php \\

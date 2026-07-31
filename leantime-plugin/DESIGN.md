@@ -44,7 +44,7 @@ kubectl -n sw-factory exec deploy/leantime -- \
 
 Leantime 이미지 메이저/마이너 올리면 패치 파일을 재검토한다.
 
-주기 프롬프트: `bin/tick-schedules.php` (`Plugin::tickSchedules()`). 설정은 `bridge.json` `schedules[]`. 선택 `gates[]`(AND; 생략 가능) — `in_progress`는 Leantime Tickets로 top·sub `status=4` 존재 여부를 본 뒤 세션을 만든다.
+주기 프롬프트: `bin/tick-schedules.php` (`Plugin::tickSchedules()`). CLI는 `bin/leantime`과 같이 `LEAN_CLI` + `bootstrap/app.php` + ConsoleKernel boot 후 게이트를 평가한다(미부트 시 `Tickets`/`DB` DI 실패 → fail-closed). 설정은 `bridge.json` `schedules[]`. 선택 `gates[]`(AND; 생략 가능) — `in_progress`는 `zp_tickets.status=4` 존재 여부(DB; 세션 ACL 우회)를 본 뒤 세션을 만든다.
 
 `type=openai` runner는 env `CURSORBRIDGE_OPENAI_API_KEY` 필요.
 
