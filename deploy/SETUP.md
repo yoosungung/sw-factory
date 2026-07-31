@@ -249,7 +249,7 @@ kubectl -n sw-factory exec cursor-agent-runtime-0 -c agent-runner -- gh auth sta
 
 `GH_TOKEN` 없이 봇 Pod는 시작하지 않는다 (`entrypoint.sh`).
 
-agent-runner 이미지에 **Python 3.12 + uv**, **kubectl**(in-cluster), **gh**, **git** 포함. Pod는 `cursor-agent` ServiceAccount + ClusterRole `cursor-agent-observer`로 클러스터 모니터링·제한적 kubectl 작업(ta 포함). `path-graph` Role `cursor-agent-argo-workflows`로 Argo `workflows` get/list/create/delete/patch. RBAC 객체 write·Secret 전역 list는 기본 미부여.
+agent-runner 이미지에 **Python 3.12 + uv**, **kubectl**(in-cluster), **gh**, **git** 포함. Pod는 `cursor-agent` ServiceAccount + ClusterRole `cursor-agent-observer`로 클러스터 모니터링·제한적 kubectl 작업(ta 포함; Namespace create 포함, delete 없음). test NS(`sw-factory`, `nl2sql`) Role `cursor-agent-test-ns-write`로 CM·Secret·Service·PVC·Ingress·Deploy/STS·Pod write(TA Deploying Test 풀 스택). `path-graph` Role `cursor-agent-argo-workflows`로 Argo `workflows` get/list/create/delete/patch. RBAC 객체 write·Secret 클러스터 전역 list는 기본 미부여.
 
 ## 4. 이미지 빌드·푸시
 

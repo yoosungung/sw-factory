@@ -32,6 +32,9 @@ rules:
     resources: ["pods", "persistentvolumeclaims", "persistentvolumes", "nodes"]
     verbs: ["patch", "update", "delete"]
   - apiGroups: [""]
+    resources: ["namespaces"]
+    verbs: ["create"]
+  - apiGroups: [""]
     resources: ["pods/exec", "pods/portforward"]
     verbs: ["create"]
   - apiGroups: [""]
@@ -73,6 +76,81 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: cursor-agent-observer
+subjects:
+  - kind: ServiceAccount
+    name: cursor-agent
+    namespace: sw-factory
+---
+# Test NS write: TA Deploying Test full stack. RBAC object write denied.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cursor-agent-test-ns-write
+  namespace: sw-factory
+  labels:
+    app: cursor-agent
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets", "services", "persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cursor-agent-test-ns-write
+  namespace: sw-factory
+  labels:
+    app: cursor-agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cursor-agent-test-ns-write
+subjects:
+  - kind: ServiceAccount
+    name: cursor-agent
+    namespace: sw-factory
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cursor-agent-test-ns-write
+  namespace: nl2sql
+  labels:
+    app: cursor-agent
+rules:
+  - apiGroups: [""]
+    resources: ["configmaps", "secrets", "services", "persistentvolumeclaims"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "statefulsets"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cursor-agent-test-ns-write
+  namespace: nl2sql
+  labels:
+    app: cursor-agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cursor-agent-test-ns-write
 subjects:
   - kind: ServiceAccount
     name: cursor-agent

@@ -80,3 +80,67 @@ def test_path_graph_argo_workflow_rbac_for_cursor_agent():
     assert binding["subjects"] == [
         {"kind": "ServiceAccount", "name": "cursor-agent", "namespace": "sw-factory"}
     ]
+
+
+def test_observer_can_create_namespaces():
+    """TA may create test NS (e.g. nl2sql) without RBAC self-escalation."""
+    docs = _docs()
+    cluster_role = next(
+        d for d in docs if d.get("kind") == "ClusterRole" and d["metadata"]["name"] == "cursor-agent-observer"
+    )
+    ns_write = next(
+        r
+        for r in cluster_role["rules"]
+        if r.get("apiGroups") == [""] and r.get("resources") == ["namespaces"]
+    )
+    assert "create" in ns_write["verbs"]
+    assert "delete" not in ns_write["verbs"]
+
+
+def test_test_ns_write_roles_for_sw_factory_and_nl2sql():
+    """TA Deploying Test: full app stack write in test NS (CM/Secret/Svc/PVC/Ingress/workload)."""
+    docs = _docs()
+    for ns in ("sw-factory", "nl2sql"):
+        role = next(
+            d
+            for d in docs
+            if d.get("kind") == "Role"
+            and d["metadata"]["name"] == "cursor-agent-test-ns-write"
+            and d["metadata"]["namespace"] == ns
+        )
+        resources = {res for r in role["rules"] for res in r.get("resources", [])}
+        for needed in (
+            "configmaps",
+            "secrets",
+            "services",
+            "persistentvolumeclaims",
+            "ingresses",
+            "deployments",
+            "statefulsets",
+            "pods",
+        ):
+            assert needed in resources
+        for kind in ("configmaps", "secrets", "services", "persistentvolumeclaims"):
+            rule = next(r for r in role["rules"] if kind in r.get("resources", []))
+            for verb in ("get", "list", "create", "update", "patch", "delete"):
+                assert verb in rule["verbs"]
+        ing = next(r for r in role["rules"] if "ingresses" in r.get("resources", []))
+        assert ing["apiGroups"] == ["networking.k8s.io"]
+        for verb in ("get", "list", "create", "update", "patch", "delete"):
+            assert verb in ing["verbs"]
+
+        binding = next(
+            d
+            for d in docs
+            if d.get("kind") == "RoleBinding"
+            and d["metadata"]["name"] == "cursor-agent-test-ns-write"
+            and d["metadata"]["namespace"] == ns
+        )
+        assert binding["roleRef"] == {
+            "apiGroup": "rbac.authorization.k8s.io",
+            "kind": "Role",
+            "name": "cursor-agent-test-ns-write",
+        }
+        assert binding["subjects"] == [
+            {"kind": "ServiceAccount", "name": "cursor-agent", "namespace": "sw-factory"}
+        ]
