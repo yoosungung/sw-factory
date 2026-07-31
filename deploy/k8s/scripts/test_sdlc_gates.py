@@ -33,6 +33,26 @@ def test_intake_template_m8():
     assert "Architecture notes" in text
 
 
+def test_pm_parent_done_requires_closed_subtasks():
+    """Parent Done is forbidden while any canonical subtask is still open (#50)."""
+    skill_root = ROOT / "deploy/personas/pm/.cursor/skills/leantime-pm"
+    workflow = (skill_root / "references/pm-workflow.md").read_text()
+    pitfalls = (skill_root / "references/pitfalls.md").read_text()
+    ticket_ops = (skill_root / "references/ticket-ops.md").read_text()
+    skill = (skill_root / "SKILL.md").read_text()
+    assert "get_all_subtasks" in workflow
+    assert "do not mark the parent done" in workflow.lower() or "부모 Done" in workflow
+    assert "open subtask" in workflow.lower() or "열린" in workflow
+    assert "parent done" in pitfalls.lower() or "부모 Done" in pitfalls
+    assert "get_all_subtasks" in ticket_ops
+    assert "Done/Archived" in ticket_ops or "Done or Archived" in ticket_ops
+    assert (
+        "open subtask" in skill.lower()
+        or "열린 서브태스크" in skill
+        or "열린 자식" in skill
+    )
+
+
 def test_incident_tickets_m9():
     path = (
         ROOT
