@@ -142,6 +142,8 @@ Merge closeout is not complete until the next action is explicit:
 5. Set statuses only after re-reading: completed subtask `Done`, next active subtask `In Progress`, later subtasks `New`.
 6. If the PR referenced a non-canonical/orphan ticket, comment there that it is duplicate/orphan and archive it; do not leave follow-up instructions only on the orphan.
 
+**Parent Done gate (hard):** Before marking the **parent** `Done`, call `get_all_subtasks(parent_id)`. If any canonical child is still open (`New` / `In Progress` / `Blocked` / `Waiting for Approval` / Review / Deploying* / QA — anything other than `Done` or `Archived`), **do not mark the parent Done**. First close or archive every open subtask (status-only updates; immediately re-read `get_all_subtasks` because `update_ticket` can sever parent linkage — see pitfalls). Leantime does not cascade parent/child status; parent Done with open children is a PM skill violation (observed on nl2sql #31 vs #33/#34/#35).
+
 Final PM comment should be concise:
 
 - What changed
