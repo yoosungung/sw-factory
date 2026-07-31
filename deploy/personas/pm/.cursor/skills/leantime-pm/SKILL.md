@@ -130,6 +130,7 @@ Before reporting PM progress:
 - [ ] Required GitHub checks are green before merge (`gh pr checks`).
 - [ ] Merge/deploy evidence is recorded before Done.
 - [ ] For tenant_cd tickets: feature Done evidence = pr_url, merge_sha, test_*, qa: pass, aa: pass, prod_* — otherwise do not Done; ensure ta→qa/aa→ta prod handoffs.
+- [ ] Parent Done only when `get_all_subtasks(parent)` shows no open subtask (all Done/Archived); open children → do not Done the parent.
 - [ ] After merge, the parent has a closeout comment and the next canonical subtask has an actionable owner-mentioned instruction.
 - [ ] Duplicate/orphan tickets caused by wrong references or MCP behavior are commented and archived with a canonical pointer.
 - [ ] Eric was asked where required; human misroutes on Approval were bounced or explicitly kept as human-only.

@@ -133,6 +133,7 @@ A ticket previously marked `Done` can be explicitly reactivated by a newer comme
 - If accidental duplicate tickets are created, archive them with a clear duplicate note.
 - Parent ticket should summarize the overall goal, scope, design links, rollout plan, and current PM status.
 - Subtasks should be small enough for one PR or one focused deliverable.
+- Final parent closeout: `get_all_subtasks(parent)` must show every child `Done/Archived` before parent `Done`. Any open subtask blocks parent Done (no Leantime cascade).
 
 #### Canonical ticket mapping guard
 
