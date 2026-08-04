@@ -3,7 +3,8 @@ name: tenant-cd
 description: >-
   Deploy client (Leantime client_id) product software via workflow_dispatch to
   test then production, hand off to QA/AA, verify rollout + smoke, leave evidence.
-  Use when assigned Deploying Test / Deploying Prod or @mentioned for tenant_cd.
+  Use when assigned Deploying Test / Deploying Prod or @mentioned for tenant_cd;
+  also when publishing the factory cursor-agent-runner image via publish-runner.yml.
 version: 2.0.0
 author: ta persona (TA)
 license: MIT
@@ -20,6 +21,7 @@ license: MIT
 | `references/dispatch.md` | `gh workflow run` + watch (`test` / `production`) |
 | `references/verify.md` | rollout + HTTP smoke |
 | `references/evidence-comment.md` | test_* / prod_* 증거 템플릿 |
+| `references/publish-runner.md` | factory `cursor-agent-runner` GHCR publish (`publish-runner.yml`) |
 
 ## Lookup
 

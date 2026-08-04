@@ -2,7 +2,9 @@
 
 Built-in `view` ClusterRole alone is not enough for PV/PVC operations.
 
-## Permission classes
+**SA:** ta Pods use `cursor-agent-ta` (ClusterRole `cursor-agent-ta-operator`). Other bots use `cursor-agent` (read-only `cursor-agent-observer`) — they must not get mutate/test-NS write.
+
+## Permission classes (ta SA)
 
 - **Discovery/monitoring**: `get/list/watch` on pods, logs, events, services, endpoints/endpointslices, ingress, deployments, statefulsets, daemonsets, jobs/cronjobs, nodes, namespaces, PV, PVC, StorageClass, VolumeAttachment, snapshots.
 - **Live metrics**: `get/list/watch` on `metrics.k8s.io` `nodes`/`pods` so `kubectl top` works. Test with `kubectl auth can-i list nodes.metrics.k8s.io` and `kubectl top nodes` (not only `nodes/metrics`).
@@ -10,8 +12,8 @@ Built-in `view` ClusterRole alone is not enough for PV/PVC operations.
 - **GPU**: capacity/allocatable and pod requests from core API. Utilization needs DCGM/exporter/`nvidia-smi` — do not claim utilization from core API alone. If install authority is unclear, prepare manifests under `manifests/ta/` and ask cluster-admin to apply; do not claim they are on main until `git status`/`git log`/`git ls-remote` confirm.
 - **Storage remediation**: `create/patch/update/delete` on PV/PVC (and often VolumeAttachment/Snapshot).
 - **Workload remediation**: `patch/update/delete` on pods/controllers; `patch/update` on scale.
-- **Test-NS write** (`sw-factory`, `nl2sql`): Role `cursor-agent-test-ns-write` — ConfigMap/Secret/Service/PVC/Ingress create/update/patch/delete + Deploy/STS/Pod mutate for Deploying Test full stack. Cluster-wide Secret list and RBAC object write remain denied.
-- **Namespace create**: ClusterRole `cursor-agent-observer` — `namespaces` `create` only (provision test NS; no delete).
+- **Test-NS write** (`sw-factory`, `nl2sql`): Role `cursor-agent-test-ns-write` bound to **`cursor-agent-ta`** — ConfigMap/Secret/Service/PVC/Ingress create/update/patch/delete + Deploy/STS/Pod mutate for Deploying Test full stack. Cluster-wide Secret list and RBAC object write remain denied.
+- **Namespace create**: ClusterRole `cursor-agent-ta-operator` — `namespaces` `create` only (provision test NS; no delete).
 - **Debug**: `pods/log` read; `pods/exec` / `pods/portforward` create only when allowed.
 - **Nodes**: `patch/update` for cordon/uncordon, labels, taints.
 - **Do not grant RBAC write** on roles/bindings/clusterroles/clusterrolebindings — prevents self-escalation.

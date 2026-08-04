@@ -119,6 +119,7 @@ agents:
     persona: ta
     primary_repo: k8s-test
     type: sessions
+    gh_token_secret_key: GH_TOKEN_ta
 
   # Factory staff (KM)
   - name: km

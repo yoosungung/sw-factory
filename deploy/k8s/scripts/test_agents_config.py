@@ -128,9 +128,10 @@ def test_statefulset_template_honors_gh_token_secret_key():
     root = SCRIPTS.parents[2]
     ss_tpl = (root / "deploy/k8s/templates/statefulset.yaml.tpl").read_text()
     assert "{{GH_TOKEN_SECRET_KEY}}" in ss_tpl
+    assert "{{SERVICE_ACCOUNT}}" in ss_tpl
     assert "{{ORG_WIKI_URL}}" in ss_tpl
 
-    def render(name: str, gh_key: str, org_wiki: str = "") -> str:
+    def render(name: str, gh_key: str, sa: str = "cursor-agent", org_wiki: str = "") -> str:
         return (
             ss_tpl.replace("{{NAME}}", name)
             .replace("{{PERSONA}}", name)
@@ -139,15 +140,22 @@ def test_statefulset_template_honors_gh_token_secret_key():
             .replace("{{RUNNER_IMAGE}}", "example/runner:test")
             .replace("{{MODEL}}", "auto")
             .replace("{{GH_TOKEN_SECRET_KEY}}", gh_key)
+            .replace("{{SERVICE_ACCOUNT}}", sa)
             .replace("{{ORG_WIKI_URL}}", org_wiki)
+            .replace("{{NAMESPACE}}", "sw-factory")
+            .replace("{{LEANTIME_URL}}", "http://leantime.sw-factory.svc")
+            .replace("{{SEED_PERSONA_SCRIPT}}", "              echo seed")
         )
 
-    pm = render("pm", "GH_TOKEN_pm", "https://github.com/demo-org/org-wiki.git")
+    pm = render("pm", "GH_TOKEN_pm", "cursor-agent", "https://github.com/demo-org/org-wiki.git")
     path = render("path", "GH_TOKEN")
+    ta = render("ta", "GH_TOKEN_ta", "cursor-agent-ta")
     assert "key: GH_TOKEN_pm" in pm
     assert "key: GH_TOKEN_path" in path  # optional override slot
     assert "                  key: GH_TOKEN\n" in path or "                  key: GH_TOKEN\r\n" in path
     assert "GH_TOKEN_pm" not in path
+    assert "serviceAccountName: cursor-agent\n" in pm
+    assert "serviceAccountName: cursor-agent-ta\n" in ta
     assert "ORG_WIKI_URL" in pm
     assert "https://github.com/demo-org/org-wiki.git" in pm
 
@@ -162,6 +170,8 @@ def test_agents_yaml_sample_has_org_wiki_and_km():
     km = next(a for a in data["agents"] if a["name"] == "km")
     assert km["primary_repo"] == "org-wiki"
     assert km["type"] == "sessions"
+    ta = next(a for a in data["agents"] if a["name"] == "ta")
+    assert ta.get("gh_token_secret_key") == "GH_TOKEN_ta"
     schedules = {s["id"]: s for s in data["settings"]["schedules"]}
     assert "km-wiki" in schedules
     assert "Inbox drain" in schedules["km-wiki"]["prompt"] or "inbox" in schedules["km-wiki"]["prompt"].lower()

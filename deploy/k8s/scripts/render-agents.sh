@@ -78,8 +78,10 @@ for agent in deploy_agents:
         agent, repos_by_id, label=f"agent {name}"
     )["git_repo_url"]
 
-    # Default shared Secret key; per-agent override e.g. pm → GH_TOKEN_pm.
+    # Default shared Secret key; per-agent override e.g. pm → GH_TOKEN_pm, ta → GH_TOKEN_ta.
     gh_token_secret_key = str(agent.get("gh_token_secret_key") or "GH_TOKEN").strip() or "GH_TOKEN"
+    # Least privilege: only ta gets operator SA (cluster mutate + test-NS write).
+    service_account = "cursor-agent-ta" if name == "ta" else "cursor-agent"
 
     ss = (
         ss_tpl.replace("{{SEED_PERSONA_SCRIPT}}", seed_persona_script)
@@ -90,6 +92,7 @@ for agent in deploy_agents:
         .replace("{{RUNNER_IMAGE}}", runner_image)
         .replace("{{MODEL}}", agent_model(agent))
         .replace("{{GH_TOKEN_SECRET_KEY}}", gh_token_secret_key)
+        .replace("{{SERVICE_ACCOUNT}}", service_account)
         .replace("{{ORG_WIKI_URL}}", org_wiki_url)
         .replace("{{NAMESPACE}}", k8s_ns)
         .replace("{{LEANTIME_URL}}", leantime_url)

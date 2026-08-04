@@ -184,8 +184,8 @@ python deploy/k8s/scripts/sync-bridge-json.py
 |----|------|
 | `CURSOR_API_KEY` | `@cursor/sdk` |
 | `LEANTIME_ACCESS_TOKEN_{name}` | agent별 Leantime PAT (`path` → `LEANTIME_ACCESS_TOKEN_path`). Profile → Personal Access Tokens에서 발급 |
-| `GH_TOKEN` | **봇 runner 필수(공유 기본값)** — GitHub PAT (`repo` 또는 대상 repo write). Pod 시작 시 `gh auth setup-git`·`git push`·`gh pr create`용. GHCR pull은 `ghcr-pull` Secret 별도 |
-| `GH_TOKEN_{name}` | **선택** — agent별 GitHub PAT override (`pm` → `GH_TOKEN_pm`). 있으면 해당 Pod만 공유 `GH_TOKEN` 대신 사용 |
+| `GH_TOKEN` | **공유 기본값** — git push/PR용. 가능하면 agent별 `GH_TOKEN_{name}`으로 좁힌다. GHCR **pull**은 `ghcr-pull`, **push**는 `publish-runner.yml`의 `GITHUB_TOKEN` |
+| `GH_TOKEN_{name}` / `gh_token_secret_key` | agent별 PAT. 예: `pm`→`GH_TOKEN_pm`, `ta`→`GH_TOKEN_ta` (`agents.yaml` `gh_token_secret_key`) |
 | `CURSORBRIDGE_OPENAI_API_KEY` | `type: openai` runner용 Bearer(외부 OpenAI-compatible). **남은 openai agent가 있을 때만** Leantime Deployment env로 주입 |
 
 `openai` runner용 키 등록 예:
@@ -205,32 +205,46 @@ kubectl -n sw-factory patch secret cursor-api-key --type merge \
 kubectl -n sw-factory rollout restart statefulset/cursor-agent-path
 ```
 
-agent별 GitHub 토큰 예 (pm = Hermes/`berryking404` PAT):
+agent별 GitHub 토큰 예:
 
 ```bash
 kubectl -n sw-factory patch secret cursor-api-key --type merge \
-  -p '{"stringData":{"GH_TOKEN_pm":"<PAT>"}}'
-kubectl -n sw-factory rollout restart statefulset/cursor-agent-pm
+  -p '{"stringData":{"GH_TOKEN_pm":"<PAT>","GH_TOKEN_ta":"<PAT>"}}'
+kubectl -n sw-factory rollout restart statefulset/cursor-agent-pm statefulset/cursor-agent-ta
 ```
 
 agent identity는 `agents.yaml` `email` / `bridge.json`이 담당. Leantime MCP 인증은 Pod `LEANTIME_ACCESS_TOKEN` → persona `mcp.json`만 사용.
 
+### 역할별 GitHub PAT (권장 최소)
+
+Fine-grained PAT 기준. Classic이면 대략 `repo`(ta는 Actions까지 필요해 `repo` + workflow 또는 classic `workflow` 병행).
+
+| Agent | Secret | Repository access | Permissions |
+|-------|--------|-------------------|-------------|
+| pm | `GH_TOKEN_pm` | 리뷰/머지 대상 product repos | Contents R/W, Pull requests R/W |
+| km | `GH_TOKEN_km` (권장) 또는 좁힌 공유 | `org-wiki`만 | Contents R/W (main 직푸시) |
+| qa / aa | 공유 `GH_TOKEN`을 **읽기 전용**으로 축소하거나 repo write 제거 | 필요 시 product repos Read | Contents Read만(가능하면). git-ship 거의 없음 |
+| sw-factory / nl2sql (dev) | `GH_TOKEN_sw-factory` / `GH_TOKEN_nl2sql` 권장 | 각자 `primary_repo`만 | Contents R/W, Pull requests R/W |
+| ta | `GH_TOKEN_ta` (`gh_token_secret_key`) | `sw-factory` + `k8s-test` + tenant CD repos | **sw-factory**: Actions R/W (및 Actions Read). **k8s-test/tenants**: Contents R/W, Pull requests R/W. **Packages write 불필요** |
+
+공유 `GH_TOKEN`에 `write:packages`를 넣지 않는다. runner 이미지 push는 아래 §4 워크플로.
+
 ### GH_TOKEN 발급 (GitHub PAT)
 
-봇이 리뷰 전에 `git push`·PR을 열려면 **repo write** 권한이 있는 PAT가 필요하다.
+봇이 리뷰 전에 `git push`·PR을 열려면 **repo write** 권한이 있는 PAT가 필요하다(역할 표 참고).
 
 **Fine-grained PAT (권장)**
 
 1. GitHub → **Settings** → **Developer settings** → **Personal access tokens** → **Fine-grained tokens** → **Generate new token**
 2. **Resource owner**: 토큰 소유 org/user (예: `yoosungung`)
-3. **Repository access**: bot이 담당하는 repo 전부 선택 (또는 *All repositories* — 운영 정책에 맞게)
-4. **Permissions** → **Contents**: Read and write · **Pull requests**: Read and write · **Metadata**: Read-only (기본)
+3. **Repository access**: 위 표의 repo만 선택 (*All repositories* 지양)
+4. **Permissions**: 표의 Contents / Pull requests / Actions
 5. 만료일 설정 후 생성 → **토큰 문자열을 한 번만** 복사
 
 **Classic PAT (대안)**
 
 1. **Personal access tokens** → **Tokens (classic)** → **Generate new token**
-2. scope: `repo` (private repo push/PR에 필요)
+2. scope: `repo` (private repo push/PR). ta가 `gh workflow run`만 쓰려면 classic에서도 Actions 가능 범위 확인
 
 **클러스터에 등록**
 
@@ -243,15 +257,34 @@ kubectl -n sw-factory rollout restart statefulset -l app=cursor-agent
 **Pod에서 확인**
 
 ```bash
-kubectl -n sw-factory exec cursor-agent-runtime-0 -c agent-runner -- gh auth status
+kubectl -n sw-factory exec cursor-agent-pm-0 -c agent-runner -- gh auth status
 # "Logged in to github.com account ... (GH_TOKEN)" — 정상
 ```
 
 `GH_TOKEN` 없이 봇 Pod는 시작하지 않는다 (`entrypoint.sh`).
 
-agent-runner 이미지에 **Python 3.12 + uv**, **kubectl**(in-cluster), **gh**, **git** 포함. Pod는 `cursor-agent` ServiceAccount + ClusterRole `cursor-agent-observer`로 클러스터 모니터링·제한적 kubectl 작업(ta 포함; Namespace create 포함, delete 없음). test NS(`sw-factory`, `nl2sql`) Role `cursor-agent-test-ns-write`로 CM·Secret·Service·PVC·Ingress·Deploy/STS·Pod write(TA Deploying Test 풀 스택). `path-graph` Role `cursor-agent-argo-workflows`로 Argo `workflows` get/list/create/delete/patch. RBAC 객체 write·Secret 클러스터 전역 list는 기본 미부여.
+### K8s ServiceAccount (least privilege)
+
+| SA | 누가 | 권한 |
+|----|------|------|
+| `cursor-agent` | pm, km, qa, aa, dev | ClusterRole `cursor-agent-observer` — **read-only** (`get/list/watch`) |
+| `cursor-agent-ta` | ta만 | ClusterRole `cursor-agent-ta-operator` — mutate·`namespaces` create·`pods/exec`; test NS(`sw-factory`,`nl2sql`) Role `cursor-agent-test-ns-write` (CM/Secret/Svc/PVC/Ingress/Deploy/STS/Pod write); path-graph Argo workflows (path bot 재도입 시 전용 SA로 이전 권장) |
+
+RBAC 객체(write)·Secret 클러스터 전역 list는 미부여. `render-agents.sh`가 ta STS에만 `serviceAccountName: cursor-agent-ta`를 넣는다.
 
 ## 4. 이미지 빌드·푸시
+
+**권장 (A안):** factory repo 워크플로 `publish-runner.yml`을 ta가 dispatch한다 (`tenant-cd` → `references/publish-runner.md`).
+
+```bash
+gh workflow run publish-runner.yml --repo yoosungung/sw-factory -f tag=latest
+gh run watch <run-id> --repo yoosungung/sw-factory --exit-status
+kubectl -n sw-factory rollout restart statefulset -l app=cursor-agent
+```
+
+이미지 push는 Actions `GITHUB_TOKEN`(`packages:write`)이 수행한다. ta PAT에 Packages write가 필요 없다.
+
+**호스트 수동 (Eric):**
 
 ```bash
 docker buildx build --platform linux/amd64 \

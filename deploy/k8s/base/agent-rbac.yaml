@@ -6,14 +6,86 @@ metadata:
   labels:
     app: cursor-agent
 ---
-# Cluster-scoped observer/operator for ta monitoring + limited remediation.
-# Least privilege: no Role/ClusterRole/Binding write (no self-escalation).
+# TA-only operator SA (cluster mutate + test-NS write). Other bots use cursor-agent (read-only).
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cursor-agent-ta
+  namespace: sw-factory
+  labels:
+    app: cursor-agent
+    agent: ta
+---
+# Read-only cluster discovery for pm/km/qa/aa/dev runners.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
   name: cursor-agent-observer
   labels:
     app: cursor-agent
+rules:
+  - apiGroups: [""]
+    resources:
+      - pods
+      - pods/log
+      - services
+      - endpoints
+      - events
+      - namespaces
+      - nodes
+      - persistentvolumes
+      - persistentvolumeclaims
+      - configmaps
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["nodes/proxy", "nodes/stats", "nodes/metrics"]
+    verbs: ["get"]
+  - apiGroups: ["apps"]
+    resources:
+      - deployments
+      - statefulsets
+      - daemonsets
+      - replicasets
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["networking.k8s.io"]
+    resources: ["ingresses"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["discovery.k8s.io"]
+    resources: ["endpointslices"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["storage.k8s.io"]
+    resources: ["storageclasses", "volumeattachments"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["metrics.k8s.io"]
+    resources: ["nodes", "pods"]
+    verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: cursor-agent-observer
+  labels:
+    app: cursor-agent
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: cursor-agent-observer
+subjects:
+  - kind: ServiceAccount
+    name: cursor-agent
+    namespace: sw-factory
+---
+# TA operator: monitoring + limited remediation. No Role/ClusterRole/Binding write.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: cursor-agent-ta-operator
+  labels:
+    app: cursor-agent
+    agent: ta
 rules:
   - apiGroups: [""]
     resources:
@@ -69,16 +141,17 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: cursor-agent-observer
+  name: cursor-agent-ta-operator
   labels:
     app: cursor-agent
+    agent: ta
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: cursor-agent-observer
+  name: cursor-agent-ta-operator
 subjects:
   - kind: ServiceAccount
-    name: cursor-agent
+    name: cursor-agent-ta
     namespace: sw-factory
 ---
 # Test NS write: TA Deploying Test full stack. RBAC object write denied.
@@ -116,7 +189,7 @@ roleRef:
   name: cursor-agent-test-ns-write
 subjects:
   - kind: ServiceAccount
-    name: cursor-agent
+    name: cursor-agent-ta
     namespace: sw-factory
 ---
 apiVersion: rbac.authorization.k8s.io/v1
@@ -153,10 +226,11 @@ roleRef:
   name: cursor-agent-test-ns-write
 subjects:
   - kind: ServiceAccount
-    name: cursor-agent
+    name: cursor-agent-ta
     namespace: sw-factory
 ---
-# path-graph Argo: path agent get/list Failed·파라미터, create(+delete/patch) 재실행·정리.
+# path-graph Argo: bound to ta SA for now (path agent not in soft-factory staff).
+# Reintroduce path-dedicated SA when path bot returns.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
@@ -182,5 +256,5 @@ roleRef:
   name: cursor-agent-argo-workflows
 subjects:
   - kind: ServiceAccount
-    name: cursor-agent
+    name: cursor-agent-ta
     namespace: sw-factory

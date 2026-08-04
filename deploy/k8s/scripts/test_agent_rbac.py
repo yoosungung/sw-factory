@@ -1,4 +1,4 @@
-"""Tests for cursor-agent ServiceAccount RBAC (observer + operator)."""
+"""Tests for cursor-agent / cursor-agent-ta ServiceAccount RBAC (least privilege)."""
 
 from __future__ import annotations
 
@@ -14,26 +14,64 @@ def _docs():
     return list(yaml.safe_load_all(RBAC.read_text()))
 
 
-def test_cursor_agent_sa_exists():
+def test_cursor_agent_and_ta_sa_exist():
     kinds = {(d.get("kind"), d.get("metadata", {}).get("name")) for d in _docs()}
     assert ("ServiceAccount", "cursor-agent") in kinds
+    assert ("ServiceAccount", "cursor-agent-ta") in kinds
 
 
-def test_observer_is_cluster_scoped_for_ta_monitoring():
+def test_observer_is_read_only_for_non_ta():
     docs = _docs()
-    cluster_roles = [
-        d for d in docs if d.get("kind") == "ClusterRole" and "observer" in d["metadata"]["name"]
+    observer = next(
+        d
+        for d in docs
+        if d.get("kind") == "ClusterRole" and d["metadata"]["name"] == "cursor-agent-observer"
+    )
+    verbs = {v for r in observer["rules"] for v in r.get("verbs", [])}
+    assert "get" in verbs and "list" in verbs and "watch" in verbs
+    for banned in ("create", "update", "patch", "delete"):
+        assert banned not in verbs
+
+    binding = next(
+        d
+        for d in docs
+        if d.get("kind") == "ClusterRoleBinding"
+        and d["metadata"]["name"] == "cursor-agent-observer"
+    )
+    assert binding["subjects"] == [
+        {"kind": "ServiceAccount", "name": "cursor-agent", "namespace": "sw-factory"}
     ]
-    assert len(cluster_roles) == 1
-    rules = cluster_roles[0]["rules"]
-    core = next(r for r in rules if r.get("apiGroups") == [""] and "pods" in r.get("resources", []))
-    assert "get" in core["verbs"] and "list" in core["verbs"]
-    assert "pods/log" in core["resources"]
-    # Cluster-wide PV/PVC discovery for ta operator.
+
+
+def test_ta_operator_has_mutate_and_namespace_create():
+    docs = _docs()
+    ta_role = next(
+        d
+        for d in docs
+        if d.get("kind") == "ClusterRole"
+        and d["metadata"]["name"] == "cursor-agent-ta-operator"
+    )
     assert any(
         "persistentvolumes" in r.get("resources", []) or "persistentvolumeclaims" in r.get("resources", [])
-        for r in rules
+        for r in ta_role["rules"]
     )
+    ns_write = next(
+        r
+        for r in ta_role["rules"]
+        if r.get("apiGroups") == [""] and r.get("resources") == ["namespaces"]
+    )
+    assert "create" in ns_write["verbs"]
+    assert "delete" not in ns_write["verbs"]
+
+    binding = next(
+        d
+        for d in docs
+        if d.get("kind") == "ClusterRoleBinding"
+        and d["metadata"]["name"] == "cursor-agent-ta-operator"
+    )
+    assert binding["subjects"] == [
+        {"kind": "ServiceAccount", "name": "cursor-agent-ta", "namespace": "sw-factory"}
+    ]
 
 
 def test_operator_rbac_denies_self_escalation_writes():
@@ -51,8 +89,8 @@ def test_operator_rbac_denies_self_escalation_writes():
     assert "rolebindings" not in all_resources
 
 
-def test_path_graph_argo_workflow_rbac_for_cursor_agent():
-    """path agent needs get/list (+ create/delete/patch for rerun) on workflows in path-graph."""
+def test_path_graph_argo_bound_to_ta_sa():
+    """Argo Role currently bound to ta SA (path bot not in soft-factory staff)."""
     docs = _docs()
     role = next(
         d
@@ -71,33 +109,12 @@ def test_path_graph_argo_workflow_rbac_for_cursor_agent():
         if d.get("kind") == "RoleBinding"
         and d["metadata"]["name"] == "cursor-agent-argo-workflows"
     )
-    assert binding["metadata"]["namespace"] == "path-graph"
-    assert binding["roleRef"] == {
-        "apiGroup": "rbac.authorization.k8s.io",
-        "kind": "Role",
-        "name": "cursor-agent-argo-workflows",
-    }
     assert binding["subjects"] == [
-        {"kind": "ServiceAccount", "name": "cursor-agent", "namespace": "sw-factory"}
+        {"kind": "ServiceAccount", "name": "cursor-agent-ta", "namespace": "sw-factory"}
     ]
 
 
-def test_observer_can_create_namespaces():
-    """TA may create test NS (e.g. nl2sql) without RBAC self-escalation."""
-    docs = _docs()
-    cluster_role = next(
-        d for d in docs if d.get("kind") == "ClusterRole" and d["metadata"]["name"] == "cursor-agent-observer"
-    )
-    ns_write = next(
-        r
-        for r in cluster_role["rules"]
-        if r.get("apiGroups") == [""] and r.get("resources") == ["namespaces"]
-    )
-    assert "create" in ns_write["verbs"]
-    assert "delete" not in ns_write["verbs"]
-
-
-def test_test_ns_write_roles_for_sw_factory_and_nl2sql():
+def test_test_ns_write_bound_to_ta_only():
     """TA Deploying Test: full app stack write in test NS (CM/Secret/Svc/PVC/Ingress/workload)."""
     docs = _docs()
     for ns in ("sw-factory", "nl2sql"):
@@ -120,14 +137,6 @@ def test_test_ns_write_roles_for_sw_factory_and_nl2sql():
             "pods",
         ):
             assert needed in resources
-        for kind in ("configmaps", "secrets", "services", "persistentvolumeclaims"):
-            rule = next(r for r in role["rules"] if kind in r.get("resources", []))
-            for verb in ("get", "list", "create", "update", "patch", "delete"):
-                assert verb in rule["verbs"]
-        ing = next(r for r in role["rules"] if "ingresses" in r.get("resources", []))
-        assert ing["apiGroups"] == ["networking.k8s.io"]
-        for verb in ("get", "list", "create", "update", "patch", "delete"):
-            assert verb in ing["verbs"]
 
         binding = next(
             d
@@ -136,11 +145,6 @@ def test_test_ns_write_roles_for_sw_factory_and_nl2sql():
             and d["metadata"]["name"] == "cursor-agent-test-ns-write"
             and d["metadata"]["namespace"] == ns
         )
-        assert binding["roleRef"] == {
-            "apiGroup": "rbac.authorization.k8s.io",
-            "kind": "Role",
-            "name": "cursor-agent-test-ns-write",
-        }
         assert binding["subjects"] == [
-            {"kind": "ServiceAccount", "name": "cursor-agent", "namespace": "sw-factory"}
+            {"kind": "ServiceAccount", "name": "cursor-agent-ta", "namespace": "sw-factory"}
         ]

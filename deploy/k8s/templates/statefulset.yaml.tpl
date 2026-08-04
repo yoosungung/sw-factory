@@ -21,7 +21,7 @@ spec:
         agent: {{NAME}}
         persona: {{PERSONA}}
     spec:
-      serviceAccountName: cursor-agent
+      serviceAccountName: {{SERVICE_ACCOUNT}}
       imagePullSecrets:
         - name: ghcr-pull
       initContainers:
