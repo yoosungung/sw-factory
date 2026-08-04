@@ -64,7 +64,7 @@ def test_normalize_schedules_common_and_per_agent():
                 "id": "pm-checkpoint",
                 "cron": "5,20,35,50 * * * *",
                 "agents": ["pm"],
-                "gates": ["in_progress"],
+                "gates": ["flow_active"],
                 "prompt": "checkpoint",
             },
             {
@@ -72,6 +72,12 @@ def test_normalize_schedules_common_and_per_agent():
                 "cron": "0 11 * * *",
                 "prompt": "always",
                 "gates": [],
+            },
+            {
+                "id": "legacy-in-progress",
+                "cron": "0 12 * * *",
+                "prompt": "dev only",
+                "gates": ["in_progress"],
             },
         ]
     )
@@ -83,8 +89,9 @@ def test_normalize_schedules_common_and_per_agent():
     }
     assert out[1]["agents"] == ["km"]
     assert "gates" not in out[1]
-    assert out[2]["gates"] == ["in_progress"]
+    assert out[2]["gates"] == ["flow_active"]
     assert "gates" not in out[3]
+    assert out[4]["gates"] == ["in_progress"]
 
 
 def test_normalize_schedule_gates_rejects_unknown():
@@ -93,6 +100,7 @@ def test_normalize_schedule_gates_rejects_unknown():
         raise AssertionError("expected ValueError")
     except ValueError as exc:
         assert "nope" in str(exc)
+    assert mod.normalize_schedule_gates(["flow_active"], "x") == ["flow_active"]
 
 
 def test_normalize_budget():

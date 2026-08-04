@@ -178,12 +178,14 @@ settings:
     - id: pm-checkpoint
       cron: "5,20,35,50 * * * *"
       agents: [pm]
-      gates: [in_progress]
+      gates: [flow_active]
       prompt: >-
-        Use the leantime-pm skill. 30분 체크포인트. In Progress 개발 티켓만.
-        Dual-loop: Review→Deploying Test→QA→Deploying Prod→Done.
-        Done는 test+qa+aa+prod 증거 있을 때만. 멘션 id: eric=1,pm=4,asky=5,path=6,km=9,ta=13,qa=15,aa=16.
-        실행당 코멘트 ≤5.
+        Use the leantime-pm skill. Dual-loop flow checkpoint (ARCHITECTURE §2.6 #14).
+        Scan In Progress + Review + Deploying Test + QA + Deploying Prod.
+        In Progress: 30분 developer timebox. Review: PM review/merge work (do not self-nudge).
+        Deploying Test/Prod + QA: stall ≥2h without evidence/@mention → re-@mention assignee only
+        (do not run kubectl/E2E/security). Dual-loop Done needs test+qa+aa+prod evidence.
+        Mentions: eric=1,pm=4,asky=5,path=6,km=9,ta=13,qa=15,aa=16. ≤5 comments/run.
       success_checks:
         - "At most 5 checkpoint comments added this run."
         - "No duplicate PM checkpoint within 30 minutes on the same ticket."

@@ -334,7 +334,7 @@ kubectl -n sw-factory exec deploy/leantime -- \
 #     - id: pm-checkpoint
 #       cron: "5,20,35,50 * * * *"
 #       agents: [pm]
-#       gates: [in_progress]   # 선택; In Progress(top·sub) 없으면 세션 생략
+#       gates: [flow_active]   # 선택; dual-loop 활성 흐름(4/10/11/12/13) 없으면 세션 생략; in_progress=status4만
 #       prompt: "…"
 #     - id: weekday-check
 #       cron: "0 9 * * 1-5"

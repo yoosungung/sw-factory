@@ -106,7 +106,7 @@
     {
       "id": "pm-checkpoint",
       "cron": "5,20,35,50 * * * *",
-      "prompt": "Use the leantime-pm skill. 30\ubd84 \uccb4\ud06c\ud3ec\uc778\ud2b8. In Progress \uac1c\ubc1c \ud2f0\ucf13\ub9cc. Dual-loop: Review\u2192Deploying Test\u2192QA\u2192Deploying Prod\u2192Done. Done\ub294 test+qa+aa+prod \uc99d\uac70 \uc788\uc744 \ub54c\ub9cc. \uba58\uc158 id: eric=1,pm=4,asky=5,path=6,km=9,ta=13,qa=15,aa=16. \uc2e4\ud589\ub2f9 \ucf54\uba58\ud2b8 \u22645.",
+      "prompt": "Use the leantime-pm skill. Dual-loop flow checkpoint (ARCHITECTURE \u00a72.6 #14). Scan In Progress + Review + Deploying Test + QA + Deploying Prod. In Progress: 30m timebox. Review: PM review/merge. Deploying*/QA stall \u22652h \u2192 re-@mention assignee only (no execute). Mentions: eric=1,pm=4,asky=5,path=6,km=9,ta=13,qa=15,aa=16. \u22645 comments/run.",
       "agents": [
         "pm"
       ],
@@ -116,7 +116,7 @@
         "Final reply lists acted/skipped tickets with classification."
       ],
       "gates": [
-        "in_progress"
+        "flow_active"
       ]
     },
     {

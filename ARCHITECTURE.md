@@ -41,7 +41,7 @@ Leantime × Cursor Agent 협업 시스템 계약 및 인터페이스.
 | `prompts` | object | `ticket_created`, `ticket_updated`, `comment_added`, `assignee_changed`, `mention` (`{ticket_id}`), `handoff`. Router가 매 이벤트에 `Active ticket_id=N` 스코프 문장을 붙여 MCP 읽기/쓰기를 그 티켓으로 고정한다. |
 | `status_prompts` | object | 상태별 추가 프롬프트 (M3) |
 | `mention_routing` | bool | Tiptap `data-tagged-user-id` 또는 `@email` 멘션 시 해당 runner 알림 (M3) |
-| `schedules[]` | array | 주기 프롬프트. `id`, `cron`(5필드·UTC), `prompt` 필수; `agents`(name 목록) 생략 시 `type != human`이고 `runner_url` 비어 있지 않은 전원. 선택 `gates`(string 배열, **생략/`[]` = 무조건 발사**): 나열된 게이트를 **AND**로 만족할 때만 세션 생성. 현재 지원 `in_progress`(top·sub `status=4` 존재). 미지원 게이트는 발사하지 않음(fail-closed). 정본은 `deploy/k8s/agents.yaml` `settings.schedules` → sync |
+| `schedules[]` | array | 주기 프롬프트. `id`, `cron`(5필드·UTC), `prompt` 필수; `agents`(name 목록) 생략 시 `type != human`이고 `runner_url` 비어 있지 않은 전원. 선택 `gates`(string 배열, **생략/`[]` = 무조건 발사**): 나열된 게이트를 **AND**로 만족할 때만 세션 생성. 지원 `in_progress`(status=4), `flow_active`(In Progress·Review·Deploying Test·QA·Deploying Prod = 4/10/11/12/13, 공장 기본 status_board id). 미지원 게이트는 발사하지 않음(fail-closed). 정본은 `deploy/k8s/agents.yaml` `settings.schedules` → sync |
 
 ### 2.2 플러그인 DB — `cursorbridge_sessions`
 
@@ -153,6 +153,7 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
 11. **지식 계층·wiki-first** — §2.9.
 12. 상태 id는 프로젝트마다 다를 수 있으므로 스킬·프롬프트는 **이름→id 매핑**을 쓰고 숫자를 하드코딩하지 않는다.
 13. **human 오배정/오멘션 정정 (PM)** — 주기 점검(`pm-checkpoint`) 때 `Waiting for Approval`·`@eric` 요청을 훑는다. 다음 액션이 에이전트 실행 가능(PR 리뷰/머지·QA E2E·AA·TA CD·KM wiki·구현)이면 올바른 상태·assignee·`@mention`으로 되돌리고 정정 코멘트를 남긴다. 시크릿·RBAC·제품/범위 판단 등 사람 전용 ask는 Approval 유지(모호하면 유지).
+14. **기능 루프 진행 관리 (PM)** — `pm-checkpoint`(`gates: [flow_active]`)는 `In Progress`뿐 아니라 `Review`·`Deploying Test`·`QA`·`Deploying Prod` 정체도 본다. 개발 timebox(≈30분)와 Deploy/QA stall(≈2h, 증거/`@mention` 없이 멈춤)을 구분한다. Deploy/QA에서는 **실행하지 않고** 담당 assignee에 `@mention` 재핸드오프만 한다(TA CD·QA E2E·AA 보안은 각 레인). KM 주간/스케줄 잡은 별도 `schedules[]`이며, KM이 맡은 티켓이 flow 상태면 동일 stall 규칙으로 재멘션한다.
 
 ### 2.7 Goose A안 실행 정책 (부가)
 

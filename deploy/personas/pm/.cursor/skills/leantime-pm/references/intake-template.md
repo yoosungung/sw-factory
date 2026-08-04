@@ -27,6 +27,6 @@
 
 ## Sprint-lite
 
-- pm `pm-checkpoint`가 In Progress만 감시(기존).
+- pm `pm-checkpoint`가 dual-loop 활성 흐름(`In Progress`·`Review`·`Deploying*`·`QA`)을 감시. Deploy/QA는 stall 재멘션만(실행 금지).
 - 벨로시티·스프린트 전용 도구를 공장에 만들지 않음.
 - 주간 범위는 Leantime 보드/필터 관례로만.

@@ -178,7 +178,7 @@ def normalize_schedules(raw: object) -> list[dict]:
     return out
 
 
-KNOWN_SCHEDULE_GATES = frozenset({"in_progress"})
+KNOWN_SCHEDULE_GATES = frozenset({"in_progress", "flow_active"})
 
 
 def normalize_schedule_gates(raw: object, label: str) -> list[str]:

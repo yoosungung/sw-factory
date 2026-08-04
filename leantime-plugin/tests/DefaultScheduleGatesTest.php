@@ -21,6 +21,13 @@ final class DefaultScheduleGatesTest extends TestCase
 
                 return false;
             }
+
+            public function hasFlowActive(): bool
+            {
+                $this->called = true;
+
+                return false;
+            }
         };
         $gates = new DefaultScheduleGates($probe);
         $this->assertTrue($gates->passes([]));
@@ -34,16 +41,55 @@ final class DefaultScheduleGatesTest extends TestCase
             {
                 return false;
             }
+
+            public function hasFlowActive(): bool
+            {
+                return false;
+            }
         };
         $trueProbe = new class implements InProgressTicketProbe {
             public function hasInProgress(): bool
             {
                 return true;
             }
+
+            public function hasFlowActive(): bool
+            {
+                return false;
+            }
         };
 
         $this->assertFalse((new DefaultScheduleGates($falseProbe))->passes(['in_progress']));
         $this->assertTrue((new DefaultScheduleGates($trueProbe))->passes(['in_progress']));
+    }
+
+    public function testFlowActiveRequiresProbeTrue(): void
+    {
+        $falseProbe = new class implements InProgressTicketProbe {
+            public function hasInProgress(): bool
+            {
+                return false;
+            }
+
+            public function hasFlowActive(): bool
+            {
+                return false;
+            }
+        };
+        $trueProbe = new class implements InProgressTicketProbe {
+            public function hasInProgress(): bool
+            {
+                return false;
+            }
+
+            public function hasFlowActive(): bool
+            {
+                return true;
+            }
+        };
+
+        $this->assertFalse((new DefaultScheduleGates($falseProbe))->passes(['flow_active']));
+        $this->assertTrue((new DefaultScheduleGates($trueProbe))->passes(['flow_active']));
     }
 
     public function testUnknownGateFailsClosed(): void
@@ -53,7 +99,13 @@ final class DefaultScheduleGatesTest extends TestCase
             {
                 return true;
             }
+
+            public function hasFlowActive(): bool
+            {
+                return true;
+            }
         };
         $this->assertFalse((new DefaultScheduleGates($probe))->passes(['in_progress', 'later']));
+        $this->assertFalse((new DefaultScheduleGates($probe))->passes(['flow_active', 'later']));
     }
 }

@@ -27,6 +27,13 @@ final class DefaultScheduleGates implements ScheduleGates
                 continue;
             }
 
+            if ($gate === 'flow_active') {
+                if (!$this->inProgress->hasFlowActive()) {
+                    return false;
+                }
+                continue;
+            }
+
             // Unknown gate: fail-closed (do not fire).
             return false;
         }

@@ -166,6 +166,8 @@ def test_agents_yaml_sample_has_org_wiki_and_km():
     assert "km-wiki" in schedules
     assert "Inbox drain" in schedules["km-wiki"]["prompt"] or "inbox" in schedules["km-wiki"]["prompt"].lower()
     assert "km=9" in schedules["pm-checkpoint"]["prompt"]
+    assert schedules["pm-checkpoint"]["gates"] == ["flow_active"]
+    assert "Deploying" in schedules["pm-checkpoint"]["prompt"]
 
 
 def test_org_wiki_url_resolves_wiki_alias():

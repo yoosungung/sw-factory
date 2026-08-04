@@ -68,6 +68,7 @@ Rules:
 4. If PM requests developer action, keep/mark `In Progress`.
 5. If Eric confirmation **or human-only unblock** is required, mark `Waiting for Approval`, assignee Eric, and `@eric` with a concrete ask — do not leave assignee on a developer who already proved they lack the required privilege (RBAC, admin/BFF session, secrets, cluster policy).
 6. Never ping-pong `Blocked` + developer assignee when the developer's latest evidence is "cannot proceed without human privilege"; convert to Eric handoff immediately so developer timebox (which skips Blocked/Approval) does not create silent drift. Misroute sweep still reviews Approval for agent-actionable asks.
+7. **Flow stall (ARCHITECTURE §2.6 #14):** `pm-checkpoint` also watches `Review` / `Deploying Test` / `QA` / `Deploying Prod`. Deploy/QA stalls (≥2h without evidence) get a re-`@mention` only — PM does not execute TA/QA/AA work.
 - After merge on tenant_cd: status `Deploying Test`, assign/mention **ta** with `merge_sha`. After test evidence: ensure `@qa` `@aa`. After qa+aa pass: ensure ta `Deploying Prod`. Do not `Done` until feature evidence is complete.
 - In active watcher/agent environments, re-read the active ticket comments immediately before git-ship or review handoff, and again after opening a PR. If another agent already opened or merged the same scope, do not keep a duplicate PR alive just to satisfy a handoff shape; close the duplicate with a GitHub comment, add a Leantime correction/outcome on the active ticket, and base status on the canonical merged/open PR.
 

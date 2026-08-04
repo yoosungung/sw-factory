@@ -200,6 +200,11 @@ final class ScheduleTickerTest extends TestCase
             {
                 return false;
             }
+
+            public function hasFlowActive(): bool
+            {
+                return false;
+            }
         };
         $ticker = new ScheduleTicker(
             $config,
@@ -246,6 +251,11 @@ final class ScheduleTickerTest extends TestCase
         ]);
         $falseProbe = new class implements InProgressTicketProbe {
             public function hasInProgress(): bool
+            {
+                return false;
+            }
+
+            public function hasFlowActive(): bool
             {
                 return false;
             }
@@ -298,12 +308,71 @@ final class ScheduleTickerTest extends TestCase
             {
                 return true;
             }
+
+            public function hasFlowActive(): bool
+            {
+                return false;
+            }
         };
         $ticker = new ScheduleTicker(
             $config,
             $sessions,
             new ResilientRunnerClient($inner, $sessions),
             new DefaultScheduleGates($trueProbe)
+        );
+        $now = new DateTimeImmutable('2026-07-13 09:05:00', new DateTimeZone('UTC'));
+        $this->assertSame(1, $ticker->tick($now));
+        $this->assertSame(1, $calls);
+    }
+
+    public function testFlowActiveGateFiresWhenDeployLaneActive(): void
+    {
+        $sessions = SessionStore::inMemory();
+        $calls = 0;
+        $inner = new RunnerClient(
+            function (string $url, array $body) use (&$calls): array {
+                $calls++;
+
+                return ['agent_id' => 'agent-pm'];
+            },
+            static function (string $url): void {
+            }
+        );
+        $config = new BridgeConfig([
+            'agents' => [
+                [
+                    'name' => 'pm',
+                    'leantime_user_id' => 4,
+                    'type' => 'sessions',
+                    'runner_url' => 'http://cursor-agent-pm.sw-factory.svc:8080',
+                ],
+            ],
+            'schedules' => [
+                [
+                    'id' => 'pm-checkpoint',
+                    'cron' => '5 * * * *',
+                    'agents' => ['pm'],
+                    'gates' => ['flow_active'],
+                    'prompt' => 'checkpoint',
+                ],
+            ],
+        ]);
+        $flowProbe = new class implements InProgressTicketProbe {
+            public function hasInProgress(): bool
+            {
+                return false;
+            }
+
+            public function hasFlowActive(): bool
+            {
+                return true;
+            }
+        };
+        $ticker = new ScheduleTicker(
+            $config,
+            $sessions,
+            new ResilientRunnerClient($inner, $sessions),
+            new DefaultScheduleGates($flowProbe)
         );
         $now = new DateTimeImmutable('2026-07-13 09:05:00', new DateTimeZone('UTC'));
         $this->assertSame(1, $ticker->tick($now));
