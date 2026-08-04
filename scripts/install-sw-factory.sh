@@ -62,7 +62,7 @@ PY
 wipe_factory() {
   echo "==> wipe factory resources in ns=$NS (keep Leantime Helm + secrets)"
   # Old rename leftovers + current staff
-  local names=(candy finder infra pm km ta qa aa asky path seewin)
+  local names=(candy finder infra pm km ta qa aa asky path seewin candidate)
   local n
   for n in "${names[@]}"; do
     kubectl -n "$NS" delete statefulset "cursor-agent-${n}" --ignore-not-found --wait=false || true

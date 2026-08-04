@@ -1,4 +1,4 @@
-# Soft factory staff stack — namespace sw-factory (no seewin/candydate).
+# Soft factory staff stack — namespace sw-factory (includes candydate CronJobs for candidate).
 # Do not set top-level `namespace:` here: agent-rbac has Roles in sw-factory + nl2sql
 # (+ path-graph); a global namespace rewrite collapses them into one ID.
 apiVersion: kustomize.config.k8s.io/v1beta1
@@ -10,30 +10,3 @@ patches:
   - path: patch-tick.yaml
   - path: patch-pvc.yaml
   - path: patch-spend.yaml
-  - patch: |-
-      $patch: delete
-      apiVersion: batch/v1
-      kind: CronJob
-      metadata:
-        name: candydate-pass-ab-launch
-    target:
-      kind: CronJob
-      name: candydate-pass-ab-launch
-  - patch: |-
-      $patch: delete
-      apiVersion: batch/v1
-      kind: CronJob
-      metadata:
-        name: candydate-pass-ab-monitor
-    target:
-      kind: CronJob
-      name: candydate-pass-ab-monitor
-  - patch: |-
-      $patch: delete
-      apiVersion: batch/v1
-      kind: CronJob
-      metadata:
-        name: candydate-pass-d
-    target:
-      kind: CronJob
-      name: candydate-pass-d

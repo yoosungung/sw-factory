@@ -27,6 +27,9 @@ deploy/personas/**
 !deploy/personas/ta/
 !deploy/personas/qa/
 !deploy/personas/aa/
+!deploy/personas/sw-factory/
+!deploy/personas/nl2sql/
+!deploy/personas/candidate/
 !deploy/personas/*/.cursor/
 !deploy/personas/*/.cursor/**
 !deploy/personas/*/MEMORY.md.sample
@@ -67,4 +70,6 @@ __pycache__/
 deploy/k8s/base/generated/**
 !deploy/k8s/base/generated/.gitkeep
 
-docs/
+docs/*
+!docs/candidate/
+!docs/candidate/**
