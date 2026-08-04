@@ -36,6 +36,8 @@ cp "$PLUGIN"/BridgeConfig.php \
    "$PLUGIN"/NullCommentLookup.php \
    "$PLUGIN"/LeantimeCommentLookup.php \
    "$PLUGIN"/NotificationCoalesce.php \
+   "$PLUGIN"/CreatedByMeTickets.php \
+   "$PLUGIN"/WidgetDefaults.php \
    "$PLUGIN"/register.php \
    "$PLUGIN"/composer.json \
    "$PLUGIN"/bridge.json \
@@ -43,6 +45,10 @@ cp "$PLUGIN"/BridgeConfig.php \
 cp "$PLUGIN"/bin/flush-retries.php "$tmpdir/bin.flush-retries.php"
 cp "$PLUGIN"/bin/tick-schedules.php "$tmpdir/bin.tick-schedules.php"
 cp "$PLUGIN"/bin/dedupe-ticket-notifications.php "$tmpdir/bin.dedupe-ticket-notifications.php"
+cp "$PLUGIN"/bin/migrate-created-by-me-widget.php "$tmpdir/bin.migrate-created-by-me-widget.php"
+cp "$PLUGIN"/Hxcontrollers/CreatedByMe.php "$tmpdir/Hxcontrollers.CreatedByMe.php"
+cp "$PLUGIN"/Templates/partials/createdByMe.blade.php "$tmpdir/Templates.partials.createdByMe.blade.php"
+cp "$PLUGIN"/Language/en-US.ini "$tmpdir/Language.en-US.ini"
 mkdir -p "$tmpdir/Services"
 cp "$PLUGIN"/Services/CursorBridge.php "$tmpdir/Services/"
 # Deploy-only Leantime 3.9.7 core monkey patch (ticket notification coalesce).
@@ -66,7 +72,8 @@ data:
     #!/bin/sh
     set -eu
     DEST=/var/www/html/app/Plugins/CursorBridge
-    mkdir -p "\$DEST/Services" "\$DEST/data"
+    mkdir -p "\$DEST/Services" "\$DEST/data" "\$DEST/Hxcontrollers" \\
+             "\$DEST/Templates/partials" "\$DEST/Language" "\$DEST/bin"
     SRC=/plugin-src
     for f in BridgeConfig.php Listener.php Plugin.php ResilientRunnerClient.php Router.php \\
              RunnerClient.php RunnerTransport.php OpenAIRunnerClient.php DelegatingRunnerClient.php \\
@@ -76,17 +83,21 @@ data:
              LeantimeCliBootstrap.php \\
              TicketLookup.php NullTicketLookup.php \\
              LeantimeTicketLookup.php CommentLookup.php NullCommentLookup.php LeantimeCommentLookup.php \\
-             NotificationCoalesce.php \\
+             NotificationCoalesce.php CreatedByMeTickets.php WidgetDefaults.php \\
              register.php composer.json bridge.json; do
       cp "\$SRC/\$f" "\$DEST/\$f"
     done
-    mkdir -p "\$DEST/bin"
     cp "\$SRC/bin.flush-retries.php" "\$DEST/bin/flush-retries.php"
     cp "\$SRC/bin.tick-schedules.php" "\$DEST/bin/tick-schedules.php"
     cp "\$SRC/bin.dedupe-ticket-notifications.php" "\$DEST/bin/dedupe-ticket-notifications.php"
+    cp "\$SRC/bin.migrate-created-by-me-widget.php" "\$DEST/bin/migrate-created-by-me-widget.php"
     chmod 755 "\$DEST/bin/flush-retries.php" "\$DEST/bin/tick-schedules.php" \\
-              "\$DEST/bin/dedupe-ticket-notifications.php"
+              "\$DEST/bin/dedupe-ticket-notifications.php" \\
+              "\$DEST/bin/migrate-created-by-me-widget.php"
     cp "\$SRC/Services.CursorBridge.php" "\$DEST/Services/CursorBridge.php"
+    cp "\$SRC/Hxcontrollers.CreatedByMe.php" "\$DEST/Hxcontrollers/CreatedByMe.php"
+    cp "\$SRC/Templates.partials.createdByMe.blade.php" "\$DEST/Templates/partials/createdByMe.blade.php"
+    cp "\$SRC/Language.en-US.ini" "\$DEST/Language/en-US.ini"
     chown -R www-data:www-data "\$DEST" || true
     echo "CursorBridge installed into \$DEST"
 EOF
@@ -174,7 +185,12 @@ echo "Waiting for rollout..."
 kubectl -n "$NS" rollout status deploy/leantime --timeout=180s
 POD=$(kubectl -n "$NS" get pod -l app.kubernetes.io/name=leantime -o jsonpath='{.items[0].metadata.name}')
 kubectl -n "$NS" exec "$POD" -- ls -la /var/www/html/app/Plugins/CursorBridge/
+kubectl -n "$NS" exec "$POD" -- test -f /var/www/html/app/Plugins/CursorBridge/Hxcontrollers/CreatedByMe.php
+kubectl -n "$NS" exec "$POD" -- test -f /var/www/html/app/Plugins/CursorBridge/Templates/partials/createdByMe.blade.php
 kubectl -n "$NS" exec "$POD" -- head -12 /var/www/html/app/Plugins/CursorBridge/Listener.php
 kubectl -n "$NS" exec "$POD" -- head -8 /var/www/html/app/Domain/Notifications/Repositories/Notifications.php
 kubectl -n "$NS" exec "$POD" -- test -f /var/www/html/app/Plugins/CursorBridge/NotificationCoalesce.php
+echo "Migrating My Work grids: Calendar -> Created by me..."
+kubectl -n "$NS" exec "$POD" -- \
+  php /var/www/html/app/Plugins/CursorBridge/bin/migrate-created-by-me-widget.php || true
 echo "Done. Pod=$POD NS=$NS"

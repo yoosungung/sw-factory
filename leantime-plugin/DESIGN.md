@@ -10,7 +10,25 @@ RunnerClient.php          # type=sessions (/sessions)
 OpenAIRunnerClient.php    # type=openai (/v1/responses, fire-and-forget)
 DelegatingRunnerClient.php
 Services/CursorBridge.php
+CreatedByMeTickets.php    # My Work “Created by me” query (author + open/Done≤5d)
+WidgetDefaults.php        # available/defaultWidgets + dashboardGrid swap
+Hxcontrollers/CreatedByMe.php
+Templates/partials/createdByMe.blade.php
+Language/en-US.ini
 tests/
+```
+
+### My Work widget (Created by me)
+
+`register.php`가 `availableWidgets` / `defaultWidgets` 필터로 위젯을 등록하고 **기본 Calendar 슬롯을 대체**한다(카탈로그의 Calendar는 유지 → 설정에서 다시 켤 수 있음). 목록: `userId`=현재 사용자, milestone/subtask 제외, `status≠0` 또는 Done(`0`)이면서 `zp_tickethistory` 종료 시각(없으면 `modified`)이 5일 이내.
+
+저장된 그리드 마이그레이션:
+
+```bash
+kubectl -n sw-factory exec deploy/leantime -- \
+  php /var/www/html/app/Plugins/CursorBridge/bin/migrate-created-by-me-widget.php --dry-run
+kubectl -n sw-factory exec deploy/leantime -- \
+  php /var/www/html/app/Plugins/CursorBridge/bin/migrate-created-by-me-widget.php
 ```
 
 ## Commands
