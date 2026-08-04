@@ -149,7 +149,7 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
 7. 에이전트 간 코멘트 허용; 자기 담당 자기 코멘트 self-echo만 억제.
 8. `GH_TOKEN`·push 실패 시 blocker + `@eric` — 사용자 로컬 push 요청 금지.
 9. **Done 게이트 (CD):** §2.8 기능 증거(test + `qa:` + `aa:` + prod) 전부. merge ≠ Done. 부하·클린코드는 티켓 Done 불필요(주간 NF).
-10. **비기능 루프 (주간):** 스케줄 `ta-load-weekly` / `aa-clean-weekly` / `qa-bulk-weekly` — 테넌트 기준 실행 후 **해당 `client_id` 프로젝트**에 `New` 티켓.
+10. **비기능 루프 (주간):** 스케줄 `ta-load-weekly` / `aa-clean-weekly` / `qa-bulk-weekly` — 테넌트 기준 실행 후 **해당 `client_id` 프로젝트**에 `New` 티켓. `aa-clean-weekly`는 테넌트 `clean_code.command`(기계) + AA 스킬 휴리스틱 리뷰(스키마·절차는 persona)이며, 기능 Done/보안 게이트와 분리한다.
 11. **지식 계층·wiki-first** — §2.9.
 12. 상태 id는 프로젝트마다 다를 수 있으므로 스킬·프롬프트는 **이름→id 매핑**을 쓰고 숫자를 하드코딩하지 않는다.
 13. **human 오배정/오멘션 정정 (PM)** — 주기 점검(`pm-checkpoint`) 때 `Waiting for Approval`·`@eric` 요청을 훑는다. 다음 액션이 에이전트 실행 가능(PR 리뷰/머지·QA E2E·AA·TA CD·KM wiki·구현)이면 올바른 상태·assignee·`@mention`으로 되돌리고 정정 코멘트를 남긴다. 시크릿·RBAC·제품/범위 판단 등 사람 전용 ask는 Approval 유지(모호하면 유지).

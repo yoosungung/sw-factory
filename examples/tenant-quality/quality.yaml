@@ -16,7 +16,11 @@ security:
   command: "echo 'security stub — replace with tenant SAST/policy' && exit 0"
 
 clean_code:
+  # Criteria live here; AA clean-code-weekly owns review how-to (factory skill).
   command: "echo 'clean_code stub — replace with lint/tests' && exit 0"
+  focus_paths: ["src/", "app/"]
+  exclude_paths: ["vendor/", "generated/"]
+  max_findings: 5
 
 load:
   command: "echo 'load stub — replace with k6/vegeta' && exit 0"

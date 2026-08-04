@@ -119,6 +119,7 @@ M0–M10 완료(실클러스터 데모·일부 수동 검증 제외). **M11 Dual
 - [x] TA(`ta`) tenant-cd: test → `@qa` `@aa` → prod · `load-weekly`
 - [x] QA persona: `browser-e2e` · `bulk-api-probe` · `opik-eval` · `qa-bulk-weekly`
 - [x] AA persona: `security-review`(티켓) · `clean-code-weekly`
+- [x] AA `clean-code-weekly`: mechanical + Clean Code heuristic review (references·tenant criteria 분리)
 - [x] PM(`pm`) Done 게이트(qa+aa+prod) · MEMORY 팀표 · `agents.yaml.sample` (qa/aa/clients)
 - [x] 직원 개명: `candy`→`pm`, `finder`→`km`, `infra`→`ta` (persona·스케줄·샘플·문서)
 - [x] 원샷 설치: `scripts/install-sw-factory.sh` + `seed_factory_users.py` (직원 5인·PAT·plugin enable, My Project 미생성)

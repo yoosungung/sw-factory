@@ -23,8 +23,12 @@ security:
   command: "npm run security:check"
   # AA security-review (ticket gate)
 clean_code:
-  command: "npm run lint && npm test"
-  # AA clean-code-weekly
+  # Criteria (what/where) — this repo. AA skill owns how to review (Clean Code heuristics).
+  command: "ruff check . && ruff format --check ."   # stack-specific; e.g. npm run lint && npm test
+  focus_paths: ["src/", "app/"]
+  exclude_paths: ["vendor/", "generated/"]
+  max_findings: 5
+  # AA clean-code-weekly: mechanical command + heuristic review → New NF tickets
 load:
   command: "k6 run load/smoke.js"
   # TA load-weekly
@@ -32,5 +36,14 @@ deploy:
   # pointer only; actual CD is repos[].tenant_cd + examples/tenant-cd
   environments: [test, production]
 ```
+
+### `clean_code` ownership
+
+| | Who | What |
+|--|-----|------|
+| **Criteria** | This tenant repo | `command`, paths, `max_findings`, stack tools |
+| **Skills** | Factory AA (`clean-code-weekly`) | Heuristic review procedure, ticket schema, severity |
+
+`command` is the mechanical gate (lint/format/tests). AA still performs Clean Code heuristic review on hotspots; findings become `New` tickets on the client project (not a feature Done / security gate).
 
 Factory agents discover this file in the client git workspace; criteria bodies stay in the tenant repo.
