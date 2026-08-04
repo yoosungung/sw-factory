@@ -36,7 +36,6 @@ This file provides guidance to AI coding assistants (Claude Code, Codex, Gemini,
 | `examples/tenant-quality/` | 테넌트 품질 discovery(`.factory/quality.yaml`) 샘플 | `examples/tenant-quality/` |
 | `scripts/install-sw-factory.sh` | NS=`sw-factory` 원샷 설치(wipe·직원 시드·render·plugin) | `scripts/` |
 | `deploy/k8s/scripts/status_board.py` | Dual-loop To-Do Status → `projectsettings.*.ticketlabels` | `deploy/k8s/scripts/` |
-| `docs/candidate/` | Candydate cron 포팅 명세(candidate 클라이언트·agent) | `docs/candidate/` |
 
  
 
@@ -78,7 +77,7 @@ This file provides guidance to AI coding assistants (Claude Code, Codex, Gemini,
 
 ## 3. Status
 
-M0–M5: `leantime-plugin/`, `agent-runner/`, `deploy/k8s/`, Tenant CD(`repos[].tenant_cd`·ta `tenant-cd`). M4: PVC/spend CronJobs. **candidate** 클라이언트+agent(`berryking404/candidate.win`) A+B(스케줄·Candydate CronJob). **M10** org-wiki. **M11** Dual-loop: 직원 5인(PM/KM/QA/TA/AA), tenant≡`client_id`, 기능(test→QA∥AA→prod) + 주간 NF(부하·클린·대량품질). CI: `.github/workflows/ci.yml`. 제품 소스·품질 기준은 테넌트 repo. `settings.schedules` → `cursorbridge-schedule-tick`. CursorBridge My Work **Created by me** 위젯(기본 Calendar 슬롯 대체; author + open/Done≤5d).
+M0–M5: `leantime-plugin/`, `agent-runner/`, `deploy/k8s/`, Tenant CD(`repos[].tenant_cd`·ta `tenant-cd`). M4: PVC/spend CronJobs. **M10** org-wiki. **M11** Dual-loop: 직원 5인(PM/KM/QA/TA/AA), tenant≡`client_id`, 기능(test→QA∥AA→prod) + 주간 NF(부하·클린·대량품질). CI: `.github/workflows/ci.yml`. 제품 소스·품질 기준은 테넌트 repo. `settings.schedules` → `cursorbridge-schedule-tick`. CursorBridge My Work **Created by me** 위젯(기본 Calendar 슬롯 대체; author + open/Done≤5d). `docs/`·테넌트 persona(예: candidate)는 로컬 전용(gitignore).
 
  
 

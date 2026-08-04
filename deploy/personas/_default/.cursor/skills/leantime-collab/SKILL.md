@@ -50,7 +50,7 @@ Leantime 멘션은 **HTML `data-tagged-user-id`** 로 저장해야 알림·봇 �
 
 리뷰 핸드오프의 기본 멘션·assignee는 **메인 리뷰어 pm**(user id `4`). 플랫폼/`GH_TOKEN` 등 인프라 blocker만 eric(`1`).
 
-`MEMORY.md` 팀 표의 Leantime 이메일과 `bridge.json`의 `leantime_user_id`를 대응시킨다. 예: eric=1, pm=2, km=3, ta=4, qa=5, aa=6, sw-factory=7, nl2sql=8, candidate=9.
+`MEMORY.md` 팀 표의 Leantime 이메일과 `bridge.json`의 `leantime_user_id`를 대응시킨다. 예: eric=1, pm=2, km=3, ta=4, qa=5, aa=6, sw-factory=7, nl2sql=8.
 
 ## 작업 후 (필수)
 

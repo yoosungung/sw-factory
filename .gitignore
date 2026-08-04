@@ -29,7 +29,6 @@ deploy/personas/**
 !deploy/personas/aa/
 !deploy/personas/sw-factory/
 !deploy/personas/nl2sql/
-!deploy/personas/candidate/
 !deploy/personas/*/.cursor/
 !deploy/personas/*/.cursor/**
 !deploy/personas/*/MEMORY.md.sample
@@ -56,6 +55,7 @@ leantime-plugin/data/*.sqlite
 
 # --- Python (deploy scripts, local tooling) ---
 .venv/
+.venv-shot/
 venv/
 __pycache__/
 *.py[cod]
@@ -70,6 +70,6 @@ __pycache__/
 deploy/k8s/base/generated/**
 !deploy/k8s/base/generated/.gitkeep
 
-docs/*
-!docs/candidate/
-!docs/candidate/**
+# 로컬 전용 문서·테넌트 (push 금지)
+docs/
+deploy/personas/candidate/

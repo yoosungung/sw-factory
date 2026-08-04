@@ -4,7 +4,6 @@ resources:
   - agent-rbac.yaml
   - cronjob-flush-retries.yaml
   - cronjob-schedule-tick.yaml
-  - cronjob-candydate.yaml
   - cronjob-pvc-retention.yaml
   - cronjob-spend-alert.yaml
   - generated/

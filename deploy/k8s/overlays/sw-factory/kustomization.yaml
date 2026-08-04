@@ -1,4 +1,4 @@
-# Soft factory staff stack — namespace sw-factory (includes candydate CronJobs for candidate).
+# Soft factory staff stack — namespace sw-factory.
 # Do not set top-level `namespace:` here: agent-rbac has Roles in sw-factory + nl2sql
 # (+ path-graph); a global namespace rewrite collapses them into one ID.
 apiVersion: kustomize.config.k8s.io/v1beta1
