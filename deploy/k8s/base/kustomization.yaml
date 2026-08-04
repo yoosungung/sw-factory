@@ -4,6 +4,7 @@ resources:
   - agent-rbac.yaml
   - cronjob-flush-retries.yaml
   - cronjob-schedule-tick.yaml
+  # candydate: local-only deploy/k8s/base/cronjob-candydate.yaml (gitignore); install-sw-factory.sh applies if present
   - cronjob-pvc-retention.yaml
   - cronjob-spend-alert.yaml
   - generated/

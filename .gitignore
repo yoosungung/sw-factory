@@ -73,3 +73,4 @@ deploy/k8s/base/generated/**
 # 로컬 전용 문서·테넌트 (push 금지)
 docs/
 deploy/personas/candidate/
+deploy/k8s/base/cronjob-candydate.yaml

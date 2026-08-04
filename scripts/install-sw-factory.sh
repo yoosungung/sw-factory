@@ -118,6 +118,12 @@ rm -rf "$RENDER_BIN"
 echo "==> apply overlay"
 kubectl apply -k deploy/k8s/overlays/sw-factory
 
+# Local-only candydate CronJobs (gitignored; agents.yaml/persona와 동일 패턴)
+if [[ -f deploy/k8s/base/cronjob-candydate.yaml ]]; then
+  echo "==> apply local candydate CronJobs"
+  kubectl apply -f deploy/k8s/base/cronjob-candydate.yaml
+fi
+
 echo "==> install + enable CursorBridge plugin"
 CURSORBRIDGE_NS="$NS" ./scripts/install-plugin-k8s.sh
 POD="$(kubectl -n "$NS" get pod -l app.kubernetes.io/name=leantime -o jsonpath='{.items[0].metadata.name}')"
