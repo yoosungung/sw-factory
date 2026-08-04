@@ -6,7 +6,8 @@ Leantime 플러그인 — EventDispatcher 훅, Router, SessionStore, `sessions`/
 
 ```
 Listener.php, Router.php, SessionStore.php, …
-RunnerClient.php          # type=sessions (/sessions)
+DeferredDispatch.php      # ticket/comment 훅 → HTTP 응답 후 runner 호출
+RunnerClient.php          # type=sessions (/sessions); curl timeout 8s
 OpenAIRunnerClient.php    # type=openai (/v1/responses, fire-and-forget)
 DelegatingRunnerClient.php
 Services/CursorBridge.php
@@ -17,6 +18,12 @@ Templates/partials/createdByMe.blade.php
 Language/en-US.ini
 tests/
 ```
+
+### 비동기(요청 비차단)
+
+댓글·티켓 저장 시 Leantime이 `notifyProjectUsers` / `TicketUpdated`를 **같은 요청**에서 돌린다. 예전에는 Listener가 runner `createSession`/`prompt`를 동기 curl(최대 120s)해 UI가 멈췄다.
+
+지금은 `DeferredDispatch`가 작업을 `register_shutdown_function`에 넣고, `fastcgi_finish_request()`로 클라이언트를 먼저 끊은 뒤 runner를 호출한다. curl 타임아웃은 8s(연결 2s); 실패 시 `ResilientRunnerClient`가 retry 큐 → `flush-retries` CronJob.
 
 ### My Work widget (Created by me)
 

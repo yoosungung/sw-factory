@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Leantime\Plugins\CursorBridge\Tests;
 
 use Leantime\Plugins\CursorBridge\BridgeConfig;
+use Leantime\Plugins\CursorBridge\DeferredDispatch;
 use Leantime\Plugins\CursorBridge\Listener;
 use Leantime\Plugins\CursorBridge\ResilientRunnerClient;
 use Leantime\Plugins\CursorBridge\Router;
@@ -14,6 +15,20 @@ use PHPUnit\Framework\TestCase;
 
 final class ListenerHooksTest extends TestCase
 {
+    protected function setUp(): void
+    {
+        parent::setUp();
+        DeferredDispatch::resetForTests();
+        DeferredDispatch::setFinisherForTests(static function (): void {
+        });
+    }
+
+    protected function tearDown(): void
+    {
+        DeferredDispatch::resetForTests();
+        parent::tearDown();
+    }
+
     public function testHookPatternsAreLowercaseLegacy(): void
     {
         $patterns = Listener::hookPatterns();
@@ -109,7 +124,11 @@ final class ListenerHooksTest extends TestCase
             $comments
         );
 
-        $listener->onNotifyProjectUsers(LeantimeEventFixtures::commentNotifyOnTicket167());
+        $this->assertSame([], $listener->onNotifyProjectUsers(
+            LeantimeEventFixtures::commentNotifyOnTicket167()
+        ));
+        $this->assertSame([], $posts);
+        DeferredDispatch::flush();
 
         $mentionPost = null;
         foreach ($posts as $body) {

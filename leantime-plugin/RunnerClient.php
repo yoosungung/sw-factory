@@ -32,7 +32,10 @@ final class RunnerClient implements RunnerTransport
                     CURLOPT_RETURNTRANSFER => true,
                     CURLOPT_HTTPHEADER => ['Content-Type: application/json'],
                     CURLOPT_POSTFIELDS => json_encode($body),
-                    CURLOPT_TIMEOUT => 120,
+                    // Keep Leantime ticket-save requests snappy: agent runs continue
+                    // in the worker; on timeout ResilientRunnerClient defers/retries.
+                    CURLOPT_TIMEOUT => 8,
+                    CURLOPT_CONNECTTIMEOUT => 2,
                 ]);
                 $raw = curl_exec($ch);
                 $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
@@ -48,6 +51,11 @@ final class RunnerClient implements RunnerTransport
                 if ($status === 404) {
                     throw new RunnerSessionNotFoundException(
                         (string) ($decoded['detail'] ?? 'session not found')
+                    );
+                }
+                if ($status === 429 || ($decoded['status'] ?? '') === 'create_throttled') {
+                    throw new RunnerCreateThrottledException(
+                        (string) ($decoded['detail'] ?? 'create_throttled')
                     );
                 }
                 if ($status >= 400 && $status !== 409) {

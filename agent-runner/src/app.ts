@@ -6,8 +6,14 @@ import { Hono } from "hono";
 import type { Settings } from "./config.js";
 import { loadSettings } from "./config.js";
 import { parseRunControl } from "./run-policy.js";
+import { probeMcpReady } from "./mcp-ready.js";
 import type { AgentBackend } from "./session-manager.js";
-import { buildBackend, ActiveRunError, SessionNotFoundError } from "./session-manager.js";
+import {
+  buildBackend,
+  ActiveRunError,
+  CreateThrottledError,
+  SessionNotFoundError,
+} from "./session-manager.js";
 
 function log(event: string, fields: Record<string, unknown>): void {
   console.log(
@@ -39,6 +45,18 @@ export function createApp(
 
   app.get("/healthz", (c) => c.json({ status: "ok" }));
 
+  app.get("/readyz", (c) => {
+    const probe = probeMcpReady(
+      settings.mock
+        ? { ...process.env, AGENT_RUNNER_MOCK: "1" }
+        : process.env,
+    );
+    if (!probe.ok) {
+      return c.json({ status: "not_ready", reason: probe.reason }, 503);
+    }
+    return c.json({ status: "ok", mcp: probe.reason });
+  });
+
   app.post("/sessions", async (c) => {
     const requestId = c.get("requestId");
     const body = await c.req.json<{
@@ -58,8 +76,22 @@ export function createApp(
         ? { budget_max_turns: control.budget.max_turns }
         : {}),
     });
-    const session = await backend.create(body.prompt, body.ticket_id, control);
-    return c.json({ agent_id: session.agentId }, 201);
+    try {
+      const session = await backend.create(body.prompt, body.ticket_id, control);
+      return c.json({ agent_id: session.agentId }, 201);
+    } catch (error) {
+      if (error instanceof CreateThrottledError) {
+        log("session.create.throttled", {
+          requestId,
+          ticket_id: error.ticketId,
+        });
+        return c.json(
+          { detail: "create_throttled", status: "create_throttled", ticket_id: error.ticketId },
+          429,
+        );
+      }
+      throw error;
+    }
   });
 
   app.post("/sessions/:agentId/prompt", async (c) => {
@@ -152,6 +184,12 @@ export function createApp(
     }
     if (error instanceof ActiveRunError) {
       return c.json({ run_id: "", status: "skipped_active_run" }, 409);
+    }
+    if (error instanceof CreateThrottledError) {
+      return c.json(
+        { detail: "create_throttled", status: "create_throttled", ticket_id: error.ticketId },
+        429,
+      );
     }
     const message = error instanceof Error ? error.message : String(error);
     log("request.error", { requestId, error: message });

@@ -116,6 +116,24 @@ final class RetryQueueTest extends TestCase
         $this->assertSame(['timeout_ms' => 600000], $bodies[0]['budget'] ?? null);
     }
 
+    public function testCreateThrottledDoesNotEnqueueRetry(): void
+    {
+        $sessions = SessionStore::inMemory();
+        $inner = new RunnerClient(
+            static function (string $url, array $body): array {
+                throw new \Leantime\Plugins\CursorBridge\RunnerCreateThrottledException('create_throttled');
+            },
+            static function (string $url): void {
+            }
+        );
+        $client = new ResilientRunnerClient($inner, $sessions);
+
+        $result = $client->createSession('http://runner:8080', 'prompt', 109, null, ['Leave add_comment'], 1);
+
+        $this->assertNull($result);
+        $this->assertSame([], $sessions->pendingRetries());
+    }
+
     public function testFlushSkipsTicketAfterLaterSuccess(): void
     {
         $sessions = SessionStore::inMemory();

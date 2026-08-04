@@ -3,8 +3,11 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 import type { Settings } from "./config.js";
+import { CreateStormGuard, CreateThrottledError } from "./create-storm.js";
 import type { RunControl, WorkerDone } from "./job-types.js";
 import { WorkerPool } from "./worker-pool.js";
+
+export { CreateThrottledError } from "./create-storm.js";
 
 export interface RunResult {
   runId: string;
@@ -144,11 +147,29 @@ export class SdkBackend implements AgentBackend {
   private readonly ticketAgents = new Map<number, string>();
   private readonly knownAgents = new Set<string>();
   private readonly busyAgents = new Set<string>();
+  private readonly createStorm: CreateStormGuard;
   private started = false;
 
-  constructor(settings: Settings, pool?: RunPool) {
+  constructor(settings: Settings, pool?: RunPool, createStorm?: CreateStormGuard) {
     this.settings = settings;
     this.pool = pool ?? createDefaultPool(settings);
+    this.createStorm = createStorm ?? new CreateStormGuard();
+  }
+
+  /** Drop sticky ticket→agent mapping so the next create gets a fresh MCP host. */
+  forgetTicketAgent(ticketId: number): void {
+    const agentId = this.ticketAgents.get(ticketId);
+    if (agentId !== undefined) {
+      this.ticketAgents.delete(ticketId);
+      console.log(
+        JSON.stringify({
+          ts: new Date().toISOString(),
+          event: "mcp.sticky_reset",
+          ticket_id: ticketId,
+          agent_id: agentId,
+        }),
+      );
+    }
   }
 
   async ensureStarted(): Promise<void> {
@@ -189,9 +210,11 @@ export class SdkBackend implements AgentBackend {
               runs: [{ runId: "", status: "skipped_active_run" }],
             };
           }
-          throw error;
+          // Stale mapping — fall through to a fresh create.
+          this.ticketAgents.delete(ticketId);
         }
       }
+      this.createStorm.beforeCreate(ticketId);
     }
 
     try {
@@ -210,6 +233,10 @@ export class SdkBackend implements AgentBackend {
       this.busyAgents.add(submitted.agentId);
       void submitted.done
         .then((done) => {
+          if (ticketId !== undefined) {
+            this.createStorm.markProgress(ticketId);
+          }
+          this.onWorkerDone(done, ticketId);
           if (done.status === "error") {
             console.error(
               JSON.stringify({
@@ -292,6 +319,12 @@ export class SdkBackend implements AgentBackend {
       });
       this.knownAgents.add(submitted.agentId);
       void submitted.done
+        .then((done) => {
+          if (ticketId !== undefined) {
+            this.createStorm.markProgress(ticketId);
+          }
+          this.onWorkerDone(done, ticketId);
+        })
         .catch((error) => {
           console.error(
             JSON.stringify({
@@ -314,6 +347,16 @@ export class SdkBackend implements AgentBackend {
     }
   }
 
+  private onWorkerDone(done: WorkerDone, ticketId?: number): void {
+    const id = done.ticketId ?? ticketId;
+    if (id === undefined) {
+      return;
+    }
+    if (done.mcpStickyReset) {
+      this.forgetTicketAgent(id);
+    }
+  }
+
   async cancel(agentId: string): Promise<void> {
     await this.ensureStarted();
     try {
@@ -326,6 +369,12 @@ export class SdkBackend implements AgentBackend {
       throw mapPoolError(error, agentId);
     }
     this.knownAgents.delete(agentId);
+    for (const [ticketId, mapped] of this.ticketAgents) {
+      if (mapped === agentId) {
+        this.ticketAgents.delete(ticketId);
+        this.createStorm.clear(ticketId);
+      }
+    }
   }
 
   spikeReport(): { sessions: number; totalRuns: number } {

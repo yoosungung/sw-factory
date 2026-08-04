@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Leantime\Plugins\CursorBridge\Tests;
 
 use Leantime\Plugins\CursorBridge\BridgeConfig;
+use Leantime\Plugins\CursorBridge\DeferredDispatch;
 use Leantime\Plugins\CursorBridge\Listener;
 use Leantime\Plugins\CursorBridge\ResilientRunnerClient;
 use Leantime\Plugins\CursorBridge\Router;
@@ -18,6 +19,20 @@ final class LeantimeEventTest extends TestCase
 {
     /** @var list<array{op: string, url: string, body?: array<string, mixed>}> */
     private array $calls = [];
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        DeferredDispatch::resetForTests();
+        DeferredDispatch::setFinisherForTests(static function (): void {
+        });
+    }
+
+    protected function tearDown(): void
+    {
+        DeferredDispatch::resetForTests();
+        parent::tearDown();
+    }
 
     private function listenerWithSession(?string $agentId = null): Listener
     {
@@ -63,9 +78,10 @@ final class LeantimeEventTest extends TestCase
         $listener = $this->listenerWithSession('agent-stale-167');
         $results = $listener->onTicketUpdated(LeantimeEventFixtures::ticketUpdated167());
 
-        $this->assertCount(1, $results);
-        $this->assertSame('agent-stale-167', $results[0]['agent_id']);
-        $this->assertSame('running', $results[0]['status']);
+        $this->assertSame([], $results);
+        $this->assertSame([], $this->calls);
+        DeferredDispatch::flush();
+
         $this->assertCount(1, $this->calls);
         $this->assertSame('prompt', $this->calls[0]['op']);
         $this->assertStringContainsString('agent-stale-167', $this->calls[0]['url']);
@@ -77,8 +93,9 @@ final class LeantimeEventTest extends TestCase
         $listener = $this->listenerWithSession();
         $results = $listener->onTicketUpdated(LeantimeEventFixtures::ticketUpdated167());
 
-        $this->assertCount(1, $results);
-        $this->assertSame('created', $results[0]['status']);
+        $this->assertSame([], $results);
+        DeferredDispatch::flush();
+
         $this->assertSame('create', $this->calls[0]['op']);
     }
 
@@ -87,7 +104,9 @@ final class LeantimeEventTest extends TestCase
         $listener = $this->listenerWithSession('agent-live-167');
         $results = $listener->onNotifyProjectUsers(LeantimeEventFixtures::commentNotifyOnTicket167());
 
-        $this->assertCount(1, $results);
+        $this->assertSame([], $results);
+        DeferredDispatch::flush();
+
         $this->assertSame('prompt', $this->calls[0]['op']);
         $this->assertSame('comment_added', $this->calls[0]['body']['event'] ?? null);
         $this->assertSame(167, $this->calls[0]['body']['ticket_id'] ?? null);

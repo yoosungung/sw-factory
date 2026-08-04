@@ -71,7 +71,7 @@ final class RouterTest extends TestCase
         $this->assertStringContainsString('title=Fix login', $prompt);
         $this->assertStringContainsString('Success checks', $prompt);
         $this->assertNotEmpty($this->posts[0]['body']['success_checks'] ?? []);
-        $this->assertSame(3, $this->posts[0]['body']['success_retry']['max_attempts'] ?? null);
+        $this->assertSame(1, $this->posts[0]['body']['success_retry']['max_attempts'] ?? null);
     }
 
     public function testAssigneeChangedIncludesDelegationLineage(): void

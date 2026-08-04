@@ -44,6 +44,8 @@ M0–M10 완료(실클러스터 데모·일부 수동 검증 제외). **M11 Dual
 - [x] agent-runner SDK worker pool (auth 격리·pre-lease recycle·auth-stale retire)
 - [x] Goose A안(보수): docs + runner `budget`/`policy` preamble·로그, `success_checks`, context summary, tool-class/delegation prompt (`docs/goose/06-gap-with-cursor-agent.md`)
 - [x] Goose A안 Phase 2: `success_checks` hard 검증(SDK `status=finished` AND 마지막 Leantime mutation) + 같은 session 제한 재시도(`success_retry.max_attempts`) → `verification_failed` (`agent-runner/src/success-verify.ts`)
+- [x] success_check 완화: 기본 `max_attempts=1`, infra abort, same-reason stop, JSON-RPC read-after-write, softer retry prompt
+- [x] create storm breaker (`create_throttled` 429) + Bridge non-retry + MCP sticky_reset + `/readyz` MCP probe
 - [x] pm Hermes(`openai`) → agent-runner(`sessions`) + persona `leantime-pm` 이식·컷오버
 - [x] ta persona + `k8s-operator-operations` 스킬 + `ta-k8s-daily` 스케줄 + ClusterRole observer
 
@@ -63,13 +65,16 @@ M0–M10 완료(실클러스터 데모·일부 수동 검증 제외). **M11 Dual
 **성공기준:** 데모 테넌트에서 사람 kubectl 없이 dispatch→rollout→smoke 코멘트→Done. 새 테넌트는 `repos[].tenant_cd` + 어댑터 복사로 동일 루프. (공장 자동화 검증은 pytest로 충족; 실클러스터는 수동 체크리스트.)
 
 **비범위 (M5):** `kubectl set image`/Argo CLI 기본 드라이버, 제품 소스 흡수, `docs/candidate/` 크론 런타임 편입(아래 seewin Phase B). 다배포/`depends_on` DAG는 테넌트 workflow에 두고 공장 스키마 확장은 후속.
-## M5b — seewin (candidate.win 전담)
+## M5b — candidate (candidate.win 클라이언트 + agent)
 
-- [x] Phase A: `seewin` `sessions` 봇 온보딩(`agents.yaml`, persona, `LEANTIME_ACCESS_TOKEN_seewin`, 공유 `GH_TOKEN`, Pod `/healthz`)
-- [x] Phase B: `docs/candidate/` Candydate cron → LLM `settings.schedules` + K8s CronJob(스크립트) 이식
-- [x] Hermes 동일 Candydate cron 수동 disable 컷오버 (`docs/candidate/CANDYDATE_CRON_PORTING.md` §7)
+- [x] Phase A (구 seewin): sessions 봇 온보딩 이력
+- [x] Phase B: Candydate cron → LLM `settings.schedules` + K8s CronJob 이식 이력
+- [x] **재등록:** 클라이언트 `candidate` + agent `candidate` (`docs/candidate/`, persona, 공유 `GH_TOKEN`, NS `sw-factory`)
+  - repo: `https://github.com/berryking404/candidate.win.git`
+  - schedules: `candidate-people-curation` / `candidate-publication-review` / `candidate-issue-radar-today`
+  - CronJobs: `candydate-pass-*` → `persona=candidate`
 
-**성공기준(A):** assignee=`seewin` 티켓이 `cursor-agent-seewin` 세션을 연다. **(B):** 6잡 스케줄/CronJob 공장 등록 + Hermes cron 수동 disable 완료.
+**성공기준(A):** assignee=`candidate` 티켓이 `cursor-agent-candidate` 세션을 연다. **(B):** 6잡 스케줄/CronJob 공장 등록.
 
 ## M6 — Review 품질 게이트 (FW CI + 테넌트 checks)
 

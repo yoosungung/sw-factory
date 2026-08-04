@@ -23,6 +23,10 @@ agent별 **Personal Access Token**만 사용한다 (Leantime 3.9+ Bearer).
 
 upstream `daniel-eder/leantime-mcp`(uvx git)는 `LEANTIME_API_KEY`·`LEANTIME_USER_EMAIL` 방식이라 이 포크와 호환되지 않는다.
 
+## 의존성 핀
+
+`mcp==1.16.0` · `fastmcp==2.12.4` (버전 불일치 시 Cursor MCP discovery/sticky 실패). agent-runner 이미지는 Dockerfile에서 `/opt/leantime-mcp`를 이 핀으로 설치한다. 변경 시 이미지 재bake.
+
 ## Commands
 
 ```bash

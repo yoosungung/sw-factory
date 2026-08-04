@@ -1,7 +1,7 @@
 {
   "name": "didim/cursor-bridge",
   "description": "Leantime ↔ Cursor agent-runner bridge (tickets, comments, assignee routing)",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "type": "plugin",
   "license": "MIT",
   "homepage": "https://github.com/yoosungung/cursor-agent",

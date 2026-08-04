@@ -90,6 +90,8 @@ final class ResilientRunnerClient
             $this->sessions->enqueueRetry($ticketId, $runnerUrl, 'prompt', $meta);
 
             return null;
+        } catch (RunnerCreateThrottledException) {
+            return ['run_id' => '', 'status' => 'create_throttled'];
         } catch (\Throwable) {
             $this->sessions->enqueueRetry($ticketId, $runnerUrl, 'prompt', $meta);
 
@@ -217,6 +219,9 @@ final class ResilientRunnerClient
             $this->sessions->clearRetries($ticketId, $runnerUrl);
 
             return $result;
+        } catch (RunnerCreateThrottledException) {
+            // Do not fuel create storms via the retry queue.
+            return null;
         } catch (\Throwable) {
             $this->sessions->enqueueRetry($ticketId, $runnerUrl, $method, $meta);
 

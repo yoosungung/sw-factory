@@ -9,6 +9,20 @@ export type LeantimeMutation = (typeof LEANTIME_MUTATIONS)[number];
 
 const NAME_SEPARATORS = ["_", ".", "/", "-"];
 
+const MCP_INFRA_HINTS = [
+  "sticky",
+  "discovery",
+  "server not",
+  "not registered",
+  "mcp host",
+  "transport error",
+  "fastmcp",
+  "version mismatch",
+  "tools/list",
+  "server 미등록",
+  "미등록",
+];
+
 export interface ToolRecord {
   name: string;
   status: "running" | "completed" | "error";
@@ -24,6 +38,12 @@ export interface SuccessVerdict {
 export interface ToolEvidence {
   observe(message: SDKMessage): void;
   lastCompleted(): ToolRecord | undefined;
+  allCompleted(): ToolRecord[];
+}
+
+export interface WriteAttestation {
+  /** True when a recent write on the active ticket is visible via API. */
+  recentWriteOnTicket(ticketId: number, withinMs: number): Promise<boolean>;
 }
 
 /**
@@ -32,7 +52,7 @@ export interface ToolEvidence {
  */
 export function createToolEvidence(): ToolEvidence {
   const argsByCall = new Map<string, unknown>();
-  let last: ToolRecord | undefined;
+  const completed: ToolRecord[] = [];
   return {
     observe(message: SDKMessage): void {
       if (message.type !== "tool_call") {
@@ -42,16 +62,19 @@ export function createToolEvidence(): ToolEvidence {
         argsByCall.set(message.call_id, message.args);
       }
       if (message.status === "completed" || message.status === "error") {
-        last = {
+        completed.push({
           name: message.name,
           status: message.status,
           args: message.args ?? argsByCall.get(message.call_id),
           result: message.result,
-        };
+        });
       }
     },
     lastCompleted(): ToolRecord | undefined {
-      return last;
+      return completed[completed.length - 1];
+    },
+    allCompleted(): ToolRecord[] {
+      return completed.slice();
     },
   };
 }
@@ -128,6 +151,74 @@ function resultLooksFailed(result: unknown): boolean {
   return false;
 }
 
+function resultText(result: unknown): string {
+  if (typeof result === "string") {
+    return result;
+  }
+  if (result === undefined || result === null) {
+    return "";
+  }
+  try {
+    return JSON.stringify(result);
+  } catch {
+    return String(result);
+  }
+}
+
+export function textLooksLikeMcpInfraFailure(text: string): boolean {
+  const lower = text.toLowerCase();
+  return MCP_INFRA_HINTS.some((hint) => lower.includes(hint.toLowerCase()));
+}
+
+/** True when any completed tool was an MCP Leantime mutation that errored or looked infra-failed. */
+export function hadFailedMcpMutation(tools: ToolRecord[]): boolean {
+  for (const tool of tools) {
+    const resolved = resolveToolCall(tool);
+    const mutation = matchLeantimeMutation(resolved.name);
+    const isMcp =
+      isMcpWrapper(tool.name) ||
+      tool.name.toLowerCase().includes("mcp") ||
+      tool.name.toLowerCase() === "callmcptool";
+    if (!mutation || !isMcp) {
+      continue;
+    }
+    if (tool.status === "error") {
+      return true;
+    }
+    if (resultLooksFailed(tool.result) || textLooksLikeMcpInfraFailure(resultText(tool.result))) {
+      return true;
+    }
+  }
+  return false;
+}
+
+/**
+ * Infra-class verification failures should not burn full corrective re-runs.
+ * `last_tool_not_mutation:shell` only counts when the same run already tried MCP write and failed.
+ */
+export function isInfraFailure(reason: string, tools: ToolRecord[] = []): boolean {
+  const lower = reason.toLowerCase();
+  if (lower.startsWith("tool_error:mcp") || lower.startsWith("tool_error:callmcptool")) {
+    return true;
+  }
+  if (lower.startsWith("tool_result_failed:") && hadFailedMcpMutation(tools)) {
+    return true;
+  }
+  if (textLooksLikeMcpInfraFailure(reason)) {
+    return true;
+  }
+  if (lower === "last_tool_not_mutation:shell" && hadFailedMcpMutation(tools)) {
+    return true;
+  }
+  if (lower.startsWith("last_tool_not_mutation:mcp") && hadFailedMcpMutation(tools)) {
+    return true;
+  }
+  if (lower.startsWith("last_tool_not_mutation:callmcptool") && hadFailedMcpMutation(tools)) {
+    return true;
+  }
+  return false;
+}
+
 /**
  * Verdict = run finished AND the last completed tool call is a successful
  * Leantime mutation on the active ticket (or create_ticket for ticket-less runs).
@@ -181,20 +272,40 @@ export function evaluateSuccess(
   return { ok: false, reason: "create_ticket_with_active_ticket" };
 }
 
+/** Optional API read-after-write: accept when a recent write is already on the ticket. */
+export async function confirmWriteViaApi(
+  ticketId: number | undefined,
+  attester: WriteAttestation | undefined,
+  withinMs = 15 * 60 * 1000,
+): Promise<SuccessVerdict | null> {
+  if (ticketId === undefined || attester === undefined) {
+    return null;
+  }
+  try {
+    if (await attester.recentWriteOnTicket(ticketId, withinMs)) {
+      return { ok: true, reason: "ok_read_after_write" };
+    }
+  } catch {
+    return null;
+  }
+  return null;
+}
+
 export function verificationEnabled(control?: RunControl | null): boolean {
   return !!control?.success_checks && control.success_checks.length > 0;
 }
 
 export function maxVerifyAttempts(control?: RunControl | null): number {
   const configured = control?.success_retry?.max_attempts;
-  return typeof configured === "number" && configured >= 0 ? configured : 3;
+  return typeof configured === "number" && configured >= 0 ? configured : 1;
 }
 
 export function composeRetryPrompt(checks: string[], reason: string): string {
   const lines = [
     `Your previous run did not satisfy the success checks (reason: ${reason}).`,
-    "Before finishing you MUST complete the required Leantime write on the active ticket " +
-      "(add_comment or update_ticket), or create_ticket for a scheduled run, and that Leantime call MUST be the LAST tool you use.",
+    "If a Leantime write (add_comment / update_ticket / create_ticket) already landed on the Active ticket, do NOT rewrite the same Outcome.",
+    "Call get_comments (or get_ticket) to confirm, then finish with one Leantime mutation as the LAST tool only if nothing was recorded yet.",
+    "Do not spam duplicate Outcome comments.",
     "Success checks:",
     ...checks.map((check, index) => `${index + 1}. ${check}`),
   ];

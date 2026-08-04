@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
 import { loadSettings } from "../src/config.js";
 import type { AgentBackend, AgentSession, RunResult } from "../src/session-manager.js";
-import { MockBackend } from "../src/session-manager.js";
+import { CreateThrottledError, MockBackend } from "../src/session-manager.js";
 
 function mockSettings() {
   return loadSettings({
@@ -20,6 +20,35 @@ describe("agent-runner API", () => {
     const response = await app.request("/healthz");
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ status: "ok" });
+  });
+
+  it("GET /readyz skips MCP probe in mock mode", async () => {
+    const response = await app.request("/readyz");
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({ status: "ok" });
+  });
+
+  it("returns 429 create_throttled from backend", async () => {
+    const backend: AgentBackend = {
+      async create(): Promise<AgentSession> {
+        throw new CreateThrottledError(109);
+      },
+      async prompt(): Promise<RunResult> {
+        return { runId: "r", status: "accepted" };
+      },
+      async cancel(): Promise<void> {},
+      spikeReport() {
+        return { sessions: 0, totalRuns: 0 };
+      },
+    };
+    const throttledApp = createApp(mockSettings(), backend);
+    const response = await throttledApp.request("/sessions", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: "hello", ticket_id: 109 }),
+    });
+    expect(response.status).toBe(429);
+    expect(await response.json()).toMatchObject({ status: "create_throttled", ticket_id: 109 });
   });
 
   it("session lifecycle", async () => {

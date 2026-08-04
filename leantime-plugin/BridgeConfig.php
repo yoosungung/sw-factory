@@ -242,12 +242,12 @@ final class BridgeConfig
         return $out === [] ? null : $out;
     }
 
-    /** Verified-run corrective re-send cap (Phase 2). Null when unset. */
+    /** Verified-run corrective re-send cap (Phase 2). Defaults to 1 when unset. */
     public function successRetryMaxAttempts(): ?int
     {
-        $raw = $this->data['success_retry']['max_attempts'] ?? null;
+        $raw = $this->data['success_retry']['max_attempts'] ?? 1;
         if (!is_int($raw) || $raw < 0) {
-            return null;
+            return 1;
         }
 
         return $raw;

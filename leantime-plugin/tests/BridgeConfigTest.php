@@ -99,7 +99,7 @@ final class BridgeConfigTest extends TestCase
 
     public function testSuccessRetryMaxAttempts(): void
     {
-        $this->assertNull((new BridgeConfig([]))->successRetryMaxAttempts());
+        $this->assertSame(1, (new BridgeConfig([]))->successRetryMaxAttempts());
         $config = new BridgeConfig(['success_retry' => ['max_attempts' => 2]]);
         $this->assertSame(2, $config->successRetryMaxAttempts());
     }

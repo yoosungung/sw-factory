@@ -190,42 +190,6 @@
         "Bulk/Opik suites ran per tenant config or skipped with reason.",
         "Failures filed as New tickets on the client project."
       ]
-    },
-    {
-      "id": "seewin-people-curation",
-      "cron": "0 9 * * *",
-      "prompt": "Use political-wiki-administration in /workspace/repo. People SSoT curation (18:00 KST). Report on Leantime project 20 as user 14. main direct push only after validation.",
-      "agents": [
-        "seewin"
-      ],
-      "success_checks": [
-        "Work stayed in /workspace/repo.",
-        "Leantime report as seewin (user 14) or blocked with reason."
-      ]
-    },
-    {
-      "id": "seewin-publication-review",
-      "cron": "0 18 * * *",
-      "prompt": "Use political-wiki-administration in /workspace/repo. Publication-safety review (03:00 KST). Run publication_gate.py before push. Report project 20 user 14.",
-      "agents": [
-        "seewin"
-      ],
-      "success_checks": [
-        "publication_gate.py run before push decision.",
-        "Leantime report as seewin (user 14)."
-      ]
-    },
-    {
-      "id": "seewin-issue-radar-today",
-      "cron": "0 23 * * *",
-      "prompt": "Use political-wiki-administration in /workspace/repo. Issue radar \u2192 wiki/data/today.yaml. No Leantime tickets. Direct main push when changed.",
-      "agents": [
-        "seewin"
-      ],
-      "success_checks": [
-        "No new Leantime ticket.",
-        "Only wiki/data/today.yaml committed when changed, or no-op."
-      ]
     }
   ],
   "success_checks": [
@@ -239,6 +203,6 @@
     "timeout_ms": 600000
   },
   "success_retry": {
-    "max_attempts": 3
+    "max_attempts": 1
   }
 }

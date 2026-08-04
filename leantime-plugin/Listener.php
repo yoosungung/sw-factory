@@ -36,21 +36,33 @@ final class Listener
     /** @param array<string, mixed> $payload */
     public function onTicketCreated(array $payload): array
     {
-        return $this->router->handle('ticket_created', $payload);
+        $router = $this->router;
+        DeferredDispatch::schedule(static function () use ($router, $payload): void {
+            $router->handle('ticket_created', $payload);
+        });
+
+        return [];
     }
 
     /** @param array<string, mixed> $payload */
     public function onTicketUpdated(array $payload): array
     {
         $event = isset($payload['previousAssigneeUserId']) ? 'assignee_changed' : 'ticket_updated';
+        $router = $this->router;
+        DeferredDispatch::schedule(static function () use ($router, $event, $payload): void {
+            $router->handle($event, $payload);
+        });
 
-        return $this->router->handle($event, $payload);
+        return [];
     }
 
     /** @param array<string, mixed> $payload */
     public function onTicketDeleted(array $payload): void
     {
-        $this->router->handleTicketDeleted($payload);
+        $router = $this->router;
+        DeferredDispatch::schedule(static function () use ($router, $payload): void {
+            $router->handleTicketDeleted($payload);
+        });
     }
 
     /**
@@ -77,11 +89,17 @@ final class Listener
             $text = $rawText;
         }
 
-        return $this->router->handle('comment_added', [
+        $router = $this->router;
+        $body = [
             'ticketId' => $ticketId,
             'commentText' => $text,
             'text' => $text,
-        ]);
+        ];
+        DeferredDispatch::schedule(static function () use ($router, $body): void {
+            $router->handle('comment_added', $body);
+        });
+
+        return [];
     }
 
     public static function ticketIdFromNotifyUrl(string $url): int

@@ -73,12 +73,23 @@ HTTP 계약(`POST /sessions`, `202` prompt, ticket↔session)은 유지한다. o
    - tool 이름은 접미사 매칭으로 정규화(`*_add_comment` 등)한다. `status=error`나 명백한 실패 결과(`false`)는 거부한다.
    - SDK/`CallMcpTool` 래퍼(`name`이 `mcp` 또는 `CallMcpTool`)는 `args.toolName`과 nested `args`/`arguments`로 풀어 mutation·대상을 판정한다.
    - 조회 tool, 대상 ticket을 증명 못 하는 comment 수정/삭제는 성공 증거로 쓰지 않는다.
+3. last-tool이 실패해도 **API read-after-write**(`LEANTIME_URL`+`LEANTIME_ACCESS_TOKEN` JSON-RPC `Comments.getComments`)로 Active ticket에 최근 코멘트가 보이면 `ok_read_after_write`로 통과한다.
 
-- MVP는 **stream tool evidence** 기반이다. API read-after-write와 comment ID 반환은 다음 강화다.
-- 실패 시 실패 이유와 `success_checks`를 같은 `SDKAgent`에 후속 `agent.send()`로 보낸다. `success_retry.max_attempts`(기본 3) 소진 시 `verification_failed`로 종료한다.
+- 실패 시 실패 이유와 `success_checks`를 같은 `SDKAgent`에 후속 `agent.send()`로 보낸다. `success_retry.max_attempts`(기본 **1**) 소진 시 `verification_failed`로 종료한다.
+- **인프라 실패**(MCP sticky/discovery/`tool_error:mcp` 등, 또는 shell last-tool이지만 같은 run에서 MCP mutation이 이미 실패한 경우)는 재시도하지 않고 `success_check.infra_abort` 후 종료한다. `WorkerDone.mcpStickyReset`으로 ticket→agent 매핑을 지워 다음 dispatch가 새 session을 만든다(`mcp.sticky_reset`).
+- 같은 `reason`이 직전 실패와 동일하면 `success_check.same_reason_stop`으로 즉시 중단한다(Outcome 스팸 방지).
+- retry prompt는 “이미 write 했으면 재작성 금지”를 명시한다.
 - stream 미지원 run은 검증을 건너뛴다(`success_check.skipped`).
 - verification retry run ID는 최초 `202` accepted가 아니라 로그/`WorkerDone`에서 추적한다.
 - 이 검증은 Leantime→runner 전송 장애 retry queue, worker auth-stale retry와 **의미가 다르다**.
+
+### Create storm 차단
+
+ticket_id당 2분 창에서 create가 5회 쌓였는데 run 완료(`session.create.completed`)가 없으면 이후 create는 **429 `create_throttled`**. Bridge는 이 응답을 retry queue에 넣지 않는다.
+
+### MCP readiness
+
+`GET /readyz`는 `import mcp, fastmcp, leantime_mcp` 스모크(실패 시 503). `AGENT_RUNNER_MOCK=1` / `AGENT_RUNNER_SKIP_MCP_READY=1`이면 skip. StatefulSet readinessProbe는 `/readyz`.
 
 ## Run 로그 (K8s `kubectl logs`)
 
@@ -90,11 +101,15 @@ HTTP 계약(`POST /sessions`, `202` prompt, ticket↔session)은 유지한다. o
 | `run.completed` | `run.wait()` 종료 |
 | `run.stream.failed` / `run.background.failed` | 스트림·백그라운드 run 중단 |
 | `session.create.completed` | create 직후 첫 run 완료 |
+| `session.create.throttled` | create storm circuit breaker |
 | `worker.retired` | idle/age/jobs/auth 로 worker 폐기 |
 | `worker.auth_stale.retry` | auth-stale 후 새 worker로 1회 재시도 |
 | `success_check.evaluated` | 검증 판정 결과(ok·attempts·reason) |
 | `success_check.retry` | 검증 실패로 같은 session 교정 send |
+| `success_check.infra_abort` | MCP/인프라 실패로 재시도 중단 |
+| `success_check.same_reason_stop` | 동일 reason 연속 실패로 중단 |
 | `success_check.skipped` | stream 미지원 등으로 검증 생략 |
+| `mcp.sticky_reset` | ticket agent 매핑 삭제(다음 create가 새 MCP host) |
 
 예시:
 

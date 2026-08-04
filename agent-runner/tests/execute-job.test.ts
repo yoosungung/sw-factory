@@ -241,6 +241,8 @@ describe("executeJob", () => {
         control: { success_checks: ["Leave add_comment"], success_retry: { max_attempts: 2 } },
       },
       sdk,
+      undefined,
+      { writeAttestation: null },
     );
 
     expect(send).toHaveBeenCalledTimes(1);
@@ -284,6 +286,8 @@ describe("executeJob", () => {
         control: { success_checks: ["Leave add_comment"], success_retry: { max_attempts: 2 } },
       },
       sdk,
+      undefined,
+      { writeAttestation: null },
     );
 
     expect(send).toHaveBeenCalledTimes(2);
@@ -291,11 +295,23 @@ describe("executeJob", () => {
   });
 
   it("verify: returns verification_failed after exhausting retries", async () => {
-    const send = vi.fn(async () =>
-      makeStreamRun("run-read", "finished", [
-        toolCall("get_ticket", { call_id: "c1", args: { id: 42 } }),
-      ]),
-    );
+    const send = vi
+      .fn()
+      .mockResolvedValueOnce(
+        makeStreamRun("run-a", "finished", [
+          toolCall("get_ticket", { call_id: "c1", args: { id: 42 } }),
+        ]),
+      )
+      .mockResolvedValueOnce(
+        makeStreamRun("run-b", "finished", [
+          toolCall("Shell", { call_id: "c2", args: { command: "echo" }, result: "ok" }),
+        ]),
+      )
+      .mockResolvedValueOnce(
+        makeStreamRun("run-c", "finished", [
+          toolCall("Read", { call_id: "c3", args: { path: "x" }, result: "x" }),
+        ]),
+      );
     const agent = makeAgent("agent-v", send as unknown as SDKAgent["send"]);
     const sdk: WorkerSdk = {
       create: async () => agent,
@@ -316,9 +332,127 @@ describe("executeJob", () => {
         control: { success_checks: ["Leave add_comment"], success_retry: { max_attempts: 2 } },
       },
       sdk,
+      undefined,
+      { writeAttestation: null },
     );
 
-    expect(send).toHaveBeenCalledTimes(3); // initial + 2 retries
+    expect(send).toHaveBeenCalledTimes(3); // initial + 2 retries (distinct reasons)
+    expect(result).toMatchObject({ phase: "done", status: "verification_failed" });
+  });
+
+  it("verify: infra MCP failure aborts without retry and sets mcpStickyReset", async () => {
+    const send = vi.fn(async () =>
+      makeStreamRun("run-mcp-fail", "finished", [
+        toolCall("mcp", {
+          call_id: "c1",
+          status: "error",
+          args: { toolName: "add_comment", args: { module: "ticket", module_id: 42 } },
+          result: "discovery failed / server not registered",
+        }),
+      ]),
+    );
+    const agent = makeAgent("agent-v", send as unknown as SDKAgent["send"]);
+    const sdk: WorkerSdk = {
+      create: async () => agent,
+      resume: async () => {
+        throw new Error("no");
+      },
+      delete: async () => {},
+    };
+
+    const result = await executeJob(
+      {
+        requestId: "req-infra",
+        type: "create",
+        prompt: "handle it",
+        model: "composer-2.5",
+        workspace: "/tmp",
+        ticketId: 42,
+        control: { success_checks: ["Leave add_comment"], success_retry: { max_attempts: 3 } },
+      },
+      sdk,
+      undefined,
+      { writeAttestation: null },
+    );
+
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({
+      phase: "done",
+      status: "verification_failed",
+      mcpStickyReset: true,
+      ticketId: 42,
+    });
+  });
+
+  it("verify: read-after-write attestation skips retry", async () => {
+    const send = vi.fn(async () =>
+      makeStreamRun("run-read", "finished", [
+        toolCall("get_ticket", { call_id: "c1", args: { id: 42 } }),
+      ]),
+    );
+    const agent = makeAgent("agent-v", send as unknown as SDKAgent["send"]);
+    const sdk: WorkerSdk = {
+      create: async () => agent,
+      resume: async () => {
+        throw new Error("no");
+      },
+      delete: async () => {},
+    };
+
+    const result = await executeJob(
+      {
+        requestId: "req-attest",
+        type: "create",
+        prompt: "handle it",
+        model: "composer-2.5",
+        workspace: "/tmp",
+        ticketId: 42,
+        control: { success_checks: ["Leave add_comment"], success_retry: { max_attempts: 2 } },
+      },
+      sdk,
+      undefined,
+      {
+        writeAttestation: {
+          recentWriteOnTicket: async () => true,
+        },
+      },
+    );
+
+    expect(send).toHaveBeenCalledTimes(1);
+    expect(result).toMatchObject({ phase: "done", status: "finished" });
+  });
+
+  it("verify: same reason after retry stops early", async () => {
+    const send = vi.fn(async () =>
+      makeStreamRun("run-same", "finished", [
+        toolCall("get_ticket", { call_id: "c1", args: { id: 42 } }),
+      ]),
+    );
+    const agent = makeAgent("agent-v", send as unknown as SDKAgent["send"]);
+    const sdk: WorkerSdk = {
+      create: async () => agent,
+      resume: async () => {
+        throw new Error("no");
+      },
+      delete: async () => {},
+    };
+
+    const result = await executeJob(
+      {
+        requestId: "req-same",
+        type: "create",
+        prompt: "handle it",
+        model: "composer-2.5",
+        workspace: "/tmp",
+        ticketId: 42,
+        control: { success_checks: ["Leave add_comment"], success_retry: { max_attempts: 3 } },
+      },
+      sdk,
+      undefined,
+      { writeAttestation: null },
+    );
+
+    expect(send).toHaveBeenCalledTimes(2); // initial + one retry then same-reason stop
     expect(result).toMatchObject({ phase: "done", status: "verification_failed" });
   });
 

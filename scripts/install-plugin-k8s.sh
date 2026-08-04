@@ -20,6 +20,7 @@ cp "$PLUGIN"/BridgeConfig.php \
    "$PLUGIN"/OpenAIRunnerClient.php \
    "$PLUGIN"/DelegatingRunnerClient.php \
    "$PLUGIN"/RunnerSessionNotFoundException.php \
+   "$PLUGIN"/RunnerCreateThrottledException.php \
    "$PLUGIN"/SessionStore.php \
    "$PLUGIN"/ScheduleCron.php \
    "$PLUGIN"/ScheduleTicker.php \
@@ -36,6 +37,7 @@ cp "$PLUGIN"/BridgeConfig.php \
    "$PLUGIN"/NullCommentLookup.php \
    "$PLUGIN"/LeantimeCommentLookup.php \
    "$PLUGIN"/NotificationCoalesce.php \
+   "$PLUGIN"/DeferredDispatch.php \
    "$PLUGIN"/CreatedByMeTickets.php \
    "$PLUGIN"/WidgetDefaults.php \
    "$PLUGIN"/register.php \
@@ -77,13 +79,13 @@ data:
     SRC=/plugin-src
     for f in BridgeConfig.php Listener.php Plugin.php ResilientRunnerClient.php Router.php \\
              RunnerClient.php RunnerTransport.php OpenAIRunnerClient.php DelegatingRunnerClient.php \\
-             RunnerSessionNotFoundException.php SessionStore.php \\
+             RunnerSessionNotFoundException.php RunnerCreateThrottledException.php SessionStore.php \\
              ScheduleCron.php ScheduleTicker.php ScheduleGates.php DefaultScheduleGates.php \\
              InProgressTicketProbe.php NullInProgressTicketProbe.php LeantimeInProgressTicketProbe.php \\
              LeantimeCliBootstrap.php \\
              TicketLookup.php NullTicketLookup.php \\
              LeantimeTicketLookup.php CommentLookup.php NullCommentLookup.php LeantimeCommentLookup.php \\
-             NotificationCoalesce.php CreatedByMeTickets.php WidgetDefaults.php \\
+             NotificationCoalesce.php DeferredDispatch.php CreatedByMeTickets.php WidgetDefaults.php \\
              register.php composer.json bridge.json; do
       cp "\$SRC/\$f" "\$DEST/\$f"
     done

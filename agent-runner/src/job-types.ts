@@ -52,6 +52,9 @@ export interface WorkerDone {
   usage?: unknown;
   error?: string;
   resultPreview?: string;
+  /** Drop ticket→agent mapping so the next dispatch creates a fresh MCP host. */
+  mcpStickyReset?: boolean;
+  ticketId?: number;
 }
 
 export interface WorkerDeleteDone {

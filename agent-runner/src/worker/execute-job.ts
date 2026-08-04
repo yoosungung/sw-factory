@@ -19,12 +19,16 @@ import type {
 import { logRunEvent, streamRunLogs } from "../run-logger.js";
 import { composeAgentPrompt } from "../run-policy.js";
 import { isStaleAuthFailure } from "../stale-auth.js";
+import { createLeantimeWriteAttestation } from "../leantime-attest.js";
 import {
   composeRetryPrompt,
+  confirmWriteViaApi,
   createToolEvidence,
   evaluateSuccess,
+  isInfraFailure,
   maxVerifyAttempts,
   verificationEnabled,
+  type WriteAttestation,
 } from "../success-verify.js";
 
 export interface WorkerSdk {
@@ -35,6 +39,10 @@ export interface WorkerSdk {
 
 export type AcceptedHandler = (msg: WorkerAccepted) => void;
 
+export interface ExecuteJobOptions {
+  writeAttestation?: WriteAttestation | null;
+}
+
 /**
  * Execute one SDK job in-process (used by worker main and unit tests).
  * Calls onAccepted after send() succeeds, then waits for run completion.
@@ -43,6 +51,7 @@ export async function executeJob(
   job: WorkerJob,
   sdk: WorkerSdk,
   onAccepted?: AcceptedHandler,
+  options?: ExecuteJobOptions,
 ): Promise<WorkerDone | { phase: "deleted"; requestId: string; agentId: string }> {
   if (job.type === "delete") {
     await sdk.delete(job.agentId, {
@@ -80,6 +89,10 @@ export async function executeJob(
     const verify = verificationEnabled(control);
     const ticketId = job.ticketId;
     const checks = control?.success_checks ?? [];
+    const attester =
+      options?.writeAttestation === null
+        ? undefined
+        : (options?.writeAttestation ?? createLeantimeWriteAttestation());
 
     const evidence = verify ? createToolEvidence() : undefined;
     let result = await streamRunLogs(
@@ -94,6 +107,7 @@ export async function executeJob(
       evidence?.observe,
     );
     let finalRunId = runId;
+    let mcpStickyReset = false;
 
     if (verify) {
       if (!run.supports("stream")) {
@@ -104,19 +118,43 @@ export async function executeJob(
           ...(ticketId !== undefined ? { ticket_id: ticketId } : {}),
           reason: "stream_unsupported",
         });
-        return toDone(job.requestId, agent.agentId, finalRunId, result);
+        return toDone(job.requestId, agent.agentId, finalRunId, result, undefined, ticketId);
       }
 
       const maxAttempts = maxVerifyAttempts(control);
+      let tools = evidence?.allCompleted() ?? [];
       let verdict = evaluateSuccess(
         result.status,
         evidence?.lastCompleted(),
         ticketId,
         checks,
       );
+      if (!verdict.ok) {
+        const attested = await confirmWriteViaApi(ticketId, attester);
+        if (attested !== null) {
+          verdict = attested;
+        }
+      }
       let attempt = 0;
+      let lastReason = verdict.ok ? "" : verdict.reason;
 
       while (!verdict.ok && attempt < maxAttempts) {
+        if (isInfraFailure(verdict.reason, tools)) {
+          mcpStickyReset = true;
+          logRunEvent(
+            {
+              event: "success_check.infra_abort",
+              agent_id: agent.agentId,
+              run_id: finalRunId,
+              ...(ticketId !== undefined ? { ticket_id: ticketId } : {}),
+              attempt,
+              reason: verdict.reason,
+            },
+            "error",
+          );
+          break;
+        }
+
         attempt += 1;
         logRunEvent({
           event: "success_check.retry",
@@ -149,12 +187,52 @@ export async function executeJob(
           },
           retryEvidence.observe,
         );
+        tools = retryEvidence.allCompleted();
         verdict = evaluateSuccess(
           result.status,
           retryEvidence.lastCompleted(),
           ticketId,
           checks,
         );
+        if (!verdict.ok) {
+          const attested = await confirmWriteViaApi(ticketId, attester);
+          if (attested !== null) {
+            verdict = attested;
+          }
+        }
+        if (!verdict.ok && verdict.reason === lastReason) {
+          logRunEvent(
+            {
+              event: "success_check.same_reason_stop",
+              agent_id: agent.agentId,
+              run_id: finalRunId,
+              ...(ticketId !== undefined ? { ticket_id: ticketId } : {}),
+              attempt,
+              reason: verdict.reason,
+            },
+            "error",
+          );
+          if (isInfraFailure(verdict.reason, tools)) {
+            mcpStickyReset = true;
+          }
+          break;
+        }
+        lastReason = verdict.reason;
+        if (!verdict.ok && isInfraFailure(verdict.reason, tools)) {
+          mcpStickyReset = true;
+          logRunEvent(
+            {
+              event: "success_check.infra_abort",
+              agent_id: agent.agentId,
+              run_id: finalRunId,
+              ...(ticketId !== undefined ? { ticket_id: ticketId } : {}),
+              attempt,
+              reason: verdict.reason,
+            },
+            "error",
+          );
+          break;
+        }
       }
 
       logRunEvent(
@@ -177,11 +255,13 @@ export async function executeJob(
           finalRunId,
           result,
           "verification_failed",
+          ticketId,
+          mcpStickyReset,
         );
       }
     }
 
-    return toDone(job.requestId, agent.agentId, finalRunId, result);
+    return toDone(job.requestId, agent.agentId, finalRunId, result, undefined, ticketId, mcpStickyReset);
   } finally {
     if (agent) {
       try {
@@ -237,6 +317,8 @@ function toDone(
   runId: string,
   result: SDKRunResult,
   statusOverride?: string,
+  ticketId?: number,
+  mcpStickyReset?: boolean,
 ): WorkerDone {
   const errorMessage =
     result.error?.message ??
@@ -252,6 +334,8 @@ function toDone(
     error: errorMessage,
     resultPreview:
       typeof result.result === "string" ? result.result.slice(0, 500) : undefined,
+    ...(ticketId !== undefined ? { ticketId } : {}),
+    ...(mcpStickyReset ? { mcpStickyReset: true } : {}),
   };
 }
 

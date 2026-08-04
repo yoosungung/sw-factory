@@ -3,8 +3,11 @@ import type { SDKMessage } from "@cursor/sdk";
 
 import {
   composeRetryPrompt,
+  confirmWriteViaApi,
   createToolEvidence,
   evaluateSuccess,
+  hadFailedMcpMutation,
+  isInfraFailure,
   matchLeantimeMutation,
   maxVerifyAttempts,
   verificationEnabled,
@@ -162,18 +165,58 @@ describe("verificationEnabled / maxVerifyAttempts", () => {
     expect(verificationEnabled({ success_checks: ["x"] })).toBe(true);
   });
 
-  it("defaults max attempts to 3", () => {
-    expect(maxVerifyAttempts({ success_checks: ["x"] })).toBe(3);
+  it("defaults max attempts to 1", () => {
+    expect(maxVerifyAttempts({ success_checks: ["x"] })).toBe(1);
     expect(maxVerifyAttempts({ success_checks: ["x"], success_retry: { max_attempts: 1 } })).toBe(1);
     expect(maxVerifyAttempts({ success_checks: ["x"], success_retry: { max_attempts: 0 } })).toBe(0);
+    expect(maxVerifyAttempts({ success_checks: ["x"], success_retry: { max_attempts: 3 } })).toBe(3);
+  });
+});
+
+describe("isInfraFailure / hadFailedMcpMutation", () => {
+  it("treats MCP tool_error as infra", () => {
+    expect(isInfraFailure("tool_error:mcp")).toBe(true);
+    expect(isInfraFailure("tool_error:CallMcpTool")).toBe(true);
+  });
+
+  it("treats shell last-tool as infra only after a failed MCP mutation", () => {
+    expect(isInfraFailure("last_tool_not_mutation:shell")).toBe(false);
+    const tools = [
+      {
+        name: "mcp",
+        status: "error" as const,
+        args: { toolName: "add_comment", args: { module: "ticket", module_id: 1 } },
+        result: "discovery failed / server not registered",
+      },
+    ];
+    expect(hadFailedMcpMutation(tools)).toBe(true);
+    expect(isInfraFailure("last_tool_not_mutation:shell", tools)).toBe(true);
+  });
+});
+
+describe("confirmWriteViaApi", () => {
+  it("returns ok_read_after_write when attester finds a recent write", async () => {
+    const out = await confirmWriteViaApi(42, {
+      recentWriteOnTicket: async (id) => id === 42,
+    });
+    expect(out).toEqual({ ok: true, reason: "ok_read_after_write" });
+  });
+
+  it("returns null when attester finds nothing", async () => {
+    const out = await confirmWriteViaApi(42, {
+      recentWriteOnTicket: async () => false,
+    });
+    expect(out).toBeNull();
   });
 });
 
 describe("composeRetryPrompt", () => {
-  it("includes reason and checks and demands a final Leantime write", () => {
+  it("includes reason and checks and forbids duplicate Outcome spam", () => {
     const out = composeRetryPrompt(["Leave add_comment"], "last_tool_not_mutation:get_ticket");
     expect(out).toContain("last_tool_not_mutation:get_ticket");
     expect(out).toContain("Leave add_comment");
     expect(out.toLowerCase()).toContain("add_comment");
+    expect(out).toContain("Do not spam duplicate Outcome");
+    expect(out).toContain("already landed");
   });
 });
