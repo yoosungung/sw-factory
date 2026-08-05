@@ -91,6 +91,27 @@ ticket_id당 2분 창에서 create가 5회 쌓였는데 run 완료(`session.crea
 
 `GET /readyz`는 `import mcp, fastmcp, leantime_mcp` 스모크(실패 시 503). `AGENT_RUNNER_MOCK=1` / `AGENT_RUNNER_SKIP_MCP_READY=1`이면 skip. StatefulSet readinessProbe는 `/readyz`.
 
+## Recovery (zombie `active_run`)
+
+증상: worker 비정상 종료·미정리 후 parent `busyAgents`는 풀려도 SDK local agent에 active run이 남아, 이후 `POST …/prompt`(또는 create→기존 매핑 prompt)가 409 `skipped_active_run` / `session.prompt.skipped` `reason=active_run`으로 **영구 고착**한다. soft budget·pre-lease·PM `@mention`만으로는 풀리지 않는다.
+
+**HTTP 계약 불변** (ARCHITECTURE §2.3.1): `202` accepted, 409 `skipped_active_run` / `skipped_mutex` 의미·상태 코드 변경 없음. Recovery는 parent(session-manager / pool) 내부 동작이다.
+
+**Non-goals:** Bridge retry queue 전면 재설계; `budget.timeout_ms`를 hard kill로 바꾸기(기본 soft 유지; optional hard는 별도); 테넌트 제품 EX.
+
+| ID | 트리거 | 동작 | `session.recover` |
+|----|--------|------|-------------------|
+| **R1** | Run 중 worker crash / unexpected exit | pool slot release + `busyAgents` clear + 해당 ticket↔agent 매핑 **forget** | `reason=worker_crash`, `action=forget` |
+| **R2** | `WorkerDone` reject / `active_run` fail path (SDK `already has active run` 등) | R1과 동일 release+forget. `mcpStickyReset`만으로 끝내지 않음; cancel 가능 시 best-effort `DELETE` | `reason=active_run_fail` 또는 `done_reject` |
+| **R3** | 동일 agent/ticket에 **연속** `skipped_active_run` (기본 threshold **2**) | cancel/force 시도: SDK `run.cancel` / `Agent.cancelRun` 가능 시 사용, 아니면 `DELETE /sessions/{id}`(=`backend.cancel`) + forget | `reason=skipped_threshold`, `action=cancel\|force\|delete` |
+| **R4** | R3 cancel/force 후, 또는 매핑이 비어 다음 prompt가 필요할 때 | **새 session create** + ticket↔agent remap | `reason=recreate`, `action=recreate` |
+| **R5** | 모든 recovery 경로 | 구조화 로그 `session.recover` (`reason`, `agent_id`, `ticket_id?`, `action` ∈ `forget`\|`cancel`\|`force`\|`delete`\|`recreate`) + `AGENT_RUNNER_MOCK=1 npm test`에서 R1–R4 단위 테스트 green | (로그 자체) |
+
+- Pool: accept 이후 `done` reject 시에도 worker slot `release`(leak 방지).
+- 연속 skip threshold=2는 운영 기본값. 변경은 티켓 코멘트로만(코드 기본 상수; Eric 불필요).
+- cancel/recreate는 해당 티켓의 이전 SDK transcript를 잃을 수 있다(zombie 해제 우선). `local.force`로 transcript를 보존하는 경로는 optional이며 R3의 cancel/delete와 동등 취급하지 않는다.
+- 구현·테스트는 후속 서브태스크(#200); 본 절이 R1–R5 정본 AC다.
+
 ## Run 로그 (K8s `kubectl logs`)
 
 `/sessions/{agent_id}/prompt`는 send 직후 **202 Accepted**. run 완료는 worker/백그라운드에서 처리한다.
@@ -110,6 +131,7 @@ ticket_id당 2분 창에서 create가 5회 쌓였는데 run 완료(`session.crea
 | `success_check.same_reason_stop` | 동일 reason 연속 실패로 중단 |
 | `success_check.skipped` | stream 미지원 등으로 검증 생략 |
 | `mcp.sticky_reset` | ticket agent 매핑 삭제(다음 create가 새 MCP host) |
+| `session.recover` | zombie/`active_run` recovery (§ Recovery R1–R5: `reason`·`action`) |
 
 예시:
 

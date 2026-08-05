@@ -144,31 +144,38 @@ export class WorkerPool {
       worker.jobsCompleted += 1;
       worker.lastJobAt = this.now();
 
-      const done = outcome.done.then(async (doneMsg) => {
-        this.release(worker);
-        if (!authRetried && doneLooksAuthStale(doneMsg)) {
-          log("worker.auth_stale.retry", {
-            worker_id: worker.id,
-            agent_id: doneMsg.agentId,
-            run_id: doneMsg.runId,
-            phase: "wait",
-          });
-          await this.retire(worker, "auth");
-          const retryJob: Omit<PromptJob, "requestId"> = {
-            type: "prompt",
-            agentId: doneMsg.agentId,
-            prompt: job.prompt,
-            ticketId: job.ticketId,
-            event: job.event,
-            model: job.model,
-            workspace: job.workspace,
-            control: job.control,
-          };
-          const retried = await this.submitInternal(retryJob, true);
-          return retried.done;
-        }
-        return doneMsg;
-      });
+      const done = outcome.done.then(
+        async (doneMsg) => {
+          this.release(worker);
+          if (!authRetried && doneLooksAuthStale(doneMsg)) {
+            log("worker.auth_stale.retry", {
+              worker_id: worker.id,
+              agent_id: doneMsg.agentId,
+              run_id: doneMsg.runId,
+              phase: "wait",
+            });
+            await this.retire(worker, "auth");
+            const retryJob: Omit<PromptJob, "requestId"> = {
+              type: "prompt",
+              agentId: doneMsg.agentId,
+              prompt: job.prompt,
+              ticketId: job.ticketId,
+              event: job.event,
+              model: job.model,
+              workspace: job.workspace,
+              control: job.control,
+            };
+            const retried = await this.submitInternal(retryJob, true);
+            return retried.done;
+          }
+          return doneMsg;
+        },
+        (err: unknown) => {
+          // R1: crash/reject after accept must still free the slot
+          this.release(worker);
+          throw err;
+        },
+      );
 
       return {
         agentId: outcome.accepted.agentId,
