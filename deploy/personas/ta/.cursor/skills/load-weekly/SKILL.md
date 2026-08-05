@@ -3,15 +3,15 @@ name: load-weekly
 description: >-
   Weekly load test per Leantime client using tenant .factory/quality.yaml load
   commands. File New tickets on the client project for failures.
-version: 1.0.0
+version: 1.1.0
 author: ta persona (TA)
 license: MIT
 ---
 
 # Load weekly (NF)
 
-1. Read factory `clients[]` (via registry / agents knowledge) — each `leantime_client_id` + `project_id` + repos.
-2. For each client product repo with `.factory/quality.yaml` `load:` — run the tenant command against **test** env.
+1. **Sync first** — follow `tenant-repo-sync` for every `clients-repos-registry.json` entry. Record `synced: repo_id=… sha=… path=…` (or skip reason). Do not read stale `/workspace/repo` as a product tree.
+2. For each synced product repo with `.factory/quality.yaml` `load:` — run the tenant command against **test** env from the synced `path`.
 3. On failure/regression: `create_ticket` on that client's `project_id` (New) with summary + log link. Tag/assign PM (`pm`) or developer as appropriate.
 4. Do not change feature ticket Done gates. Do not deploy prod from this skill.
 

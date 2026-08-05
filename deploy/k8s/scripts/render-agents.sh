@@ -19,6 +19,7 @@ from pathlib import Path
 import yaml
 
 sys.path.insert(0, sys.argv[5])
+from clients import CLIENTS_REPOS_CURSOR_PATH, clients_repos_registry_json
 from persona_bundle import build_persona_bundle, bundle_for_configmap
 from repos import index_repos, resolve_agent_repo
 from tenant_cd import REGISTRY_CURSOR_PATH, registry_json
@@ -37,6 +38,11 @@ leantime_url = str(
 ).strip().rstrip("/")
 personas_root = Path(agents_yaml).parents[1] / "personas"
 tenant_registry = registry_json(agents, data.get("repos"), data.get("clients"))
+clients_repos_registry = clients_repos_registry_json(
+    data.get("clients"), data.get("repos")
+)
+# Staff NF/gates: qa, aa, ta need full clients×repos URLs (not only tenant_cd).
+CLIENTS_REPOS_PERSONAS = frozenset({"qa", "aa", "ta"})
 org_wiki = repos_by_id.get("org-wiki") or repos_by_id.get("wiki") or {}
 org_wiki_url = str(org_wiki.get("git_repo_url") or "").strip()
 
@@ -113,6 +119,9 @@ for persona in persona_emails:
     # M5: only ta gets the generated tenant CD registry (lookup by agent/repo).
     if persona == "ta":
         bundle[REGISTRY_CURSOR_PATH] = tenant_registry
+    # M11 NF/gates: qa/aa/ta get clients×repos for tenant-repo-sync.
+    if persona in CLIENTS_REPOS_PERSONAS:
+        bundle[CLIENTS_REPOS_CURSOR_PATH] = clients_repos_registry
     cm = {
         "apiVersion": "v1",
         "kind": "ConfigMap",

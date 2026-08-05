@@ -2,7 +2,13 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
+
+from repos import index_repos
+
+CLIENTS_REPOS_VERSION = 1
+CLIENTS_REPOS_CURSOR_PATH = ".cursor/clients-repos-registry.json"
 
 LOOP_STATUS_NAMES: tuple[str, ...] = (
     "New",
@@ -104,3 +110,44 @@ def resolve_status_id(
     if default_board and name in default_board:
         return int(default_board[name])
     raise ValueError(f"no status id for {name!r}")
+
+
+def build_clients_repos_registry(
+    clients: list[object] | None,
+    repos: list[object] | None = None,
+) -> dict[str, Any]:
+    """Join clients[] + repos[] for staff NF/gate discovery (no tenant_cd required)."""
+    by_id, _repo_to_client = index_clients(clients)
+    repos_by_id = index_repos(repos)
+    out_clients: list[dict[str, Any]] = []
+    for cid in sorted(by_id):
+        client = by_id[cid]
+        repo_entries: list[dict[str, str]] = []
+        for repo_id in client["repo_ids"]:
+            if repo_id not in repos_by_id:
+                raise ValueError(
+                    f"clients leantime_client_id={cid}: unknown repo_id {repo_id!r}"
+                )
+            repo_entries.append(
+                {
+                    "repo_id": repo_id,
+                    "git_repo_url": repos_by_id[repo_id]["git_repo_url"],
+                }
+            )
+        entry: dict[str, Any] = {
+            "leantime_client_id": cid,
+            "project_id": client["project_id"],
+            "repos": repo_entries,
+        }
+        if client.get("id"):
+            entry["id"] = client["id"]
+        out_clients.append(entry)
+    return {"version": CLIENTS_REPOS_VERSION, "clients": out_clients}
+
+
+def clients_repos_registry_json(
+    clients: list[object] | None,
+    repos: list[object] | None = None,
+) -> str:
+    """Pretty JSON for persona ConfigMap seed."""
+    return json.dumps(build_clients_repos_registry(clients, repos), indent=2) + "\n"

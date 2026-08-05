@@ -3,7 +3,7 @@ name: browser-e2e
 description: >-
   Run tenant E2E scenarios in a real browser against the test environment.
   Use for ticket QA gate, GitHub issue reproduction, and scenario registration.
-version: 1.0.0
+version: 1.1.0
 author: qa persona
 license: MIT
 ---
@@ -12,6 +12,7 @@ license: MIT
 
 Criteria/scenarios live in the **client repo** (`.factory/quality.yaml` `e2e:` + scenario files). Do not invent product acceptance in the factory.
 
+0. **Sync** the client product repo with `tenant-repo-sync` (`synced: …`); read criteria from that path.
 1. Resolve `client_id` + test base URL from ticket / registry / quality.yaml.
 2. Drive the browser through the scenario steps (tenant-authored). Capture pass/fail evidence (screenshot/log URL).
 3. On **pass**: `add_comment` on Active ticket:

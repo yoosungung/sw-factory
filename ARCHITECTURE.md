@@ -25,7 +25,7 @@ Leantime × Cursor Agent 협업 시스템 계약 및 인터페이스.
 9. **모델** — `deploy/k8s/agents.yaml` 정본: `settings.model` 기본값, bot마다 `agents[].model`로 override. Pod `AGENT_RUNNER_MODEL`에 주입; 기본 `composer-2.5` (비용 예측 가능); `auto`는 선택 사항.
 10. **Tenant CD ≡ Client** — 테넌트 신원은 Leantime **`client_id`(1:1)**. `repos[].tenant_cd`는 그 client 소속 repo의 CD 블록이다. 배포는 공장(TA/ta `tenant-cd`)이 수행한다. v1 드라이버는 `workflow_dispatch`만. 상세는 §2.8.
 11. **Dual-loop factory** — 공장 직원 5인(PM=`pm`, KM=`km`, TA=`ta`, QA, AA)은 **client에 묶이지 않고** 전 고객사에 접근한다. 개발자는 `human` 또는 `sessions`로 client/repo에 귀속 가능. **기능 루프**(티켓): 구현→test 배포→QA(E2E)∥AA(보안)→prod 배포→Done. **비기능 루프**(주간): TA 부하·AA 클린코드·QA 대량품질 → 해당 client 프로젝트에 티켓. 상세는 §2.6.
-12. **품질 기준은 고객사 repo** — E2E·보안·클린코드·부하·bulk/Opik 본문은 테넌트 `.factory/quality.yaml`(또는 동등)과 repo 산출물. 공장은 스킬·증거 스키마·스케줄만.
+12. **품질 기준은 고객사 repo** — E2E·보안·클린코드·부하·bulk/Opik 본문은 테넌트 `.factory/quality.yaml`(또는 동등)과 repo 산출물. 공장은 스킬·증거 스키마·스케줄·`tenant-repo-sync`(최신 checkout)만.
 
 ## 2. 컴포넌트 간 인터페이스
 
@@ -35,7 +35,7 @@ Leantime × Cursor Agent 협업 시스템 계약 및 인터페이스.
 
 | 필드 | 타입 | 설명 |
 |------|------|------|
-| `agents[]` | array | ≤10; `name`, `leantime_user_id`, `email`, `runner_url`, `git_repo_url`(sync가 `primary_repo` resolve), `persona`, `type`(`human`\|`sessions`\|`openai`). `human`: Pod 없음·`runner_url` 빈 문자열. `sessions`: Pod/Service `cursor-agent-{name}`, sync가 runner_url 생성, `model`(선택), `gh_token_secret_key`(선택, 기본 `GH_TOKEN`). `openai`: YAML `runner_url` 필수(외부 OpenAI-compatible), StatefulSet 없음. `tenant_cd`는 **bridge.json에 넣지 않음** — ta `tenant-cd-registry.json`만(§2.8) |
+| `agents[]` | array | ≤10; `name`, `leantime_user_id`, `email`, `runner_url`, `git_repo_url`(sync가 `primary_repo` resolve), `persona`, `type`(`human`\|`sessions`\|`openai`). `human`: Pod 없음·`runner_url` 빈 문자열. `sessions`: Pod/Service `cursor-agent-{name}`, sync가 runner_url 생성, `model`(선택), `gh_token_secret_key`(선택, 기본 `GH_TOKEN`). `openai`: YAML `runner_url` 필수(외부 OpenAI-compatible), StatefulSet 없음. `tenant_cd`는 **bridge.json에 넣지 않음** — ta `tenant-cd-registry.json`만(§2.8). 주간 NF용 `clients-repos-registry.json`은 qa/aa/ta에 시드(§2.8) |
 | `model` | string | 기본 모델 (`agents.yaml` `settings.model`에서 sync; `sessions`별 override는 `agents[].model`) |
 | `debounce_ms` | int | 동일 티켓 이벤트 디바운스 |
 | `prompts` | object | `ticket_created`, `ticket_updated`, `comment_added`, `assignee_changed`, `mention` (`{ticket_id}`), `handoff`. Router가 매 이벤트에 `Active ticket_id=N` 스코프 문장을 붙여 MCP 읽기/쓰기를 그 티켓으로 고정한다. |
@@ -149,7 +149,7 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
 7. 에이전트 간 코멘트 허용; 자기 담당 자기 코멘트 self-echo만 억제.
 8. `GH_TOKEN`·push 실패 시 blocker + `@eric` — 사용자 로컬 push 요청 금지.
 9. **Done 게이트 (CD):** §2.8 기능 증거(test + `qa:` + `aa:` + prod) 전부. merge ≠ Done. 부하·클린코드는 티켓 Done 불필요(주간 NF).
-10. **비기능 루프 (주간):** 스케줄 `ta-load-weekly` / `aa-clean-weekly` / `qa-bulk-weekly` — 테넌트 기준 실행 후 **해당 `client_id` 프로젝트**에 `New` 티켓. `aa-clean-weekly`는 테넌트 `clean_code.command`(기계) + AA 스킬 휴리스틱 리뷰(스키마·절차는 persona)이며, 기능 Done/보안 게이트와 분리한다. **장시간 NF**(예상 런타임 ≫ `budget.timeout_ms`·스케줄 세션): 세션은 **기동만**(detach/`nohup`/Job)하고 포그라운드 대기를 하지 않는다. 워커·감시가 Active/`New` 티켓에 `nf-progress:` 하트비트 코멘트(또는 동등 progress 파일+코멘트)를 남겨 진행 증거를 유지한다. pm 독촉은 백업이며, 하트비트가 있으면 alive로 보고 **재실행하지 않는다**.
+10. **비기능 루프 (주간):** 스케줄 `ta-load-weekly` / `aa-clean-weekly` / `qa-bulk-weekly` — **먼저** `tenant-repo-sync`로 `clients-repos-registry.json`의 각 제품 repo를 ephemeral checkout(`fetch`+`reset`/`clone`)한 뒤, 테넌트 `.factory/quality.yaml` 기준으로 실행하고 **해당 `client_id` 프로젝트**에 `New` 티켓. `aa-clean-weekly`는 테넌트 `clean_code.command`(기계) + AA 스킬 휴리스틱 리뷰(스키마·절차는 persona)이며, 기능 Done/보안 게이트와 분리한다. **장시간 NF**(예상 런타임 ≫ `budget.timeout_ms`·스케줄 세션): 세션은 **기동만**(detach/`nohup`/Job)하고 포그라운드 대기를 하지 않는다. 워커·감시가 Active/`New` 티켓에 `nf-progress:` 하트비트 코멘트(또는 동등 progress 파일+코멘트)를 남겨 진행 증거를 유지한다. pm 독촉은 백업이며, 하트비트가 있으면 alive로 보고 **재실행하지 않는다**.
 11. **지식 계층·wiki-first** — §2.9.
 12. 상태 id는 프로젝트마다 다를 수 있으므로 스킬·프롬프트는 **이름→id 매핑**을 쓰고 숫자를 하드코딩하지 않는다.
 13. **human 오배정/오멘션 정정 (PM)** — 주기 점검(`pm-checkpoint`) 때 `Waiting for Approval`·`@eric` 요청을 훑는다. 다음 액션이 에이전트 실행 가능(PR 리뷰/머지·QA E2E·AA·TA CD·KM wiki·구현)이면 올바른 상태·assignee·`@mention`으로 되돌리고 정정 코멘트를 남긴다. 시크릿·RBAC·제품/범위 판단 등 사람 전용 ask는 Approval 유지(모호하면 유지).
@@ -188,6 +188,7 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
 - **`repos[]`**: `id`, `git_repo_url`, 선택 `tenant_cd`, 선택 `client_id`(또는 `clients[].repo_ids`로 소속).
 - **`agents[]`**: `primary_repo`/`repos`로 workspace. 직원 5인에는 `client_id`를 두지 않는다. 개발자 agent는 선택적으로 client/repo 귀속.
 - `render-agents.sh` → TA(ta) `.cursor/tenant-cd-registry.json`. **bridge.json에는 미포함.**
+- `render-agents.sh` → qa / aa / ta `.cursor/clients-repos-registry.json` (`clients[]`×`repos[].git_repo_url`). 주간 NF·품질 게이트는 `tenant-repo-sync`로 ephemeral sync 후 `.factory/quality.yaml`을 읽는다( primary workspace만 믿지 않음 ).
 - `repos[]` `org-wiki`/`wiki` → `ORG_WIKI_URL`. 품질 discovery는 테넌트 `.factory/quality.yaml`(`examples/tenant-quality/`).
 
 `enabled: false` 또는 필드 없음 → CD 비대상.

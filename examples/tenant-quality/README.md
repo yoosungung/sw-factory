@@ -46,7 +46,7 @@ deploy:
 
 `command` is the mechanical gate (lint/format/tests). AA still performs Clean Code heuristic review on hotspots; findings become `New` tickets on the client project (not a feature Done / security gate).
 
-Factory agents discover this file in the client git workspace; criteria bodies stay in the tenant repo.
+Factory agents discover this file in the client git workspace after **`tenant-repo-sync`** (ephemeral checkout from `clients-repos-registry.json`); criteria bodies stay in the tenant repo. Do not rely on a stale Pod primary clone alone.
 
 ### Long-run NF (`long_run: true`)
 

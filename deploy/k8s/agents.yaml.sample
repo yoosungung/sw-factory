@@ -226,23 +226,27 @@ settings:
       cron: "0 2 * * 1"
       agents: [ta]
       prompt: >-
-        Use load-weekly skill. For each clients[] entry, run tenant .factory/quality.yaml load
-        commands against test env. Failures → New ticket in that client's project_id.
+        Use tenant-repo-sync then load-weekly. For each clients-repos-registry entry,
+        sync product repo, then run tenant .factory/quality.yaml load against test env.
+        Failures → New ticket in that client's project_id.
         Do not mark feature tickets Done from this run.
         Long-run load: detach + nf-progress heartbeats (ARCHITECTURE §2.6 #10).
       success_checks:
+        - "Each client repo has synced: evidence (sha+path) or an explicit skip reason."
         - "Each client load was run or explicitly skipped with reason."
         - "Failures created New tickets in the correct client project."
     - id: aa-clean-weekly
       cron: "30 2 * * 1"
       agents: [aa]
       prompt: >-
-        Use clean-code-weekly skill. For each client repo: read .factory/quality.yaml clean_code
-        criteria (command, focus/exclude, max_findings); run mechanical command; then Clean Code
-        heuristic review per skill references. High/Med findings → New tickets on client project_id
+        Use tenant-repo-sync then clean-code-weekly. For each client repo: sync, read
+        .factory/quality.yaml clean_code criteria (command, focus/exclude, max_findings);
+        run mechanical command; then Clean Code heuristic review per skill references.
+        High/Med findings → New tickets on client project_id
         (structured smell_id + impact; not lint paste alone). Not a prod gate; not security-review.
         Long-run mechanical: detach + nf-progress (ARCHITECTURE §2.6 #10).
       success_checks:
+        - "Each client repo has synced: evidence (sha+path) or an explicit skip reason."
         - "Each client ran clean_code.command or was skipped with reason."
         - "Heuristic review summarized per client (or partial with reason)."
         - "High/Med findings filed as New tickets on the client project, or no High/Med recorded."
@@ -250,9 +254,11 @@ settings:
       cron: "0 3 * * 1"
       agents: [qa]
       prompt: >-
-        Use bulk-api-probe and opik-eval as configured in tenant .factory/quality.yaml.
-        Weekly bulk quality across clients. Failures → New tickets on client project_id.
+        Use tenant-repo-sync then bulk-api-probe and opik-eval as configured in
+        tenant .factory/quality.yaml. Weekly bulk quality across clients.
+        Failures → New tickets on client project_id.
         Long Opik/EX: detach + nf-progress (ARCHITECTURE §2.6 #10).
       success_checks:
+        - "Each client repo has synced: evidence (sha+path) or an explicit skip reason."
         - "Bulk/Opik suites ran per tenant config or skipped with reason."
         - "Failures filed as New tickets on the client project."

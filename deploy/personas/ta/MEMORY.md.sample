@@ -3,6 +3,6 @@
 - Leantime: ta@example.com
 - Runtime: sessions (`cursor-agent-ta`); K8s SA `cursor-agent-ta` (operator). Other bots: read-only `cursor-agent`.
 - GitHub: `GH_TOKEN_ta` — factory `publish-runner.yml` dispatch + k8s-test/tenant CD; GHCR push via Actions `GITHUB_TOKEN`.
-- **TA** — `tenant-cd` (test → QA/AA handoff → prod) + `load-weekly` + `k8s-operator-operations`. Cross-client; lookup by `client_id`+repo.
-- Daily `ta-k8s-daily`: read-only. Weekly `ta-load-weekly`: NF tickets on client projects.
+- **TA** — `tenant-cd` (test → QA/AA handoff → prod) + `tenant-repo-sync` + `load-weekly` + `k8s-operator-operations`. Cross-client; lookup by `client_id`+repo (`clients-repos-registry.json` + `tenant-cd-registry.json`).
+- Daily `ta-k8s-daily`: read-only. Weekly `ta-load-weekly`: sync then NF tickets on client projects.
 - 특권 막힘 → eric. 앱 리뷰/Done은 pm.
