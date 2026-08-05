@@ -9,6 +9,9 @@ import { WorkerPool } from "./worker-pool.js";
 
 export { CreateThrottledError } from "./create-storm.js";
 
+/** Consecutive skipped_active_run before cancel+recreate (R3). */
+export const SKIPPED_ACTIVE_RUN_THRESHOLD = 2;
+
 export interface RunResult {
   runId: string;
   status: string;
@@ -147,13 +150,21 @@ export class SdkBackend implements AgentBackend {
   private readonly ticketAgents = new Map<number, string>();
   private readonly knownAgents = new Set<string>();
   private readonly busyAgents = new Set<string>();
+  private readonly skippedActiveRunCounts = new Map<string, number>();
   private readonly createStorm: CreateStormGuard;
+  private readonly skippedActiveRunThreshold: number;
   private started = false;
 
-  constructor(settings: Settings, pool?: RunPool, createStorm?: CreateStormGuard) {
+  constructor(
+    settings: Settings,
+    pool?: RunPool,
+    createStorm?: CreateStormGuard,
+    skippedActiveRunThreshold: number = SKIPPED_ACTIVE_RUN_THRESHOLD,
+  ) {
     this.settings = settings;
     this.pool = pool ?? createDefaultPool(settings);
     this.createStorm = createStorm ?? new CreateStormGuard();
+    this.skippedActiveRunThreshold = skippedActiveRunThreshold;
   }
 
   /** Drop sticky ticket→agent mapping so the next create gets a fresh MCP host. */
@@ -170,6 +181,98 @@ export class SdkBackend implements AgentBackend {
         }),
       );
     }
+  }
+
+  private logRecover(fields: {
+    reason: string;
+    agent_id: string;
+    ticket_id?: number;
+    action: "forget" | "cancel" | "recreate";
+  }): void {
+    console.log(
+      JSON.stringify({
+        ts: new Date().toISOString(),
+        event: "session.recover",
+        ...fields,
+      }),
+    );
+  }
+
+  /** Forget ticket↔agent mapping and clear busy for agent (R1/R2). */
+  private forgetAgentMapping(
+    agentId: string,
+    ticketId: number | undefined,
+    reason: string,
+  ): void {
+    this.busyAgents.delete(agentId);
+    if (ticketId !== undefined) {
+      if (this.ticketAgents.get(ticketId) === agentId) {
+        this.ticketAgents.delete(ticketId);
+        this.createStorm.clear(ticketId);
+      }
+    } else {
+      for (const [tid, mapped] of [...this.ticketAgents]) {
+        if (mapped === agentId) {
+          this.ticketAgents.delete(tid);
+          this.createStorm.clear(tid);
+        }
+      }
+    }
+    this.logRecover({
+      reason,
+      agent_id: agentId,
+      ticket_id: ticketId,
+      action: "forget",
+    });
+  }
+
+  private async cancelAndForget(
+    agentId: string,
+    ticketId: number | undefined,
+    reason: string,
+  ): Promise<void> {
+    try {
+      await this.cancel(agentId);
+      this.logRecover({
+        reason,
+        agent_id: agentId,
+        ticket_id: ticketId,
+        action: "cancel",
+      });
+    } catch {
+      this.forgetAgentMapping(agentId, ticketId, reason);
+    }
+    this.skippedActiveRunCounts.delete(agentId);
+  }
+
+  /**
+   * R3: count consecutive skipped_active_run. At threshold → cancel (R3) so
+   * caller can recreate (R4). Returns true when mapping was cleared for recreate.
+   */
+  private async noteSkippedActiveRun(
+    agentId: string,
+    ticketId?: number,
+  ): Promise<boolean> {
+    const next = (this.skippedActiveRunCounts.get(agentId) ?? 0) + 1;
+    this.skippedActiveRunCounts.set(agentId, next);
+    if (next < this.skippedActiveRunThreshold) {
+      return false;
+    }
+    await this.cancelAndForget(agentId, ticketId, "skipped_active_run");
+    return true;
+  }
+
+  private recoverDoneFailure(
+    agentId: string,
+    ticketId: number | undefined,
+    error: unknown,
+  ): void {
+    const message = error instanceof Error ? error.message : String(error);
+    const reason = message.includes("exited during job")
+      ? "worker_crash"
+      : "done_reject";
+    this.forgetAgentMapping(agentId, ticketId, reason);
+    this.skippedActiveRunCounts.delete(agentId);
   }
 
   async ensureStarted(): Promise<void> {
@@ -205,13 +308,27 @@ export class SdkBackend implements AgentBackend {
           return { agentId: existingId, runs: [run] };
         } catch (error) {
           if (error instanceof ActiveRunError) {
-            return {
-              agentId: existingId,
-              runs: [{ runId: "", status: "skipped_active_run" }],
-            };
+            const cleared = await this.noteSkippedActiveRun(
+              existingId,
+              ticketId,
+            );
+            if (!cleared) {
+              return {
+                agentId: existingId,
+                runs: [{ runId: "", status: "skipped_active_run" }],
+              };
+            }
+            // R4: fall through to fresh create after cancel
+            this.logRecover({
+              reason: "skipped_active_run",
+              agent_id: existingId,
+              ticket_id: ticketId,
+              action: "recreate",
+            });
+          } else {
+            // Stale mapping — fall through to a fresh create.
+            this.ticketAgents.delete(ticketId);
           }
-          // Stale mapping — fall through to a fresh create.
-          this.ticketAgents.delete(ticketId);
         }
       }
       this.createStorm.beforeCreate(ticketId);
@@ -231,6 +348,7 @@ export class SdkBackend implements AgentBackend {
         this.ticketAgents.set(ticketId, submitted.agentId);
       }
       this.busyAgents.add(submitted.agentId);
+      this.skippedActiveRunCounts.delete(submitted.agentId);
       void submitted.done
         .then((done) => {
           if (ticketId !== undefined) {
@@ -271,6 +389,7 @@ export class SdkBackend implements AgentBackend {
               error: error instanceof Error ? error.message : String(error),
             }),
           );
+          this.recoverDoneFailure(submitted.agentId, ticketId, error);
         })
         .finally(() => {
           this.busyAgents.delete(submitted.agentId);
@@ -318,6 +437,7 @@ export class SdkBackend implements AgentBackend {
         control,
       });
       this.knownAgents.add(submitted.agentId);
+      this.skippedActiveRunCounts.delete(agentId);
       void submitted.done
         .then((done) => {
           if (ticketId !== undefined) {
@@ -336,6 +456,7 @@ export class SdkBackend implements AgentBackend {
               error: error instanceof Error ? error.message : String(error),
             }),
           );
+          this.recoverDoneFailure(agentId, ticketId, error);
         })
         .finally(() => {
           this.busyAgents.delete(agentId);
@@ -343,7 +464,12 @@ export class SdkBackend implements AgentBackend {
       return { runId: submitted.runId, status: "accepted" };
     } catch (error) {
       this.busyAgents.delete(agentId);
-      throw mapPoolError(error, agentId);
+      const mapped = mapPoolError(error, agentId);
+      if (mapped instanceof ActiveRunError) {
+        // R2: SDK zombie active_run — forget + best-effort cancel
+        await this.cancelAndForget(agentId, ticketId, "active_run_fail");
+      }
+      throw mapped;
     }
   }
 
@@ -369,6 +495,8 @@ export class SdkBackend implements AgentBackend {
       throw mapPoolError(error, agentId);
     }
     this.knownAgents.delete(agentId);
+    this.busyAgents.delete(agentId);
+    this.skippedActiveRunCounts.delete(agentId);
     for (const [ticketId, mapped] of this.ticketAgents) {
       if (mapped === agentId) {
         this.ticketAgents.delete(ticketId);

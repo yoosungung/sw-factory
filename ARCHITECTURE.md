@@ -86,7 +86,7 @@ runner 일시 장애 시 Leantime 요청은 실패하지 않고, **티켓×계�
 | DELETE | `/sessions/{agent_id}` | — | 204 |
 | GET | `/healthz` | — | 200 |
 
-HTTP 계약은 불변. 프로세스 내부는 **parent(Hono, SDK 미로드) + SDK worker pool**: 잡마다 worker가 `create`/`resume` → `send` → `wait` → handle `close`. Pre-lease로 idle/age/jobs 초과 worker를 교체하고, in-band auth 독성 시 해당 worker만 retire 후 1회 재시도한다.
+HTTP 계약은 불변(409 `skipped_active_run` 포함). 프로세스 내부는 **parent(Hono, SDK 미로드) + SDK worker pool**: 잡마다 worker가 `create`/`resume` → `send` → `wait` → handle `close`. Pre-lease로 idle/age/jobs 초과 worker를 교체하고, in-band auth 독성 시 해당 worker만 retire 후 1회 재시도한다. Worker crash·SDK zombie `active_run` 복구(매핑 forget·cancel·새 session·`session.recover` 로그)는 runner 내부이며 HTTP dialect를 바꾸지 않는다 — 정본 [`agent-runner/DESIGN.md`](agent-runner/DESIGN.md) § Recovery.
 
 #### 2.3.2 `openai` (OpenAI-compatible, 예: Hermes API Server)
 

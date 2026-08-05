@@ -46,6 +46,7 @@ M0–M10 완료(실클러스터 데모·일부 수동 검증 제외). **M11 Dual
 - [x] Goose A안 Phase 2: `success_checks` hard 검증(SDK `status=finished` AND 마지막 Leantime mutation) + 같은 session 제한 재시도(`success_retry.max_attempts`) → `verification_failed` (`agent-runner/src/success-verify.ts`)
 - [x] success_check 완화: 기본 `max_attempts=1`, infra abort, same-reason stop, JSON-RPC read-after-write, softer retry prompt
 - [x] create storm breaker (`create_throttled` 429) + Bridge non-retry + MCP sticky_reset + `/readyz` MCP probe
+- [ ] agent-runner zombie `active_run` recovery R1–R5 (`session.recover`; DESIGN § Recovery · #197)
 - [x] pm Hermes(`openai`) → agent-runner(`sessions`) + persona `leantime-pm` 이식·컷오버
 - [x] ta persona + `k8s-operator-operations` 스킬 + `ta-k8s-daily` 스케줄 + ClusterRole observer
 
