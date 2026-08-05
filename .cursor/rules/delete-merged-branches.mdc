@@ -1,0 +1,15 @@
+---
+description: After merge to main, delete obsolete local and remote feature branches
+alwaysApply: true
+---
+
+# Delete unnecessary branches
+
+When a feature branch has been merged into `main` (with or without a PR):
+
+1. Switch to `main` and ensure it is up to date with `origin/main`.
+2. Delete the local branch: `git branch -d <branch>` (use `-D` only if the user explicitly allows a force delete of an unmerged branch).
+3. Delete the remote branch: `git push origin --delete <branch>`.
+4. Do not leave merged feature branches hanging after ship/merge/deploy.
+
+Do **not** delete `main`/`master` or branches the user still asks to keep.
