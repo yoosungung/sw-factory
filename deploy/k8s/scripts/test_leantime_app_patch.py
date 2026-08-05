@@ -1,11 +1,16 @@
-"""#60: getStateLabels must resolve projectId before cache lookup."""
+"""#60: getStateLabels must resolve projectId before cache lookup.
+Filename cards: showAll overlays must not hard-truncate to 10 chars.
+"""
 
 from __future__ import annotations
 
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parents[2]
-PATCH = ROOT / "deploy/k8s/leantime-app-patch/Tickets.Repositories.php"
+PATCH_DIR = ROOT / "deploy/k8s/leantime-app-patch"
+PATCH = PATCH_DIR / "Tickets.Repositories.php"
+SHOWALL_SUB = PATCH_DIR / "showAll.submodules.blade.php"
+SHOWALL = PATCH_DIR / "showAll.blade.php"
 
 
 def test_get_state_labels_resolves_project_before_cache():
@@ -19,8 +24,18 @@ def test_get_state_labels_resolves_project_before_cache():
     assert resolve < cache, "projectId must be resolved before Cache::has (#60)"
 
 
+def test_showall_overlays_show_full_filename():
+    truncate = "substr($file['realName'], 0, 10)"
+    full = "{{ $file['realName'] }}.{{ $file['extension'] }}"
+    for path in (SHOWALL_SUB, SHOWALL):
+        text = path.read_text()
+        assert truncate not in text, f"{path.name} still truncates realName"
+        assert full in text, f"{path.name} must render full realName.extension"
+
+
 def test_patch_readme_documents_cm_apply():
-    readme = (ROOT / "deploy/k8s/leantime-app-patch/README.md").read_text()
+    readme = (PATCH_DIR / "README.md").read_text()
     assert "Tickets.Repositories.php" in readme
+    assert "showAll.submodules.blade.php" in readme
     assert "leantime-app-patch" in readme
     assert "volumeMount" in readme or "subPath" in readme
