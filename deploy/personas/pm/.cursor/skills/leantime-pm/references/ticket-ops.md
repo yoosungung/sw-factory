@@ -120,6 +120,7 @@ A ticket previously marked `Done` can be explicitly reactivated by a newer comme
 - Every Leantime PM ticket and subtask must have an explicit assignee.
 - Assign each ticket/subtask to the correct developer or responsible project owner at creation time.
 - Parent tickets should also be assigned: use the responsible project owner or PM operator; do not leave parent tickets unassigned.
+- **Unassigned triage mention:** When CursorBridge posts `@pm` with marker `cursorbridge-unassigned-triage` on a newly created ticket, set assignee + appropriate status immediately, `@mention` the owner, and leave a short outcome comment.
 - Implementation subtasks must have concrete developer assignees before work starts.
 - If an assignee is wrong or unavailable, reassign and leave a comment explaining the change.
 - Avoid unassigned tickets entirely unless the next step is explicitly triage-only; if so, document that in the ticket and assign it as soon as the owner is known.

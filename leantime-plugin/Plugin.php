@@ -39,7 +39,8 @@ final class Plugin
             $sessions,
             $runner,
             new LeantimeTicketLookup(),
-            new LeantimeCommentLookup()
+            new LeantimeCommentLookup(),
+            new LeantimeTicketCommentPoster()
         );
     }
 
@@ -48,25 +49,34 @@ final class Plugin
     private ResilientRunnerClient $runner;
     private TicketLookup $tickets;
     private CommentLookup $comments;
+    private TicketCommentPoster $ticketComments;
 
     public function __construct(
         BridgeConfig $config,
         SessionStore $sessions,
         ResilientRunnerClient $runner,
         ?TicketLookup $tickets = null,
-        ?CommentLookup $comments = null
+        ?CommentLookup $comments = null,
+        ?TicketCommentPoster $ticketComments = null
     ) {
         $this->config = $config;
         $this->sessions = $sessions;
         $this->runner = $runner;
         $this->tickets = $tickets ?? new NullTicketLookup();
         $this->comments = $comments ?? new NullCommentLookup();
+        $this->ticketComments = $ticketComments ?? new NullTicketCommentPoster();
     }
 
     public function listener(): Listener
     {
         return new Listener(
-            new Router($this->config, $this->sessions, $this->runner, $this->tickets),
+            new Router(
+                $this->config,
+                $this->sessions,
+                $this->runner,
+                $this->tickets,
+                $this->ticketComments
+            ),
             $this->comments
         );
     }

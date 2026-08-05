@@ -145,7 +145,7 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
 3. **기능 루프 (CD 대상):** `In Progress` → `Review`(PM merge) → `Deploying Test`(TA) → `QA`(QA E2E ∥ AA 보안) → 둘 다 통과 후 `Deploying Prod`(TA) → 증거 충족 시 `Done`. 실패 시 개발자·`In Progress`/`Blocked`. `tenant_cd` 없으면 Review → Done(기존).
 4. **리뷰 핸드오프 전 배송(ship) 필수** — 봇 runner는 `git-ship`으로 push·PR 후 Review·`@pm`. 사람에게 로컬 push를 요청하지 않는다.
 5. 핸드오프: assignee + 같은 티켓 코멘트. merge 후 CD면 TA에 `merge_sha`; test 성공 후 `@qa` `@aa`; 게이트 통과 후 TA에 prod.
-6. `@mention` 시 해당 runner 알림 (M3).
+6. `@mention` 시 해당 runner 알림 (M3). **티켓 생성 시 담당자(editor)가 비어 있으면** CursorBridge가 `@pm` triage 멘션 코멘트를 1회 남기고 기존 mention 라우팅으로 pm 세션을 연다(pm에 직접 createSession하지 않음; `ticket_updated`는 대상 아님).
 7. 에이전트 간 코멘트 허용; 자기 담당 자기 코멘트 self-echo만 억제.
 8. `GH_TOKEN`·push 실패 시 blocker + `@eric` — 사용자 로컬 push 요청 금지.
 9. **Done 게이트 (CD):** §2.8 기능 증거(test + `qa:` + `aa:` + prod) 전부. merge ≠ Done. 부하·클린코드는 티켓 Done 불필요(주간 NF).

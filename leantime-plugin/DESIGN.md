@@ -73,4 +73,8 @@ Leantime 이미지 메이저/마이너 올리면 패치 파일을 재검토한�
 
 `type=openai` runner는 env `CURSORBRIDGE_OPENAI_API_KEY` 필요.
 
+### Unassigned triage (`ticket_created`)
+
+담당자(`editorId` / `assigneeUserId`)가 비어 있는 **본 티켓**이 생성되면 Router가 `@pm` HTML 멘션 코멘트(마커 `cursorbridge-unassigned-triage`)를 1회 남기고 `routeMentions`로 pm runner를 연다. milestone/subtask·Done/Archived는 제외. 같은 마커가 이미 있으면 skip. 이후 동일 마커 `comment_added`는 mention 재라우팅하지 않는다(이중 세션 방지).
+
 `composer.json`에 **`version` 필수** — 없으면 My Apps 목록이 비어 보임. Leantime PSR-4는 `app/Plugins/{Folder}/` 기준이므로 클래스는 `src/`가 아닌 플러그인 루트·`Services/`에 둔다.

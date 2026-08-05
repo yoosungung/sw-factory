@@ -27,6 +27,8 @@ final class LeantimeTicketLookup implements TicketLookup
                 'assigneeUserId' => (int) ($ticket->editorId ?? 0),
                 'status' => (int) ($ticket->status ?? 0),
                 'actorUserId' => (int) (session('userdata.id') ?? 0),
+                'type' => (string) ($ticket->type ?? 'task'),
+                'dependingTicketId' => (int) ($ticket->dependingTicketId ?? 0),
             ];
         } catch (\Throwable) {
             return null;

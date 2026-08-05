@@ -6,10 +6,13 @@ namespace Leantime\Plugins\CursorBridge;
 
 final class Router
 {
+    public const UNASSIGNED_TRIAGE_MARKER = 'cursorbridge-unassigned-triage';
+
     private BridgeConfig $config;
     private SessionStore $sessions;
     private ResilientRunnerClient $runner;
     private TicketLookup $tickets;
+    private TicketCommentPoster $comments;
 
     /** @var array<int, true> */
     private array $ticketLocks = [];
@@ -21,12 +24,14 @@ final class Router
         BridgeConfig $config,
         SessionStore $sessions,
         ResilientRunnerClient $runner,
-        ?TicketLookup $tickets = null
+        ?TicketLookup $tickets = null,
+        ?TicketCommentPoster $comments = null
     ) {
         $this->config = $config;
         $this->sessions = $sessions;
         $this->runner = $runner;
         $this->tickets = $tickets ?? new NullTicketLookup();
+        $this->comments = $comments ?? new NullTicketCommentPoster();
     }
 
     /**
@@ -90,8 +95,13 @@ final class Router
     private function dispatch(string $event, array $payload, int $ticketId): array
     {
         $assigneeId = $this->resolveAssigneeId($payload);
+        $editorAssigneeId = $this->resolveEditorAssigneeId($payload);
         $actorId = $this->resolveActorId($payload);
         $results = [];
+
+        if ($event === 'ticket_created' && $editorAssigneeId <= 0) {
+            $results = array_merge($results, $this->notifyUnassignedTriage($payload, $ticketId));
+        }
 
         if (!$this->isSelfEcho($actorId, $assigneeId)) {
             $runner = $this->config->runnerForUserId($assigneeId);
@@ -137,7 +147,10 @@ final class Router
         }
 
         if ($event === 'comment_added' && $this->config->mentionRoutingEnabled()) {
-            $results = array_merge($results, $this->routeMentions($payload, $ticketId, $assigneeId));
+            $commentText = (string) ($payload['commentText'] ?? '');
+            if (!str_contains($commentText, self::UNASSIGNED_TRIAGE_MARKER)) {
+                $results = array_merge($results, $this->routeMentions($payload, $ticketId, $assigneeId));
+            }
         }
 
         if ($event === 'assignee_changed') {
@@ -145,6 +158,90 @@ final class Router
         }
 
         return $results;
+    }
+
+    /**
+     * ticket_created with empty editor assignee → @pm triage comment + mention route.
+     *
+     * @param array<string, mixed> $payload
+     * @return list<array{runner_url: string, agent_id: string, run_id: string, status: string}>
+     */
+    private function notifyUnassignedTriage(array $payload, int $ticketId): array
+    {
+        if (!$this->config->mentionRoutingEnabled()) {
+            return [];
+        }
+
+        $status = isset($payload['status']) ? (int) $payload['status'] : null;
+        if ($status === 0 || $status === -1) {
+            return [];
+        }
+
+        if (!$this->isAssignableMainTicket($payload)) {
+            return [];
+        }
+
+        $pm = $this->config->agentByName('pm');
+        if ($pm === null) {
+            return [];
+        }
+        $pmUserId = (int) ($pm['leantime_user_id'] ?? 0);
+        if ($pmUserId <= 0) {
+            return [];
+        }
+        $pmRunnerUrl = trim((string) ($pm['runner_url'] ?? ''));
+        if ($pmRunnerUrl === '') {
+            return [];
+        }
+
+        if ($this->comments->hasContaining($ticketId, self::UNASSIGNED_TRIAGE_MARKER)) {
+            return [];
+        }
+
+        $html = '<p><a class="tiptap-mention" data-tagged-user-id="' . $pmUserId . '">@pm</a> '
+            . 'Unassigned ticket triage: set assignee and status.</p>'
+            . '<!-- ' . self::UNASSIGNED_TRIAGE_MARKER . ' -->';
+
+        if (!$this->comments->post($ticketId, $html)) {
+            return [];
+        }
+
+        return $this->routeMentions(
+            [
+                'commentText' => $html,
+                'actorUserId' => $this->resolveActorId($payload),
+            ],
+            $ticketId,
+            0
+        );
+    }
+
+    /** @param array<string, mixed> $payload */
+    private function isAssignableMainTicket(array $payload): bool
+    {
+        $type = strtolower(trim((string) ($payload['type'] ?? 'task')));
+        if ($type === 'milestone' || $type === 'subtask') {
+            return false;
+        }
+
+        $depending = (int) (
+            $payload['dependingTicketId']
+            ?? $payload['depending_ticket_id']
+            ?? 0
+        );
+
+        return $depending <= 0;
+    }
+
+    /** Editor/assignee only — do not fall back to ticket author userId. */
+    private function resolveEditorAssigneeId(array $payload): int
+    {
+        return (int) (
+            $payload['assigneeUserId']
+            ?? $payload['assignee_user_id']
+            ?? $payload['editorId']
+            ?? 0
+        );
     }
 
     private function acquireTicketLock(int $ticketId): bool

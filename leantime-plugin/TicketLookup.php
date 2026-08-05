@@ -10,7 +10,7 @@ namespace Leantime\Plugins\CursorBridge;
 interface TicketLookup
 {
     /**
-     * @return array{ticketId?:int,assigneeUserId?:int,status?:int,actorUserId?:int}|null
+     * @return array{ticketId?:int,assigneeUserId?:int,status?:int,actorUserId?:int,type?:string,dependingTicketId?:int}|null
      */
     public function find(int $ticketId): ?array;
 }

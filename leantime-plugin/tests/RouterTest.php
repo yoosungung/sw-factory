@@ -8,6 +8,7 @@ use Leantime\Plugins\CursorBridge\BridgeConfig;
 use Leantime\Plugins\CursorBridge\DelegatingRunnerClient;
 use Leantime\Plugins\CursorBridge\NullTicketLookup;
 use Leantime\Plugins\CursorBridge\OpenAIRunnerClient;
+use Leantime\Plugins\CursorBridge\RecordingTicketCommentPoster;
 use Leantime\Plugins\CursorBridge\ResilientRunnerClient;
 use Leantime\Plugins\CursorBridge\Router;
 use Leantime\Plugins\CursorBridge\RunnerClient;
@@ -25,9 +26,15 @@ final class RouterTest extends TestCase
         $this->posts = [];
     }
 
+    /** Sessions bot used as primary assignee in Router tests (bridge.json: candidate). */
     private function pathUserId(): int
     {
-        return 6;
+        return 9;
+    }
+
+    private function pathRunnerNeedle(): string
+    {
+        return 'cursor-agent-candidate';
     }
 
     private function router(?TicketLookup $lookup = null): Router
@@ -71,7 +78,7 @@ final class RouterTest extends TestCase
         $this->assertStringContainsString('title=Fix login', $prompt);
         $this->assertStringContainsString('Success checks', $prompt);
         $this->assertNotEmpty($this->posts[0]['body']['success_checks'] ?? []);
-        $this->assertSame(1, $this->posts[0]['body']['success_retry']['max_attempts'] ?? null);
+        $this->assertSame(3, $this->posts[0]['body']['success_retry']['max_attempts'] ?? null);
     }
 
     public function testAssigneeChangedIncludesDelegationLineage(): void
@@ -145,7 +152,7 @@ final class RouterTest extends TestCase
         $this->assertCount(1, $results);
         $this->assertSame('agent-test-1', $results[0]['agent_id']);
         $this->assertStringEndsWith('/sessions', $this->posts[0]['url']);
-        $this->assertStringContainsString('cursor-agent-path', $this->posts[0]['url']);
+        $this->assertStringContainsString('cursor-agent-candidate', $this->posts[0]['url']);
     }
 
     public function testEnrichesAssigneeFromTicketLookup(): void
@@ -170,7 +177,7 @@ final class RouterTest extends TestCase
         $results = $router->handle('ticket_created', ['ticketId' => 55]);
 
         $this->assertCount(1, $results);
-        $this->assertStringContainsString('cursor-agent-path', $this->posts[0]['url']);
+        $this->assertStringContainsString('cursor-agent-candidate', $this->posts[0]['url']);
     }
 
     public function testIgnoresSelfEchoWhenAssigneeAgentActsOnOwnTicket(): void
@@ -397,9 +404,9 @@ final class RouterTest extends TestCase
 
         $router->handle('comment_added', [
             'ticketId' => 303,
-            'assigneeUserId' => 6,
+            'assigneeUserId' => $this->pathUserId(),
             'actorUserId' => 1,
-            'commentText' => '<a class="tiptap-mention" data-tagged-user-id="6">@path</a> only you',
+            'commentText' => '<a class="tiptap-mention" data-tagged-user-id="' . $this->pathUserId() . '">@candidate</a> only you',
             'status' => 3,
         ]);
 
@@ -414,14 +421,15 @@ final class RouterTest extends TestCase
     {
         $config = BridgeConfig::fromFile(dirname(__DIR__) . '/bridge.json');
         $sessions = SessionStore::inMemory();
-        $sessions->upsert(400, 'agent-path', 6);
+        $assigneeId = $this->pathUserId();
+        $sessions->upsert(400, 'agent-candidate', $assigneeId);
 
         $posts = [];
         $inner = new RunnerClient(
             function (string $url, array $body) use (&$posts): array {
                 $posts[] = ['url' => $url, 'body' => $body];
                 if (str_ends_with($url, '/sessions')) {
-                    return ['agent_id' => 'agent-asky-ephemeral'];
+                    return ['agent_id' => 'agent-qa-ephemeral'];
                 }
 
                 return ['run_id' => 'run-mention', 'status' => 'completed'];
@@ -433,22 +441,22 @@ final class RouterTest extends TestCase
 
         $router->handle('comment_added', [
             'ticketId' => 400,
-            'assigneeUserId' => 6,
+            'assigneeUserId' => $assigneeId,
             'actorUserId' => 1,
-            'commentText' => '<a class="tiptap-mention" data-tagged-user-id="5">@asky</a> help',
+            'commentText' => '<a class="tiptap-mention" data-tagged-user-id="5">@qa</a> help',
             'status' => 3,
         ]);
 
-        $askyCreate = null;
+        $qaCreate = null;
         foreach ($posts as $post) {
-            if (str_contains($post['url'], 'cursor-agent-asky') && str_ends_with($post['url'], '/sessions')) {
-                $askyCreate = $post;
+            if (str_contains($post['url'], 'cursor-agent-qa') && str_ends_with($post['url'], '/sessions')) {
+                $qaCreate = $post;
                 break;
             }
         }
-        $this->assertNotNull($askyCreate);
-        $this->assertSame('agent-path', $sessions->getAgentId(400));
-        $this->assertSame(6, $sessions->getAssigneeUserId(400));
+        $this->assertNotNull($qaCreate);
+        $this->assertSame('agent-candidate', $sessions->getAgentId(400));
+        $this->assertSame($assigneeId, $sessions->getAssigneeUserId(400));
     }
 
     public function testAssigneeHandoffNotifiesPreviousBotRunner(): void
@@ -456,12 +464,16 @@ final class RouterTest extends TestCase
         $data = json_decode((string) file_get_contents(dirname(__DIR__) . '/bridge.json'), true);
         $config = new BridgeConfig($data);
         $sessions = SessionStore::inMemory();
-        $sessions->upsert(200, 'agent-existing', 6);
+        $prevId = $this->pathUserId();
+        $sessions->upsert(200, 'agent-existing', $prevId);
 
         $posts = [];
         $inner = new RunnerClient(
             function (string $url, array $body) use (&$posts): array {
                 $posts[] = ['url' => $url, 'body' => $body];
+                if (str_ends_with($url, '/sessions')) {
+                    return ['agent_id' => 'agent-new'];
+                }
 
                 return ['run_id' => 'run-handoff', 'status' => 'completed'];
             },
@@ -473,14 +485,15 @@ final class RouterTest extends TestCase
         $results = $router->handle('assignee_changed', [
             'ticketId' => 200,
             'assigneeUserId' => 5,
-            'previousAssigneeUserId' => 6,
+            'previousAssigneeUserId' => $prevId,
             'actorUserId' => 1,
             'status' => 3,
         ]);
 
         $this->assertNotEmpty($results);
+        $needle = $this->pathRunnerNeedle();
         $this->assertTrue(
-            (bool) array_filter($posts, static fn ($p) => str_contains($p['url'], 'cursor-agent-path'))
+            (bool) array_filter($posts, static fn ($p) => str_contains($p['url'], $needle))
         );
         $handoffPost = null;
         foreach ($posts as $post) {
@@ -493,5 +506,166 @@ final class RouterTest extends TestCase
         $this->assertStringContainsString($config->promptFor('handoff'), $handoffPost['prompt']);
         $this->assertStringContainsString('Active ticket_id=200', $handoffPost['prompt']);
         $this->assertStringContainsString('module_id=200', $handoffPost['prompt']);
+    }
+
+    public function testTicketCreatedUnassignedPostsPmTriageAndMentionsOnce(): void
+    {
+        $data = json_decode((string) file_get_contents(dirname(__DIR__) . '/bridge.json'), true);
+        $data['debounce_ms'] = 0;
+        $config = new BridgeConfig($data);
+        $pmId = (int) (($config->agentByName('pm') ?? [])['leantime_user_id'] ?? 0);
+        $this->assertGreaterThan(0, $pmId);
+
+        $sessions = SessionStore::inMemory();
+        $poster = new RecordingTicketCommentPoster();
+        $posts = [];
+        $inner = new RunnerClient(
+            function (string $url, array $body) use (&$posts): array {
+                $posts[] = ['url' => $url, 'body' => $body];
+                if (str_ends_with($url, '/sessions')) {
+                    return ['agent_id' => 'agent-pm'];
+                }
+
+                return ['run_id' => 'run-mention', 'status' => 'completed'];
+            },
+            static function (string $url): void {
+            }
+        );
+        $router = new Router(
+            $config,
+            $sessions,
+            new ResilientRunnerClient($inner, $sessions),
+            new NullTicketLookup(),
+            $poster
+        );
+
+        $results = $router->handle('ticket_created', [
+            'ticketId' => 171,
+            'assigneeUserId' => 0,
+            'actorUserId' => 1,
+            'status' => 3,
+            'type' => 'task',
+            'headline' => 'Empty title bug',
+        ]);
+
+        $this->assertCount(1, $poster->postsFor(171));
+        $html = $poster->postsFor(171)[0];
+        $this->assertStringContainsString('cursorbridge-unassigned-triage', $html);
+        $this->assertStringContainsString('data-tagged-user-id="' . $pmId . '"', $html);
+
+        $mentionPosts = array_values(array_filter(
+            $posts,
+            static fn (array $p): bool => ($p['body']['event'] ?? '') === 'mention'
+                || str_contains((string) ($p['body']['prompt'] ?? ''), '@mentioned')
+        ));
+        $this->assertNotEmpty($mentionPosts);
+        $this->assertNotEmpty($results);
+        $this->assertSame('mentioned', $results[0]['status'] ?? null);
+
+        // Second create: marker already present → no extra comment / mention.
+        $postsBefore = count($posts);
+        $router->handle('ticket_created', [
+            'ticketId' => 171,
+            'assigneeUserId' => 0,
+            'actorUserId' => 1,
+            'status' => 3,
+            'type' => 'task',
+        ]);
+        $this->assertCount(1, $poster->postsFor(171));
+        $this->assertSame($postsBefore, count($posts));
+    }
+
+    public function testTicketCreatedWithAssigneeSkipsUnassignedTriage(): void
+    {
+        $poster = new RecordingTicketCommentPoster();
+        $router = $this->routerWithPoster($poster);
+        $router->handle('ticket_created', [
+            'ticketId' => 172,
+            'assigneeUserId' => $this->pathUserId(),
+            'actorUserId' => 99,
+            'status' => 3,
+            'type' => 'task',
+        ]);
+        $this->assertSame([], $poster->postsFor(172));
+    }
+
+    public function testTicketUpdatedUnassignedDoesNotTriage(): void
+    {
+        $poster = new RecordingTicketCommentPoster();
+        $router = $this->routerWithPoster($poster);
+        usleep(0);
+        $router->handle('ticket_updated', [
+            'ticketId' => 173,
+            'assigneeUserId' => 0,
+            'actorUserId' => 1,
+            'status' => 3,
+            'type' => 'task',
+        ]);
+        $this->assertSame([], $poster->postsFor(173));
+    }
+
+    public function testCommentAddedWithTriageMarkerSkipsMentionReroute(): void
+    {
+        $config = BridgeConfig::fromFile(dirname(__DIR__) . '/bridge.json');
+        $pmId = (int) (($config->agentByName('pm') ?? [])['leantime_user_id'] ?? 0);
+        $sessions = SessionStore::inMemory();
+        $posts = [];
+        $inner = new RunnerClient(
+            function (string $url, array $body) use (&$posts): array {
+                $posts[] = $body;
+                if (str_ends_with($url, '/sessions')) {
+                    return ['agent_id' => 'agent-pm'];
+                }
+
+                return ['run_id' => 'run-mention', 'status' => 'completed'];
+            },
+            static function (string $url): void {
+            }
+        );
+        $router = new Router(
+            $config,
+            $sessions,
+            new ResilientRunnerClient($inner, $sessions)
+        );
+        $markerHtml = '<p><a class="tiptap-mention" data-tagged-user-id="' . $pmId . '">@pm</a> triage</p>'
+            . '<!-- cursorbridge-unassigned-triage -->';
+        $router->handle('comment_added', [
+            'ticketId' => 174,
+            'assigneeUserId' => 0,
+            'actorUserId' => 1,
+            'commentText' => $markerHtml,
+            'status' => 3,
+        ]);
+        $mentionPosts = array_values(array_filter(
+            $posts,
+            static fn (array $body): bool => ($body['event'] ?? '') === 'mention'
+        ));
+        $this->assertSame([], $mentionPosts);
+    }
+
+    private function routerWithPoster(RecordingTicketCommentPoster $poster): Router
+    {
+        $config = BridgeConfig::fromFile(dirname(__DIR__) . '/bridge.json');
+        $sessions = SessionStore::inMemory();
+        $inner = new RunnerClient(
+            function (string $url, array $body): array {
+                $this->posts[] = ['url' => $url, 'body' => $body];
+                if (str_ends_with($url, '/sessions')) {
+                    return ['agent_id' => 'agent-test-1'];
+                }
+
+                return ['run_id' => 'run-1', 'status' => 'completed'];
+            },
+            static function (string $url): void {
+            }
+        );
+
+        return new Router(
+            $config,
+            $sessions,
+            new ResilientRunnerClient($inner, $sessions),
+            new NullTicketLookup(),
+            $poster
+        );
     }
 }
