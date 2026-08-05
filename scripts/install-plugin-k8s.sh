@@ -36,6 +36,9 @@ cp "$PLUGIN"/BridgeConfig.php \
    "$PLUGIN"/CommentLookup.php \
    "$PLUGIN"/NullCommentLookup.php \
    "$PLUGIN"/LeantimeCommentLookup.php \
+   "$PLUGIN"/TicketCommentPoster.php \
+   "$PLUGIN"/NullTicketCommentPoster.php \
+   "$PLUGIN"/LeantimeTicketCommentPoster.php \
    "$PLUGIN"/NotificationCoalesce.php \
    "$PLUGIN"/DeferredDispatch.php \
    "$PLUGIN"/CreatedByMeTickets.php \
@@ -85,6 +88,7 @@ data:
              LeantimeCliBootstrap.php \\
              TicketLookup.php NullTicketLookup.php \\
              LeantimeTicketLookup.php CommentLookup.php NullCommentLookup.php LeantimeCommentLookup.php \\
+             TicketCommentPoster.php NullTicketCommentPoster.php LeantimeTicketCommentPoster.php \\
              NotificationCoalesce.php DeferredDispatch.php CreatedByMeTickets.php WidgetDefaults.php \\
              register.php composer.json bridge.json; do
       cp "\$SRC/\$f" "\$DEST/\$f"

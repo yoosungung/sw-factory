@@ -184,8 +184,9 @@ settings:
         Use the leantime-pm skill. Dual-loop flow checkpoint (ARCHITECTURE §2.6 #14).
         Scan In Progress + Review + Deploying Test + QA + Deploying Prod.
         In Progress: 30분 developer timebox. Review: PM review/merge work (do not self-nudge).
-        Deploying Test/Prod + QA: stall ≥2h without evidence/@mention → re-@mention assignee only
-        (do not run kubectl/E2E/security). Dual-loop Done needs test+qa+aa+prod evidence.
+        Deploying Test/Prod + QA: stall ≥2h without evidence/@mention/`nf-progress:` → re-@mention
+        assignee health-check only (alive→progress; dead→restart/Blocked; no kubectl/E2E/security/re-run).
+        Dual-loop Done needs test+qa+aa+prod evidence.
         Mentions: eric=1,pm=4,asky=5,path=6,km=9,ta=13,qa=15,aa=16. ≤5 comments/run.
       success_checks:
         - "At most 5 checkpoint comments added this run."
@@ -228,6 +229,7 @@ settings:
         Use load-weekly skill. For each clients[] entry, run tenant .factory/quality.yaml load
         commands against test env. Failures → New ticket in that client's project_id.
         Do not mark feature tickets Done from this run.
+        Long-run load: detach + nf-progress heartbeats (ARCHITECTURE §2.6 #10).
       success_checks:
         - "Each client load was run or explicitly skipped with reason."
         - "Failures created New tickets in the correct client project."
@@ -239,6 +241,7 @@ settings:
         criteria (command, focus/exclude, max_findings); run mechanical command; then Clean Code
         heuristic review per skill references. High/Med findings → New tickets on client project_id
         (structured smell_id + impact; not lint paste alone). Not a prod gate; not security-review.
+        Long-run mechanical: detach + nf-progress (ARCHITECTURE §2.6 #10).
       success_checks:
         - "Each client ran clean_code.command or was skipped with reason."
         - "Heuristic review summarized per client (or partial with reason)."
@@ -249,6 +252,7 @@ settings:
       prompt: >-
         Use bulk-api-probe and opik-eval as configured in tenant .factory/quality.yaml.
         Weekly bulk quality across clients. Failures → New tickets on client project_id.
+        Long Opik/EX: detach + nf-progress (ARCHITECTURE §2.6 #10).
       success_checks:
         - "Bulk/Opik suites ran per tenant config or skipped with reason."
         - "Failures filed as New tickets on the client project."

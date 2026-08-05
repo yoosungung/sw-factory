@@ -9,9 +9,14 @@ namespace Leantime\Plugins\CursorBridge;
  */
 final class LeantimeTicketCommentPoster implements TicketCommentPoster
 {
-    public function post(int $ticketId, string $html): bool
+    public function post(int $ticketId, string $html, ?int $authorUserId = null): bool
     {
         if ($ticketId <= 0 || $html === '' || ! function_exists('app')) {
+            return false;
+        }
+
+        $userId = $authorUserId ?? (int) (session('userdata.id') ?? 0);
+        if ($userId <= 0) {
             return false;
         }
 
@@ -19,12 +24,13 @@ final class LeantimeTicketCommentPoster implements TicketCommentPoster
             $repo = app()->make(\Leantime\Domain\Comments\Repositories\Comments::class);
             $values = [
                 'text' => $html,
-                'module' => 'ticket',
+                'userId' => $userId,
+                'date' => date('Y-m-d H:i:s'),
                 'moduleId' => $ticketId,
-                'commentParent' => -1,
+                'commentParent' => 0,
                 'status' => '',
             ];
-            $id = $repo->addComment($values, 'ticket', $ticketId);
+            $id = $repo->addComment($values, 'ticket');
 
             return $id !== false && (int) $id > 0;
         } catch (\Throwable) {
@@ -40,7 +46,8 @@ final class LeantimeTicketCommentPoster implements TicketCommentPoster
 
         try {
             $repo = app()->make(\Leantime\Domain\Comments\Repositories\Comments::class);
-            $rows = $repo->getComments('ticket', $ticketId);
+            // parent=-1: do not filter commentParent (see Comments::getComments).
+            $rows = $repo->getComments('ticket', $ticketId, -1);
             if (! is_array($rows)) {
                 return false;
             }

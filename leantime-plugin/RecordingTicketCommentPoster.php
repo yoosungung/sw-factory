@@ -10,7 +10,7 @@ final class RecordingTicketCommentPoster implements TicketCommentPoster
     /** @var array<int, list<string>> */
     private array $byTicket = [];
 
-    public function post(int $ticketId, string $html): bool
+    public function post(int $ticketId, string $html, ?int $authorUserId = null): bool
     {
         if ($ticketId <= 0 || $html === '') {
             return false;

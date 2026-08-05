@@ -15,3 +15,4 @@ Factory does not host Opik. Tenant `.factory/quality.yaml` `opik:` supplies `pro
 1. Run tenant eval entrypoint (dataset → experiment).
 2. Pass: comment `opik: pass experiment=<name> …` (ticket) or skip ticket create (weekly success).
 3. Fail/regression: Active ticket fail feedback or weekly `New` ticket on client project.
+4. **Long-run** (ARCHITECTURE §2.6 #10): full EX / large Opik runs ≫ session budget — **detach** (`nohup`/Job); comment pid/log; require tenant progress file or `nf-progress:` heartbeats; session must not block on evaluate(). pm nudge = health check only (alive → progress ask; dead → restart/`Blocked`).

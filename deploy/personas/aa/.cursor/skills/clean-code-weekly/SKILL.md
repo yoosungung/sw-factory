@@ -29,7 +29,7 @@ For each factory `clients[]` entry with product repo(s):
 
 1. Run tenant `clean_code.command` in the product workspace (respect focus/exclude if the command supports them; otherwise note scope in the report).
 2. Non-zero exit → treat as finding(s); summarize failures (do not paste only raw lint dumps as the ticket body).
-3. Stay within the schedule timebox; if the command hangs, kill, record blocker, continue to heuristic review if possible.
+3. Stay within the schedule timebox for **short** mechanical commands. If `long_run: true` or runtime ≫ budget: **detach** (ARCHITECTURE §2.6 #10), leave `nf-progress:` heartbeats, do not foreground-wait. If a short command hangs, kill, record blocker, continue to heuristic review if possible.
 
 ### 3. Heuristic review (core)
 

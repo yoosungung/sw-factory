@@ -202,7 +202,7 @@ final class Router
             . 'Unassigned ticket triage: set assignee and status.</p>'
             . '<!-- ' . self::UNASSIGNED_TRIAGE_MARKER . ' -->';
 
-        if (!$this->comments->post($ticketId, $html)) {
+        if (!$this->comments->post($ticketId, $html, $this->resolveActorId($payload) ?: $pmUserId)) {
             return [];
         }
 

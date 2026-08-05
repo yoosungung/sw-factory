@@ -125,6 +125,7 @@ M0–M10 완료(실클러스터 데모·일부 수동 검증 제외). **M11 Dual
 - [x] PM(`pm`) Done 게이트(qa+aa+prod) · MEMORY 팀표 · `agents.yaml.sample` (qa/aa/clients)
 - [x] 직원 개명: `candy`→`pm`, `finder`→`km`, `infra`→`ta` (persona·스케줄·샘플·문서)
 - [x] 원샷 설치: `scripts/install-sw-factory.sh` + `seed_factory_users.py` (직원 5인·PAT·plugin enable, My Project 미생성)
+- [x] 장시간 NF: detach + `nf-progress:` 하트비트; pm stall=헬스체크(§2.6 #10/#14 · weekly skills)
 
 **성공기준:** sample YAML로 registry에 `client_id`가 실리고, 기능 Done 파서가 test+qa+aa+prod를 요구하며, QA/AA persona 번들과 주간 스케줄 3종이 sample에 존재. ✅ (pytest)
 

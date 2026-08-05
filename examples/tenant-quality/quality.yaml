@@ -6,11 +6,13 @@ e2e:
 
 bulk_api:
   command: "echo 'bulk_api stub — replace with tenant probe' && exit 0"
+  # long_run: true   # optional; ≫ schedule budget → agent detaches + nf-progress:
 
 opik:
   project_name: demo-agent
   dataset: demo-dataset
   command: "echo 'opik stub — replace with tenant evaluate()' && exit 0"
+  # long_run: true   # full EX / large evaluate — detach; write progress file or nf-progress:
 
 security:
   command: "echo 'security stub — replace with tenant SAST/policy' && exit 0"
@@ -24,6 +26,7 @@ clean_code:
 
 load:
   command: "echo 'load stub — replace with k6/vegeta' && exit 0"
+  # long_run: true
 
 deploy:
   environments: [test, production]

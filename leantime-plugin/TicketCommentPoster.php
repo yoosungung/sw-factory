@@ -9,7 +9,7 @@ namespace Leantime\Plugins\CursorBridge;
  */
 interface TicketCommentPoster
 {
-    public function post(int $ticketId, string $html): bool;
+    public function post(int $ticketId, string $html, ?int $authorUserId = null): bool;
 
     /** True if any comment on the ticket already contains $needle. */
     public function hasContaining(int $ticketId, string $needle): bool;

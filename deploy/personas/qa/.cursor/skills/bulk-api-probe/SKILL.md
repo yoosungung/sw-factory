@@ -14,3 +14,4 @@ license: MIT
 2. Run against the configured base URL (usually test).
 3. Ticket context: comment `bulk_api: pass|fail …` on Active ticket when part of the gate.
 4. Weekly: for each client, run suite; failures → `New` ticket on `clients[].project_id`.
+5. **Long-run** (ARCHITECTURE §2.6 #10): if suite/`long_run: true` ≫ session budget — detach, do not foreground-wait; keep `nf-progress:` heartbeats; on pm nudge verify alive vs restart.

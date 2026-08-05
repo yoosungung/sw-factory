@@ -47,3 +47,7 @@ deploy:
 `command` is the mechanical gate (lint/format/tests). AA still performs Clean Code heuristic review on hotspots; findings become `New` tickets on the client project (not a feature Done / security gate).
 
 Factory agents discover this file in the client git workspace; criteria bodies stay in the tenant repo.
+
+### Long-run NF (`long_run: true`)
+
+Optional boolean on `bulk_api` / `opik` / `load` / `clean_code`. When set (or runtime clearly ≫ factory `budget.timeout_ms`), weekly agents **detach** the command and leave `nf-progress:` heartbeats — they must not foreground-wait in the schedule session (ARCHITECTURE §2.6 #10). Tenant runners should write a progress file and/or comment heartbeats so pm stall treats silence correctly.
