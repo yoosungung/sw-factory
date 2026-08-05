@@ -26,15 +26,15 @@ final class RouterTest extends TestCase
         $this->posts = [];
     }
 
-    /** Sessions bot used as primary assignee in Router tests (bridge.json: candidate). */
+    /** Sessions bot used as primary assignee in Router tests (bridge.json: path). */
     private function pathUserId(): int
     {
-        return 9;
+        return 6;
     }
 
     private function pathRunnerNeedle(): string
     {
-        return 'cursor-agent-candidate';
+        return 'cursor-agent-path';
     }
 
     private function router(?TicketLookup $lookup = null): Router
@@ -152,7 +152,7 @@ final class RouterTest extends TestCase
         $this->assertCount(1, $results);
         $this->assertSame('agent-test-1', $results[0]['agent_id']);
         $this->assertStringEndsWith('/sessions', $this->posts[0]['url']);
-        $this->assertStringContainsString('cursor-agent-candidate', $this->posts[0]['url']);
+        $this->assertStringContainsString('cursor-agent-path', $this->posts[0]['url']);
     }
 
     public function testEnrichesAssigneeFromTicketLookup(): void
@@ -177,7 +177,7 @@ final class RouterTest extends TestCase
         $results = $router->handle('ticket_created', ['ticketId' => 55]);
 
         $this->assertCount(1, $results);
-        $this->assertStringContainsString('cursor-agent-candidate', $this->posts[0]['url']);
+        $this->assertStringContainsString('cursor-agent-path', $this->posts[0]['url']);
     }
 
     public function testIgnoresSelfEchoWhenAssigneeAgentActsOnOwnTicket(): void
@@ -406,7 +406,7 @@ final class RouterTest extends TestCase
             'ticketId' => 303,
             'assigneeUserId' => $this->pathUserId(),
             'actorUserId' => 1,
-            'commentText' => '<a class="tiptap-mention" data-tagged-user-id="' . $this->pathUserId() . '">@candidate</a> only you',
+            'commentText' => '<a class="tiptap-mention" data-tagged-user-id="' . $this->pathUserId() . '">@path</a> only you',
             'status' => 3,
         ]);
 
@@ -422,7 +422,9 @@ final class RouterTest extends TestCase
         $config = BridgeConfig::fromFile(dirname(__DIR__) . '/bridge.json');
         $sessions = SessionStore::inMemory();
         $assigneeId = $this->pathUserId();
-        $sessions->upsert(400, 'agent-candidate', $assigneeId);
+        $sessions->upsert(400, 'agent-path', $assigneeId);
+        $qaId = (int) ($config->agentByName('qa')['leantime_user_id'] ?? 0);
+        $this->assertGreaterThan(0, $qaId);
 
         $posts = [];
         $inner = new RunnerClient(
@@ -443,7 +445,7 @@ final class RouterTest extends TestCase
             'ticketId' => 400,
             'assigneeUserId' => $assigneeId,
             'actorUserId' => 1,
-            'commentText' => '<a class="tiptap-mention" data-tagged-user-id="5">@qa</a> help',
+            'commentText' => '<a class="tiptap-mention" data-tagged-user-id="' . $qaId . '">@qa</a> help',
             'status' => 3,
         ]);
 
@@ -455,7 +457,7 @@ final class RouterTest extends TestCase
             }
         }
         $this->assertNotNull($qaCreate);
-        $this->assertSame('agent-candidate', $sessions->getAgentId(400));
+        $this->assertSame('agent-path', $sessions->getAgentId(400));
         $this->assertSame($assigneeId, $sessions->getAssigneeUserId(400));
     }
 

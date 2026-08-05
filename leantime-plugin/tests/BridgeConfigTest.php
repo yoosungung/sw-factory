@@ -22,18 +22,18 @@ final class BridgeConfigTest extends TestCase
         );
         $this->assertStringContainsString('handoff', $config->promptFor('handoff'));
         $this->assertIsArray($config->schedules());
-        $this->assertSame('candidate', (string) ($config->agentByName('candidate')['name'] ?? ''));
+        $this->assertSame('path', (string) ($config->agentByName('path')['name'] ?? ''));
     }
 
     public function testResolvesBotRunnerByUserId(): void
     {
         $config = BridgeConfig::fromFile(dirname(__DIR__) . '/bridge.json');
-        $candidate = $config->agentByName('candidate');
-        $this->assertNotNull($candidate);
-        $candidateId = (int) ($candidate['leantime_user_id'] ?? 0);
-        $agent = $config->runnerForUserId($candidateId);
+        $path = $config->agentByName('path');
+        $this->assertNotNull($path);
+        $pathId = (int) ($path['leantime_user_id'] ?? 0);
+        $agent = $config->runnerForUserId($pathId);
         $this->assertNotNull($agent);
-        $this->assertTrue($config->isAgentAccount($candidateId));
+        $this->assertTrue($config->isAgentAccount($pathId));
         $pm = $config->agentByName('pm');
         $this->assertNotNull($pm);
         $pmId = (int) ($pm['leantime_user_id'] ?? 0);
@@ -42,12 +42,12 @@ final class BridgeConfigTest extends TestCase
         $this->assertSame('sessions', $config->agentType($pmRunner));
         $pmUrl = (string) ($pmRunner['runner_url'] ?? '');
         $this->assertStringContainsString('cursor-agent-pm', $pmUrl);
-        $this->assertStringContainsString('cursor-agent-candidate', (string) $agent['runner_url']);
+        $this->assertStringContainsString('cursor-agent-path', (string) $agent['runner_url']);
         $this->assertFalse($config->isAgentAccount(1));
         $this->assertSame('', (string) ($config->runnerForUserId(1)['runner_url'] ?? ''));
         $this->assertSame('human', $config->agentType($config->runnerForUserId(1)));
         $this->assertSame('sessions', $config->typeForRunnerUrl($pmUrl));
-        $this->assertSame('sessions', $config->typeForRunnerUrl('http://cursor-agent-candidate.sw-factory.svc:8080'));
+        $this->assertSame('sessions', $config->typeForRunnerUrl('http://cursor-agent-path.sw-factory.svc:8080'));
         $openaiCfg = new BridgeConfig([
             'agents' => [
                 [
