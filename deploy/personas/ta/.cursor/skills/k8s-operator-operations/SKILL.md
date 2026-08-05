@@ -20,6 +20,7 @@ ta가 클러스터 안에서 Pod/Service/PV/PVC를 모니터링하고, 필요할
 | `references/operator-rbac.md` | 운영 SA RBAC 설계·검증 |
 | `references/resource-monitoring-rbac.md` | metrics/top/kubelet stats |
 | `references/health-checks.md` | 일상 헬스·이상 Pod 점검 |
+| `references/assignee-runtime-check.md` | PM stall `@ta` assignee-runtime-check (Pod/runner logs) |
 | `references/service-smoke-tests.md` | in-cluster HTTP/TCP 스모크 |
 | `references/deployment-patches.md` | Deployment 안전 패치 |
 | `references/postgres-temp-diskpressure.md` | DiskPressure·pgsql_tmp |
@@ -30,6 +31,9 @@ ta가 클러스터 안에서 Pod/Service/PV/PVC를 모니터링하고, 필요할
 **Tenant CD (post-merge deploy):** use sibling skill `tenant-cd` when the ticket asks for deploy/smoke after merge (`tenant_cd` / `workflow_dispatch`). Do **not** run tenant CD during `ta-k8s-daily` (read-only).
 
 Daily reports that find actionable CrashLoop/rollout/PV faults: follow `references/incident-tickets.md` (ticket create/update only — still no cluster mutate on the schedule).
+
+When PM `@mention`s ta with **`assignee-runtime-check`** on a stalled Deploying*/QA ticket: follow `references/assignee-runtime-check.md` (read Pod/runner logs; do not take over EX/E2E/CD).
+
 ## Operating posture
 
 1. **Confirm scope first**: target repo(`k8s-test`), namespace(s), cluster identity, 변경 허용 여부. Eric이 배포를 주로 하고, 명시적으로 위임할 때만 mutate.

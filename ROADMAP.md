@@ -127,6 +127,8 @@ M0–M10 완료(실클러스터 데모·일부 수동 검증 제외). **M11 Dual
 - [x] 직원 개명: `candy`→`pm`, `finder`→`km`, `infra`→`ta` (persona·스케줄·샘플·문서)
 - [x] 원샷 설치: `scripts/install-sw-factory.sh` + `seed_factory_users.py` (직원 5인·PAT·plugin enable, My Project 미생성)
 - [x] 장시간 NF: detach + `nf-progress:` 하트비트; pm stall=헬스체크(§2.6 #10/#14 · weekly skills)
+- [x] **agent-runner zombie `active_run` 복구** — worker crash 후 `skipped_active_run` 영구화 금지(R1–R5). 정본: [`agent-runner/DESIGN.md`](agent-runner/DESIGN.md) § Recovery · 계약 [`ARCHITECTURE` §2.3.1](ARCHITECTURE.md) / §2.6 #14. (사후: nl2sql #172 QA runner · #197)
+- [x] **PM stall → TA runtime check** — Deploy/QA: ≥2h → assignee health-check; +1h 무응답 → `@ta` `assignee-runtime-check` (R1–R5와 별계층). 정본: [`ARCHITECTURE` §2.6 #14](ARCHITECTURE.md) · pm/ta skills · `pm-checkpoint` prompt.
 
 **성공기준:** sample YAML로 registry에 `client_id`가 실리고, 기능 Done 파서가 test+qa+aa+prod를 요구하며, QA/AA persona 번들과 주간 스케줄 3종이 sample에 존재. ✅ (pytest)
 
@@ -139,4 +141,5 @@ M0–M10 완료(실클러스터 데모·일부 수동 검증 제외). **M11 Dual
 1. 고객사 Project에 M11 상태 보드 적용(`deploy/SETUP.md` Dual-loop status) — 시드가 `clients[].id` 프로젝트만 생성
 2. 티켓 assignee=agent → 코멘트/상태 변경으로 E2E 검증
 3. M5/M11: 데모 테넌트 `tenant_cd`·quality 어댑터 + 실 E2E
-4. `git commit` + `git push`
+4. **M11 후속:** #172 QA 세션 수동 재기동(필요 시) — R1–R5·PM→TA stall 사다리는 문서/스킬 반영됨
+5. `git commit` + `git push`

@@ -11,7 +11,7 @@ Factory default ids: In Progress=4, Review=10, Deploying Test=11, QA=12, Deployi
 3. Use `leantime.rpc.Tickets.Tickets.getAll` with params `{ "searchCriteria": {} }`.
 4. Print only aggregate status counts and candidate rows with `status in {4,10,11,12,13}`.
 5. If no top-level flow-active rows exist, do not assume hidden subtasks exist. Cross-check `subtaskCount > 0` parents and call `leantime.rpc.Tickets.Tickets.getAllSubtasks` for those parents only; count/check subtasks with those statuses.
-6. Only after identifying candidates, fetch comments for those candidate IDs and enforce the 30-minute duplicate checkpoint rule (and 2h Deploy/QA stall SLA).
+6. Only after identifying candidates, fetch comments for those candidate IDs and enforce the 30-minute duplicate checkpoint rule, the 2h Deploy/QA stall SLA, and the post-health-check 1h → `@ta` assignee-runtime-check ladder (ARCHITECTURE §2.6 #14).
 
 ## Minimal fields to keep
 

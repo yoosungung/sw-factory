@@ -1,10 +1,11 @@
 /**
  * Minimal IPC worker for WorkerPool unit tests (no @cursor/sdk).
  *
- * MOCK_WORKER_MODE=ok|auth_always
+ * MOCK_WORKER_MODE=ok|auth_always|exit_after_accept
  * MOCK_AUTH_FLAG_FILE — if file exists, consume (unlink) and fail once (global across workers)
  * MOCK_AUTH_PHASE=wait — fail after accepted with done auth error
  * MOCK_WORKER_DELAY_MS — delay before response
+ * MOCK_EXIT_AFTER_ACCEPT=1 — same as mode exit_after_accept (send accepted then process.exit)
  */
 import { randomUUID } from "node:crypto";
 import fs from "node:fs";
@@ -86,6 +87,14 @@ process.on("message", (job) => {
       agentId,
       runId,
     });
+
+    if (
+      mode === "exit_after_accept" ||
+      process.env.MOCK_EXIT_AFTER_ACCEPT === "1"
+    ) {
+      process.exit(1);
+    }
+
     send({
       requestId: job.requestId,
       phase: "done",

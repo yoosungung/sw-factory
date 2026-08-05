@@ -184,9 +184,10 @@ settings:
         Use the leantime-pm skill. Dual-loop flow checkpoint (ARCHITECTURE §2.6 #14).
         Scan In Progress + Review + Deploying Test + QA + Deploying Prod.
         In Progress: 30분 developer timebox. Review: PM review/merge work (do not self-nudge).
-        Deploying Test/Prod + QA: stall ≥2h without evidence/@mention/`nf-progress:` → re-@mention
-        assignee health-check only (alive→progress; dead→restart/Blocked; no kubectl/E2E/security/re-run).
-        Dual-loop Done needs test+qa+aa+prod evidence.
+        Deploying Test/Prod + QA stall ladder: ≥2h silence → re-@mention assignee health-check;
+        ≥1h after that health-check with no progress/`nf-progress:` → @ta assignee-runtime-check
+        (Pod/runner logs only; alive→resume assignee; dead→restart/Blocked; skip dup if session.recover ok).
+        No kubectl/E2E/security/re-run by pm. Dual-loop Done needs test+qa+aa+prod evidence.
         Mentions: eric=1,pm=4,asky=5,path=6,km=9,ta=13,qa=15,aa=16. ≤5 comments/run.
       success_checks:
         - "At most 5 checkpoint comments added this run."

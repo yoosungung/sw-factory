@@ -147,8 +147,13 @@ export class SdkBackend implements AgentBackend {
   private readonly ticketAgents = new Map<number, string>();
   private readonly knownAgents = new Set<string>();
   private readonly busyAgents = new Set<string>();
+  /** Consecutive skipped_active_run per ticket (R2). */
+  private readonly activeRunSkips = new Map<number, number>();
   private readonly createStorm: CreateStormGuard;
   private started = false;
+
+  /** After this many consecutive local busy skips, force recover (R2). */
+  static readonly ACTIVE_RUN_SKIP_LIMIT = 2;
 
   constructor(settings: Settings, pool?: RunPool, createStorm?: CreateStormGuard) {
     this.settings = settings;
@@ -172,6 +177,44 @@ export class SdkBackend implements AgentBackend {
     }
   }
 
+  /**
+   * R1–R3: cancel/delete old agent, clear mapping + busy, log session.recover.
+   * Caller may fall through to a fresh create and pass newAgentId afterward.
+   */
+  private async recoverTicketSession(
+    ticketId: number,
+    oldAgentId: string,
+    reason: string,
+    newAgentId?: string,
+  ): Promise<void> {
+    this.busyAgents.delete(oldAgentId);
+    this.ticketAgents.delete(ticketId);
+    this.knownAgents.delete(oldAgentId);
+    this.createStorm.clear(ticketId);
+    this.activeRunSkips.delete(ticketId);
+    let cancelOk = true;
+    try {
+      await this.pool.delete(
+        oldAgentId,
+        this.settings.workspace,
+        this.settings.model,
+      );
+    } catch {
+      cancelOk = false;
+    }
+    console.log(
+      JSON.stringify({
+        ts: new Date().toISOString(),
+        event: "session.recover",
+        ticket_id: ticketId,
+        old_agent_id: oldAgentId,
+        new_agent_id: newAgentId ?? null,
+        reason,
+        cancel_ok: cancelOk,
+      }),
+    );
+  }
+
   async ensureStarted(): Promise<void> {
     if (this.started) {
       return;
@@ -191,6 +234,8 @@ export class SdkBackend implements AgentBackend {
     control?: RunControl,
   ): Promise<AgentSession> {
     await this.ensureStarted();
+    let recoveredOldAgentId: string | undefined;
+    let recoverReason: string | undefined;
     if (ticketId !== undefined) {
       const existingId = this.ticketAgents.get(ticketId);
       if (existingId !== undefined) {
@@ -202,16 +247,37 @@ export class SdkBackend implements AgentBackend {
             ticketId,
             control,
           );
+          this.activeRunSkips.delete(ticketId);
           return { agentId: existingId, runs: [run] };
         } catch (error) {
           if (error instanceof ActiveRunError) {
-            return {
-              agentId: existingId,
-              runs: [{ runId: "", status: "skipped_active_run" }],
-            };
+            const skips = (this.activeRunSkips.get(ticketId) ?? 0) + 1;
+            this.activeRunSkips.set(ticketId, skips);
+            const locallyBusy = this.busyAgents.has(existingId);
+            // True concurrent busy: skip until limit. SDK zombie (not locally busy): recover now.
+            if (
+              locallyBusy &&
+              skips < SdkBackend.ACTIVE_RUN_SKIP_LIMIT
+            ) {
+              return {
+                agentId: existingId,
+                runs: [{ runId: "", status: "skipped_active_run" }],
+              };
+            }
+            recoverReason = locallyBusy
+              ? "active_run_skip_limit"
+              : "active_run_zombie";
+            await this.recoverTicketSession(
+              ticketId,
+              existingId,
+              recoverReason,
+            );
+            recoveredOldAgentId = existingId;
+            // fall through to fresh create
+          } else {
+            // Stale mapping — fall through to a fresh create.
+            this.ticketAgents.delete(ticketId);
           }
-          // Stale mapping — fall through to a fresh create.
-          this.ticketAgents.delete(ticketId);
         }
       }
       this.createStorm.beforeCreate(ticketId);
@@ -229,6 +295,24 @@ export class SdkBackend implements AgentBackend {
       this.knownAgents.add(submitted.agentId);
       if (ticketId !== undefined) {
         this.ticketAgents.set(ticketId, submitted.agentId);
+        this.activeRunSkips.delete(ticketId);
+      }
+      if (
+        ticketId !== undefined &&
+        recoveredOldAgentId !== undefined &&
+        recoverReason !== undefined
+      ) {
+        console.log(
+          JSON.stringify({
+            ts: new Date().toISOString(),
+            event: "session.recover",
+            ticket_id: ticketId,
+            old_agent_id: recoveredOldAgentId,
+            new_agent_id: submitted.agentId,
+            reason: recoverReason,
+            cancel_ok: true,
+          }),
+        );
       }
       this.busyAgents.add(submitted.agentId);
       void submitted.done
@@ -271,6 +355,15 @@ export class SdkBackend implements AgentBackend {
               error: error instanceof Error ? error.message : String(error),
             }),
           );
+          if (ticketId !== undefined) {
+            void this.recoverTicketSession(
+              ticketId,
+              submitted.agentId,
+              "create.failed",
+            );
+          } else {
+            this.knownAgents.delete(submitted.agentId);
+          }
         })
         .finally(() => {
           this.busyAgents.delete(submitted.agentId);
@@ -336,6 +429,13 @@ export class SdkBackend implements AgentBackend {
               error: error instanceof Error ? error.message : String(error),
             }),
           );
+          if (ticketId !== undefined) {
+            void this.recoverTicketSession(
+              ticketId,
+              agentId,
+              "run.background.failed",
+            );
+          }
         })
         .finally(() => {
           this.busyAgents.delete(agentId);

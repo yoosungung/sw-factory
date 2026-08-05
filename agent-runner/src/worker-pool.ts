@@ -144,31 +144,38 @@ export class WorkerPool {
       worker.jobsCompleted += 1;
       worker.lastJobAt = this.now();
 
-      const done = outcome.done.then(async (doneMsg) => {
-        this.release(worker);
-        if (!authRetried && doneLooksAuthStale(doneMsg)) {
-          log("worker.auth_stale.retry", {
-            worker_id: worker.id,
-            agent_id: doneMsg.agentId,
-            run_id: doneMsg.runId,
-            phase: "wait",
-          });
-          await this.retire(worker, "auth");
-          const retryJob: Omit<PromptJob, "requestId"> = {
-            type: "prompt",
-            agentId: doneMsg.agentId,
-            prompt: job.prompt,
-            ticketId: job.ticketId,
-            event: job.event,
-            model: job.model,
-            workspace: job.workspace,
-            control: job.control,
-          };
-          const retried = await this.submitInternal(retryJob, true);
-          return retried.done;
-        }
-        return doneMsg;
-      });
+      const done = outcome.done.then(
+        async (doneMsg) => {
+          this.release(worker);
+          if (!authRetried && doneLooksAuthStale(doneMsg)) {
+            log("worker.auth_stale.retry", {
+              worker_id: worker.id,
+              agent_id: doneMsg.agentId,
+              run_id: doneMsg.runId,
+              phase: "wait",
+            });
+            await this.retire(worker, "auth");
+            const retryJob: Omit<PromptJob, "requestId"> = {
+              type: "prompt",
+              agentId: doneMsg.agentId,
+              prompt: job.prompt,
+              ticketId: job.ticketId,
+              event: job.event,
+              model: job.model,
+              workspace: job.workspace,
+              control: job.control,
+            };
+            const retried = await this.submitInternal(retryJob, true);
+            return retried.done;
+          }
+          return doneMsg;
+        },
+        (err) => {
+          // R1: exit/reject after accepted must free the slot (fulfill-only release leaked busy).
+          this.release(worker);
+          throw err;
+        },
+      );
 
       return {
         agentId: outcome.accepted.agentId,
@@ -296,6 +303,9 @@ export class WorkerPool {
   }
 
   private release(worker: WorkerSlot): void {
+    if (!worker.busy) {
+      return;
+    }
     worker.busy = false;
     const next = this.waiters.shift();
     if (next) {
@@ -403,19 +413,28 @@ export class WorkerPool {
         return;
       }
       const idx = this.workers.indexOf(slot);
-      if (idx >= 0 && !slot.busy) {
-        this.workers.splice(idx, 1);
-        void this.spawnWorker().catch((err) => {
-          console.error(
-            JSON.stringify({
-              ts: new Date().toISOString(),
-              event: "worker.spawn.failed",
-              error: err instanceof Error ? err.message : String(err),
-            }),
-          );
-        });
+      if (idx < 0) {
+        return;
       }
+      // R1: crash while busy left a dead busy slot; pre_lease only recycles idle.
+      this.release(slot);
+      this.workers.splice(idx, 1);
+      void this.spawnWorker().catch((err) => {
+        console.error(
+          JSON.stringify({
+            ts: new Date().toISOString(),
+            event: "worker.spawn.failed",
+            error: err instanceof Error ? err.message : String(err),
+          }),
+        );
+      });
     });
+
+    // New ready idle worker — wake lease waiters (crash respawn had released early).
+    const next = this.waiters.shift();
+    if (next) {
+      next();
+    }
   }
 
   private async killWorker(worker: WorkerSlot): Promise<void> {

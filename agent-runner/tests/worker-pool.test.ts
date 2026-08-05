@@ -168,4 +168,59 @@ describe("WorkerPool", () => {
     await second.done;
     expect(second.agentId).toBe(first.agentId);
   });
+
+  it("R5: releases worker after exit mid-job so next submit leases again", async () => {
+    const pool = createPool({ MOCK_WORKER_MODE: "exit_after_accept" });
+    await pool.start();
+
+    const crashed = await pool.submit({
+      type: "create",
+      prompt: "boom",
+      model: "composer-2.5",
+      workspace: "/tmp",
+    });
+    await expect(crashed.done).rejects.toThrow(/exited during job/);
+
+    // Flip mode via new pool env is hard mid-flight; spawn replacement inherits
+    // exit_after_accept — use a second pool with ok mode for the idle check.
+    // Same pool: replacement workers still exit_after_accept, so submit accepts
+    // then rejects again — proving lease succeeded (not hung on busy slot).
+    const again = await pool.submit({
+      type: "create",
+      prompt: "again",
+      model: "composer-2.5",
+      workspace: "/tmp",
+    });
+    expect(again.agentId).toBeTruthy();
+    await expect(again.done).rejects.toThrow(/exited during job/);
+  });
+
+  it("R5: after crash, ok-mode replacement can finish a job", async () => {
+    const pool = createPool(
+      { MOCK_WORKER_MODE: "exit_after_accept" },
+      { size: 1 },
+    );
+    await pool.start();
+
+    const crashed = await pool.submit({
+      type: "create",
+      prompt: "boom",
+      model: "composer-2.5",
+      workspace: "/tmp",
+    });
+    await expect(crashed.done).rejects.toThrow(/exited during job/);
+    await pool.close();
+    pools.pop();
+
+    const okPool = createPool({ MOCK_WORKER_MODE: "ok" });
+    await okPool.start();
+    const ok = await okPool.submit({
+      type: "create",
+      prompt: "ok",
+      model: "composer-2.5",
+      workspace: "/tmp",
+    });
+    const done = await ok.done;
+    expect(done.status).toBe("finished");
+  });
 });
