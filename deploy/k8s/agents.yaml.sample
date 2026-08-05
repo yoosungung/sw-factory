@@ -187,11 +187,14 @@ settings:
         Deploying Test/Prod + QA stall ladder: ≥2h silence → re-@mention assignee health-check;
         ≥1h after that health-check with no progress/`nf-progress:` → @ta assignee-runtime-check
         (Pod/runner logs only; alive→resume assignee; dead→restart/Blocked; skip dup if session.recover ok).
-        No kubectl/E2E/security/re-run by pm. Dual-loop Done needs test+qa+aa+prod evidence.
-        Mentions: eric=1,pm=4,asky=5,path=6,km=9,ta=13,qa=15,aa=16. ≤5 comments/run.
+        Status board: one comment per ticket with `<!-- pm-checkpoint-status -->`; upsert via edit_comment
+        for no-op/SLA/skip (no @mentions in board). New add_comment only for actionable @mentions/misroute.
+        Never add_comment "PM verify" / "Outcome record only". No kubectl/E2E/security/re-run by pm.
+        Dual-loop Done needs test+qa+aa+prod evidence.
+        Mentions: eric=1,pm=4,asky=5,path=6,km=9,ta=13,qa=15,aa=16. ≤5 new actionable comments/run.
       success_checks:
-        - "At most 5 checkpoint comments added this run."
-        - "No duplicate PM checkpoint within 30 minutes on the same ticket."
+        - "At most 5 new actionable add_comment this run (status-board edit_comment excluded)."
+        - "No-op/SLA updates use edit_comment on <!-- pm-checkpoint-status --> (no new verify spam)."
         - "Final reply lists acted/skipped tickets with classification."
     - id: github-issue-check
       cron: "0 23 * * *"

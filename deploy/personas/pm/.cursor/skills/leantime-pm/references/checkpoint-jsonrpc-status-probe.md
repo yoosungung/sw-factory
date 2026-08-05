@@ -21,9 +21,6 @@ For candidates, keep only:
 
 ## No-active verification
 
-A no-op checkpoint run is stronger when it records both:
+Put skip counts in the session final reply. If a flow-active ticket still needs a durable SLA/skip note, **upsert** its `<!-- pm-checkpoint-status -->` board via `edit_comment` (create once if missing) — do **not** `add_comment` a new verify/no-op each run.
 
-- top-level ticket status counts, and
-- whether any parent had visible subtasks, plus flow-active subtask count.
-
-If top-level and subtask flow-active counts are both zero, add no stall/timebox comments and report concise skip counts/reasons only (misroute sweep may still run).
+If top-level and subtask flow-active counts are both zero, add no stall/timebox comments and report concise skip counts/reasons only in the final reply (misroute sweep may still run).
