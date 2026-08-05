@@ -222,6 +222,7 @@ Fine-grained PAT 기준. Classic이면 대략 `repo`(ta는 Actions까지 필요�
 | Agent | Secret | Repository access | Permissions |
 |-------|--------|-------------------|-------------|
 | pm | `GH_TOKEN_pm` | 리뷰/머지 대상 product repos | Contents R/W, Pull requests R/W |
+| candidate | `GH_TOKEN_candidate` (`GH_TOKEN_{name}` override) | `berryking404/candidate.win` | Contents R/W (main 직푸시). **임시**: 값은 `GH_TOKEN_pm` 복사본 — 전용 fine-grained PAT로 교체 권장 |
 | km | `GH_TOKEN_km` (권장) 또는 좁힌 공유 | `org-wiki`만 | Contents R/W (main 직푸시) |
 | qa / aa | 공유 `GH_TOKEN`을 **읽기 전용**으로 축소하거나 repo write 제거 | 필요 시 product repos Read | Contents Read만(가능하면). git-ship 거의 없음 |
 | sw-factory / nl2sql (dev) | `GH_TOKEN_sw-factory` / `GH_TOKEN_nl2sql` 권장 | 각자 `primary_repo`만 | Contents R/W, Pull requests R/W |
@@ -254,11 +255,44 @@ kubectl -n sw-factory patch secret cursor-api-key --type merge \
 kubectl -n sw-factory rollout restart statefulset -l app=cursor-agent
 ```
 
+**candidate `GH_TOKEN_candidate` (STS `GH_TOKEN_OVERRIDE` ← `GH_TOKEN_{name}`)**
+
+공유 fine-grained `GH_TOKEN`(yoosungung)은 `berryking404/candidate.win` Contents write가 없을 수 있다. agent별 키를 넣으면 entrypoint가 override한다.
+
+```bash
+# 임시: GH_TOKEN_pm(berryking404) 값을 별칭으로 복사 — 이후 candidate.win-only PAT로 교체
+PM_B64=$(kubectl -n sw-factory get secret cursor-api-key -o jsonpath='{.data.GH_TOKEN_pm}')
+kubectl -n sw-factory patch secret cursor-api-key --type merge \
+  -p "{\"data\":{\"GH_TOKEN_candidate\":\"$PM_B64\"}}"
+kubectl -n sw-factory rollout restart statefulset/cursor-agent-candidate
+```
+
+**candidate 테넌트 `.env` (issue radar Naver 등)**
+
+테넌트 repo는 `agent/.env`(gitignore)에서 `NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET`을 읽는다. 값은 Secret/챗에 남기지 말고 Pod PVC에만 둔다.
+
+```bash
+kubectl -n sw-factory exec -i cursor-agent-candidate-0 -c agent-runner -- \
+  python3 -c 'from pathlib import Path; import sys
+p=Path("/workspace/repo/agent/.env"); d={}
+if p.exists():
+  for line in p.read_text().splitlines():
+    if "=" in line and not line.strip().startswith("#"):
+      k,_,v=line.partition("="); d[k.strip()]=v
+d["NAVER_CLIENT_ID"]=sys.argv[1]; d["NAVER_CLIENT_SECRET"]=sys.argv[2]
+p.write_text("\n".join(f"{k}={v}" for k,v in d.items())+"\n"); p.chmod(0o600)' \
+  "<NAVER_CLIENT_ID>" "<NAVER_CLIENT_SECRET>"
+# restart 불필요 — issue_radar가 load_dotenv(agent/.env)
+```
+
 **Pod에서 확인**
 
 ```bash
 kubectl -n sw-factory exec cursor-agent-pm-0 -c agent-runner -- gh auth status
 # "Logged in to github.com account ... (GH_TOKEN)" — 정상
+kubectl -n sw-factory exec cursor-agent-candidate-0 -c agent-runner -- \
+  sh -c 'export GH_TOKEN="$GH_TOKEN_OVERRIDE"; gh api user --jq .login'
+# berryking404 (또는 write-capable identity)
 ```
 
 `GH_TOKEN` 없이 봇 Pod는 시작하지 않는다 (`entrypoint.sh`).

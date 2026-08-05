@@ -69,8 +69,10 @@ M0–M10 완료(실클러스터 데모·일부 수동 검증 제외). **M11 Dual
 
 - [x] Phase A (구 seewin): sessions 봇 온보딩 이력
 - [x] Phase B: Candydate cron → LLM `settings.schedules` + K8s CronJob 이식 이력
-- [x] **재등록:** 클라이언트 `candidate` + agent `candidate` (`docs/candidate/`, persona, 공유 `GH_TOKEN`, NS `sw-factory`)
+- [x] **재등록:** 클라이언트 `candidate` + agent `candidate` (`docs/candidate/`, persona, NS `sw-factory`)
   - repo: `https://github.com/berryking404/candidate.win.git`
+  - GitHub: `GH_TOKEN_candidate` (`GH_TOKEN_OVERRIDE`; 임시=`GH_TOKEN_pm` 복사 → 전용 PAT 교체 권장)
+  - 테넌트 secrets: Pod `agent/.env` (`NAVER_CLIENT_ID`/`SECRET` — radar)
   - schedules: `candidate-people-curation` / `candidate-publication-review` / `candidate-issue-radar-today`
   - CronJobs: `candydate-pass-*` → `persona=candidate`
 
