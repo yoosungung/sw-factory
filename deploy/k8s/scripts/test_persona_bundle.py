@@ -50,19 +50,20 @@ def test_merge_mcp_persona_overrides_server_by_name():
     assert merged["mcpServers"]["leantime"] == {"env": {"B": "2"}}
 
 
-def test_build_asky_bundle_includes_default_and_persona_memory():
-    bundle = build_persona_bundle("asky", PERSONAS_ROOT)
+def test_build_pm_bundle_includes_default_and_persona_memory():
+    bundle = build_persona_bundle("pm", PERSONAS_ROOT)
     memory = bundle[".cursor/MEMORY.md"]
     assert "get_ticket" not in memory
     assert "Leantime:" in memory
-    assert "asky" in memory.lower()
+    assert "pm" in memory.lower()
+    assert "leantime-pm" in memory
 
 
-def test_build_path_bundle_drops_duplicate_collab_rules_from_persona_only():
-    bundle = build_persona_bundle("path", PERSONAS_ROOT)
+def test_build_pm_bundle_drops_duplicate_collab_rules_from_persona_only():
+    bundle = build_persona_bundle("pm", PERSONAS_ROOT)
     memory = bundle[".cursor/MEMORY.md"]
     assert "add_comment" not in memory
-    assert "path-graph" in memory
+    assert "leantime-pm" in memory
 
 
 def test_build_bundle_includes_default_leantime_skill():
@@ -241,11 +242,13 @@ def test_build_bundle_includes_default_cursor_rules():
     assert "Korean" in workflow
 
 
-def test_build_path_bundle_includes_persona_rule_overlay():
-    bundle = build_persona_bundle("path", PERSONAS_ROOT)
+def test_build_pm_bundle_includes_default_rules_and_persona_skill():
+    bundle = build_persona_bundle("pm", PERSONAS_ROOT)
     assert ".cursor/rules/leantime-collab.mdc" in bundle
-    path_rule = bundle[".cursor/rules/path-graph.mdc"]
-    assert "path-graph" in path_rule
+    assert ".cursor/skills/leantime-pm/SKILL.md" in bundle
+    assert "pm is the **PM**" in bundle[".cursor/skills/leantime-pm/SKILL.md"] or (
+        "pm` is the **PM**" in bundle[".cursor/skills/leantime-pm/SKILL.md"]
+    )
 
 
 def test_configmap_key_roundtrip():
@@ -257,7 +260,7 @@ def test_configmap_key_roundtrip():
 
 
 def test_bundle_for_configmap_encodes_nested_paths():
-    bundle = build_persona_bundle("path", PERSONAS_ROOT)
+    bundle = build_persona_bundle("pm", PERSONAS_ROOT)
     cm = bundle_for_configmap(bundle)
     assert "_dot_cursor__MEMORY.md" in cm
     assert "_dot_cursor__mcp.json" in cm

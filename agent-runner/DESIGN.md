@@ -75,7 +75,7 @@ HTTP 계약(`POST /sessions`, `202` prompt, ticket↔session)은 유지한다. o
    - 조회 tool, 대상 ticket을 증명 못 하는 comment 수정/삭제는 성공 증거로 쓰지 않는다.
 3. last-tool이 실패해도 **API read-after-write**(`LEANTIME_URL`+`LEANTIME_ACCESS_TOKEN` JSON-RPC `Comments.getComments`)로 Active ticket에 최근 코멘트가 보이면 `ok_read_after_write`로 통과한다.
 
-- 실패 시 실패 이유와 `success_checks`를 같은 `SDKAgent`에 후속 `agent.send()`로 보낸다. `success_retry.max_attempts`(기본 **1**) 소진 시 `verification_failed`로 종료한다.
+- 실패 시 실패 이유와 `success_checks`를 같은 `SDKAgent`에 후속 `agent.send()`로 보낸다. `success_retry.max_attempts`(기본 **3**) 소진 시 `verification_failed`로 종료한다.
 - **인프라 실패**(MCP sticky/discovery/`tool_error:mcp` 등, 또는 shell last-tool이지만 같은 run에서 MCP mutation이 이미 실패한 경우)는 재시도하지 않고 `success_check.infra_abort` 후 종료한다. `WorkerDone.mcpStickyReset`으로 ticket→agent 매핑을 지워 다음 dispatch가 새 session을 만든다(`mcp.sticky_reset`).
 - 같은 `reason`이 직전 실패와 동일하면 `success_check.same_reason_stop`으로 즉시 중단한다(Outcome 스팸 방지).
 - retry prompt는 “이미 write 했으면 재작성 금지”를 명시한다.

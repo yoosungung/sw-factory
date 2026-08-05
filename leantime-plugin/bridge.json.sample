@@ -203,6 +203,6 @@
     "timeout_ms": 600000
   },
   "success_retry": {
-    "max_attempts": 1
+    "max_attempts": 3
   }
 }

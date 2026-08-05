@@ -68,7 +68,7 @@ async def test_add_comment_tool_delegates_to_client(monkeypatch):
     mock_client.add_comment.return_value = {"ok": True}
     monkeypatch.setattr(server, "get_client", lambda: mock_client)
 
-    result = await server.add_comment("ticket", 1, "summary")
+    result = await server.add_comment.fn("ticket", 1, "summary")
 
     mock_client.add_comment.assert_awaited_once_with(
         module="ticket", module_id=1, comment="summary"
@@ -85,7 +85,7 @@ async def test_edit_comment_tool_delegates_to_client(monkeypatch):
     mock_client.edit_comment.return_value = True
     monkeypatch.setattr(server, "get_client", lambda: mock_client)
 
-    result = await server.edit_comment(55, "revised")
+    result = await server.edit_comment.fn(55, "revised")
 
     mock_client.edit_comment.assert_awaited_once_with(55, "revised")
     assert json.loads(result) is True
@@ -100,7 +100,7 @@ async def test_delete_comment_tool_delegates_to_client(monkeypatch):
     mock_client.delete_comment.return_value = True
     monkeypatch.setattr(server, "get_client", lambda: mock_client)
 
-    result = await server.delete_comment(55)
+    result = await server.delete_comment.fn(55)
 
     mock_client.delete_comment.assert_awaited_once_with(55)
     assert json.loads(result) is True
@@ -115,7 +115,7 @@ async def test_get_status_labels_tool_passes_project_id(monkeypatch):
     mock_client.get_status_labels.return_value = {"3": {"name": "New"}}
     monkeypatch.setattr(server, "get_client", lambda: mock_client)
 
-    result = await server.get_status_labels(project_id=5)
+    result = await server.get_status_labels.fn(project_id=5)
 
     mock_client.get_status_labels.assert_awaited_once_with(project_id=5)
     assert json.loads(result) == {"3": {"name": "New"}}
@@ -130,7 +130,7 @@ async def test_list_tickets_tool_passes_updated_since(monkeypatch):
     mock_client.list_tickets.return_value = [{"id": 1}]
     monkeypatch.setattr(server, "get_client", lambda: mock_client)
 
-    result = await server.list_tickets(project_id=21, updated_since="2026-07-18")
+    result = await server.list_tickets.fn(project_id=21, updated_since="2026-07-18")
 
     mock_client.list_tickets.assert_awaited_once_with(
         project_id=21, updated_since="2026-07-18"
@@ -147,7 +147,7 @@ async def test_get_comments_tool_passes_since_and_mention(monkeypatch):
     mock_client.get_comments.return_value = [{"id": 7}]
     monkeypatch.setattr(server, "get_client", lambda: mock_client)
 
-    result = await server.get_comments(
+    result = await server.get_comments.fn(
         "ticket", 99, since="2026-07-18", mentioned_user_id=4
     )
 
@@ -169,7 +169,7 @@ async def test_update_ticket_tool_delegates_partial_fields(monkeypatch):
     mock_client.update_ticket.return_value = True
     monkeypatch.setattr(server, "get_client", lambda: mock_client)
 
-    result = await server.update_ticket(283, 21, status=2, assignedTo=4)
+    result = await server.update_ticket.fn(283, 21, status=2, assignedTo=4)
 
     mock_client.update_ticket.assert_awaited_once_with(
         283, 21, status=2, assignedTo=4
@@ -186,7 +186,7 @@ async def test_list_ticket_files_tool_delegates_to_client(monkeypatch):
     mock_client.list_ticket_files.return_value = [{"id": 1}]
     monkeypatch.setattr(server, "get_client", lambda: mock_client)
 
-    result = await server.list_ticket_files(157)
+    result = await server.list_ticket_files.fn(157)
 
     mock_client.list_ticket_files.assert_awaited_once_with(157)
     assert json.loads(result) == [{"id": 1}]
@@ -201,7 +201,7 @@ async def test_upload_ticket_file_tool_delegates_to_client(monkeypatch):
     mock_client.upload_ticket_file.return_value = {"fileId": "2"}
     monkeypatch.setattr(server, "get_client", lambda: mock_client)
 
-    result = await server.upload_ticket_file(157, "/tmp/note.txt")
+    result = await server.upload_ticket_file.fn(157, "/tmp/note.txt")
 
     mock_client.upload_ticket_file.assert_awaited_once_with(157, "/tmp/note.txt")
     assert json.loads(result) == {"fileId": "2"}
@@ -216,7 +216,7 @@ async def test_download_ticket_file_tool_delegates_to_client(monkeypatch):
     mock_client.download_ticket_file.return_value = {"encName": "abc", "content_base64": "aGk="}
     monkeypatch.setattr(server, "get_client", lambda: mock_client)
 
-    result = await server.download_ticket_file("abc")
+    result = await server.download_ticket_file.fn("abc")
 
     mock_client.download_ticket_file.assert_awaited_once_with("abc")
     assert json.loads(result)["content_base64"] == "aGk="
@@ -231,7 +231,7 @@ async def test_delete_ticket_file_tool_delegates_to_client(monkeypatch):
     mock_client.delete_ticket_file.return_value = True
     monkeypatch.setattr(server, "get_client", lambda: mock_client)
 
-    result = await server.delete_ticket_file(9)
+    result = await server.delete_ticket_file.fn(9)
 
     mock_client.delete_ticket_file.assert_awaited_once_with(9)
     assert json.loads(result) is True
