@@ -178,6 +178,14 @@ def test_agents_yaml_sample_has_org_wiki_and_km():
     assert "km=9" in schedules["pm-checkpoint"]["prompt"]
     assert schedules["pm-checkpoint"]["gates"] == ["flow_active"]
     assert "Deploying" in schedules["pm-checkpoint"]["prompt"]
+    # §2.6 #14 stall ladder: 2h → assignee health-check; +1h silence → @ta runtime check
+    cp = schedules["pm-checkpoint"]["prompt"]
+    assert "≥2h" in cp or ">=2h" in cp
+    assert "1h" in cp
+    assert "assignee-runtime-check" in cp or "@ta" in cp.lower()
+    # Status-board upsert (no verify spam): marker + edit_comment
+    assert "pm-checkpoint-status" in cp
+    assert "edit_comment" in cp
 
 
 def test_org_wiki_url_resolves_wiki_alias():

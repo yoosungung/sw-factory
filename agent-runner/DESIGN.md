@@ -131,6 +131,8 @@ ticket_id당 2분 창에서 create가 5회 쌓였는데 run 완료(`session.crea
 | `success_check.same_reason_stop` | 동일 reason 연속 실패로 중단 |
 | `success_check.skipped` | stream 미지원 등으로 검증 생략 |
 | `mcp.sticky_reset` | ticket agent 매핑 삭제(다음 create가 새 MCP host) |
+| `session.create.failed` / `run.background.failed` | worker exit·백그라운드 실패 (복구 트리거) |
+| `session.prompt.skipped` (`active_run` / `mutex`) | 후속 prompt 거부 — **연속 시 zombie 의심** |
 | `session.recover` | zombie/`active_run` recovery (§ Recovery R1–R5: `reason`·`action`) |
 
 예시:
@@ -140,6 +142,28 @@ kubectl -n sw-factory logs -f cursor-agent-path-0 -c agent-runner | rg 'run\.(st
 ```
 
 긴 텍스트·도구 결과는 500자에서 잘린다 (`run-logger.ts`).
+
+## Recovery — zombie `active_run` (계약 AC · #172 사후)
+
+### 증상 (실측)
+
+1. `run.started` 후 worker가 job 중 exit → `session.create.failed` / `run.background.failed` (`worker … exited during job`).
+2. parent `busyAgents`는 `.finally`로 비울 수 있어도 **ticket→agent 매핑·SDK local active run**이 남음.
+3. exit 후 `done.then`의 `release(worker)`가 스킵되면 worker `busy` 고착 — `pre_lease` recycle는 **idle만** 대상이라 이 worker를 못 비움.
+4. 같은 `ticket_id`로 오는 create/prompt는 기존 agent에 resume → SDK/`ActiveRunError` → `session.prompt.skipped` `reason=active_run` **영구 반복**. soft `budget.timeout_ms`는 preamble뿐이라 hard cancel 없음.
+
+### AC (구현됨 · TDD · #197)
+
+| # | AC | 상태 |
+|---|-----|------|
+| R1 | worker exit / `done` reject 시 **반드시** `release(worker)` + `busyAgents.delete` + (ticket 있으면) `ticketAgents` forget | ✅ `worker-pool` done reject release · busy crash respawn · `SdkBackend` `create.failed`/`run.background.failed` → `recoverTicketSession` |
+| R2 | 동일 ticket에 `skipped_active_run`이 N회(권장 2–3) 연속이거나 `create.failed` 직후면 **자동 recover**: `DELETE`/`cancel` 또는 SDK `local.force` → 매핑 삭제 → **새** `POST /sessions` (같은 prompt 재부착은 Bridge/호출자 정책) | ✅ `ACTIVE_RUN_SKIP_LIMIT=2`; SDK zombie(`!busyAgents`)는 즉시 recover |
+| R3 | recover 성공/실패를 `session.recover`(+ ticket_id, old/new agent_id)로 로그 | ✅ |
+| R4 | `budget.timeout_ms`는 soft 유지. hard wall을 넣을 경우 optional·별도 플래그(기본 off). soft만으로 R1–R3를 대체하지 않음 | ✅ 변경 없음 |
+| R5 | 단위 테스트: accepted 후 child `exit` → worker idle 복귀·매핑 없음·다음 create가 새 agent_id | ✅ `worker-pool.test` · `session-recover.test` |
+
+Out of scope(1차): Bridge retry queue 재설계, Goose hard turn-stop, Pod 재시작을 유일한 복구 수단으로 고정.
+Ops 보완(별계층): PM stall 사다리의 `@ta` `assignee-runtime-check`(ARCHITECTURE §2.6 #14) — R1–R5 자동 복구와 중복이 아니라 침묵/미탐지 백업.
 
 ## 컨테이너 도구 (K8s Pod)
 
