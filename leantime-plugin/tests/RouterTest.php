@@ -29,7 +29,12 @@ final class RouterTest extends TestCase
     /** Sessions bot used as primary assignee in Router tests (bridge.json: path). */
     private function pathUserId(): int
     {
-        return 6;
+        $path = BridgeConfig::fromFile(dirname(__DIR__) . '/bridge.json')->agentByName('path');
+        $this->assertNotNull($path, 'bridge.json must define path agent');
+        $id = (int) ($path['leantime_user_id'] ?? 0);
+        $this->assertGreaterThan(0, $id, 'path agent must have leantime_user_id');
+
+        return $id;
     }
 
     private function pathRunnerNeedle(): string
