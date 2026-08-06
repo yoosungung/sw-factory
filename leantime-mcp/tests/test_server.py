@@ -195,6 +195,91 @@ async def test_update_ticket_tool_delegates_partial_fields(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_create_ticket_tool_passes_milestoneid_and_sprint(monkeypatch):
+    monkeypatch.setenv("LEANTIME_URL", "https://leantime.example.com")
+    monkeypatch.setenv("LEANTIME_ACCESS_TOKEN", "pat")
+
+    mock_client = AsyncMock()
+    mock_client.create_ticket.return_value = 101
+    monkeypatch.setattr(server, "get_client", lambda: mock_client)
+
+    result = await server.create_ticket.fn(
+        "Item", 8, 2, milestoneid=55, sprint=3
+    )
+
+    kwargs = mock_client.create_ticket.await_args.kwargs
+    assert kwargs["milestoneid"] == 55
+    assert kwargs["sprint"] == 3
+    assert json.loads(result) == 101
+
+
+@pytest.mark.asyncio
+async def test_update_ticket_tool_passes_milestoneid_and_sprint(monkeypatch):
+    monkeypatch.setenv("LEANTIME_URL", "https://leantime.example.com")
+    monkeypatch.setenv("LEANTIME_ACCESS_TOKEN", "pat")
+
+    mock_client = AsyncMock()
+    mock_client.update_ticket.return_value = True
+    monkeypatch.setattr(server, "get_client", lambda: mock_client)
+
+    result = await server.update_ticket.fn(101, 8, milestoneid=55, sprint=3)
+
+    mock_client.update_ticket.assert_awaited_once_with(
+        101, 8, milestoneid=55, sprint=3
+    )
+    assert json.loads(result) is True
+
+
+@pytest.mark.asyncio
+async def test_list_milestones_tool_delegates(monkeypatch):
+    monkeypatch.setenv("LEANTIME_URL", "https://leantime.example.com")
+    monkeypatch.setenv("LEANTIME_ACCESS_TOKEN", "pat")
+
+    mock_client = AsyncMock()
+    mock_client.list_milestones.return_value = [{"id": 55}]
+    monkeypatch.setattr(server, "get_client", lambda: mock_client)
+
+    result = await server.list_milestones.fn(project_id=8)
+
+    mock_client.list_milestones.assert_awaited_once_with(project_id=8)
+    assert json.loads(result) == [{"id": 55}]
+
+
+@pytest.mark.asyncio
+async def test_create_milestone_tool_delegates(monkeypatch):
+    monkeypatch.setenv("LEANTIME_URL", "https://leantime.example.com")
+    monkeypatch.setenv("LEANTIME_ACCESS_TOKEN", "pat")
+
+    mock_client = AsyncMock()
+    mock_client.create_milestone.return_value = 55
+    monkeypatch.setattr(server, "get_client", lambda: mock_client)
+
+    result = await server.create_milestone.fn(
+        headline="M1", project_id=8, user_id=2
+    )
+
+    mock_client.create_milestone.assert_awaited_once_with(
+        headline="M1", project_id=8, user_id=2, date=None, description=None
+    )
+    assert json.loads(result) == 55
+
+
+@pytest.mark.asyncio
+async def test_list_sprints_tool_delegates(monkeypatch):
+    monkeypatch.setenv("LEANTIME_URL", "https://leantime.example.com")
+    monkeypatch.setenv("LEANTIME_ACCESS_TOKEN", "pat")
+
+    mock_client = AsyncMock()
+    mock_client.list_sprints.return_value = [{"id": 3}]
+    monkeypatch.setattr(server, "get_client", lambda: mock_client)
+
+    result = await server.list_sprints.fn(project_id=8)
+
+    mock_client.list_sprints.assert_awaited_once_with(project_id=8)
+    assert json.loads(result) == [{"id": 3}]
+
+
+@pytest.mark.asyncio
 async def test_list_ticket_files_tool_delegates_to_client(monkeypatch):
     monkeypatch.setenv("LEANTIME_URL", "https://leantime.example.com")
     monkeypatch.setenv("LEANTIME_ACCESS_TOKEN", "pat")

@@ -89,6 +89,8 @@ M0–M10 완료(실클러스터 데모·일부 수동 검증 제외). **M11 Dual
 
 - [x] pm `intake-template.md` (Goal/Non-goals/AC/Architecture notes)
 - [x] 수용 기준 없이 In Progress 금지; 제품 vision은 테넌트/Leantime
+- [x] `repos[].roadmap` + pm `roadmap-registry.json` + `pm-roadmap-sync` (current 마일스톤 1개만)
+- [x] leantime-mcp: `milestoneid`/`sprint` · `list_milestones` / `create_milestone` / `list_sprints`
 
 ## M9 — LOOP #2 훅
 

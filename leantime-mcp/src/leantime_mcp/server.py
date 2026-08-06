@@ -129,21 +129,36 @@ async def list_tickets(
 @app.tool()
 async def create_ticket(headline: str, project_id: int, user_id: int, date: str = None, 
                        description: str = None, status: str = None, priority: str = None,
-                       assignedTo: str = None, tags: str = None) -> str:
-    """Create a new ticket."""
+                       assignedTo: str = None, tags: str = None,
+                       milestoneid: int = None, sprint: int = None) -> str:
+    """Create a new ticket. Optional milestoneid/sprint assign to Leantime columns."""
     client = get_client()
+    kwargs = {}
+    if description is not None:
+        kwargs["description"] = description
+    if status is not None:
+        kwargs["status"] = status
+    if priority is not None:
+        kwargs["priority"] = priority
+    if assignedTo is not None:
+        kwargs["assignedTo"] = assignedTo
+    if tags is not None:
+        kwargs["tags"] = tags
+    if milestoneid is not None:
+        kwargs["milestoneid"] = milestoneid
+    if sprint is not None:
+        kwargs["sprint"] = sprint
     result = await client.create_ticket(
-        headline=headline, project_id=project_id, user_id=user_id, date=date,
-        description=description, status=status, priority=priority,
-        assignedTo=assignedTo, tags=tags
+        headline=headline, project_id=project_id, user_id=user_id, date=date, **kwargs
     )
     return json.dumps(result, indent=2)
 
 
 @app.tool()
 async def update_ticket(ticket_id: int, project_id: int, headline: str = None, description: str = None, 
-                       status: int = None, priority: str = None, assignedTo: int = None) -> str:
-    """Update an existing ticket."""
+                       status: int = None, priority: str = None, assignedTo: int = None,
+                       milestoneid: int = None, sprint: int = None) -> str:
+    """Update an existing ticket. Optional milestoneid/sprint (lowercase column names)."""
     client = get_client()
     # Build kwargs from non-None parameters
     kwargs = {}
@@ -157,8 +172,48 @@ async def update_ticket(ticket_id: int, project_id: int, headline: str = None, d
         kwargs['priority'] = priority
     if assignedTo is not None:
         kwargs['assignedTo'] = assignedTo
+    if milestoneid is not None:
+        kwargs['milestoneid'] = milestoneid
+    if sprint is not None:
+        kwargs['sprint'] = sprint
     
     result = await client.update_ticket(ticket_id, project_id, **kwargs)
+    return json.dumps(result, indent=2)
+
+
+@app.tool()
+async def list_milestones(project_id: int | None = None) -> str:
+    """List milestones for a project (Tickets.getAllMilestones)."""
+    client = get_client()
+    result = await client.list_milestones(project_id=project_id)
+    return json.dumps(result, indent=2)
+
+
+@app.tool()
+async def create_milestone(
+    headline: str,
+    project_id: int,
+    user_id: int,
+    date: str = None,
+    description: str = None,
+) -> str:
+    """Create a milestone ticket (addTicket type=milestone)."""
+    client = get_client()
+    result = await client.create_milestone(
+        headline=headline,
+        project_id=project_id,
+        user_id=user_id,
+        date=date,
+        description=description,
+    )
+    return json.dumps(result, indent=2)
+
+
+@app.tool()
+async def list_sprints(project_id: int | None = None) -> str:
+    """List sprints for a project (Sprints.getAllSprints)."""
+    client = get_client()
+    result = await client.list_sprints(project_id=project_id)
     return json.dumps(result, indent=2)
 
 

@@ -196,6 +196,17 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
 | `project_id` | int | NF·결함 티켓 기본 Leantime project |
 | `status_map` | object | 보드 이름→numeric status id (선택; 없으면 `settings.status_board`) |
 
+#### `repos[].roadmap`
+
+| 필드 | 타입 | 설명 |
+|------|------|------|
+| `enabled` | bool | `true`일 때만 pm roadmap 레지스트리 대상 |
+| `path` | string | repo 내 ROADMAP 경로 (기본 `ROADMAP.md`) |
+
+- `clients[].repo_ids` 소속 필수(→ `project_id` / `leantime_client_id` join).
+- `render-agents.sh` → **pm** `.cursor/roadmap-registry.json`. 스케줄 `pm-roadmap-sync`: 문서 위→아래 **첫 미완료 `##` 섹션만** 마일스톤·New 티켓(통과 전 다음 섹션 금지).
+- MCP: `milestoneid`/`sprint` on create/update; `list_milestones` / `create_milestone` / `list_sprints`.
+
 #### `repos[].tenant_cd`
 
 | 필드 | 타입 | 설명 |
@@ -208,10 +219,11 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
 | `image_input` | string | merge SHA input 이름(기본 `image_tag`) |
 | `verify.*` | object | rollout + HTTP smoke (환경별로 inputs/verify를 테넌트 workflow가 해석) |
 
-- **`repos[]`**: `id`, `git_repo_url`, 선택 `tenant_cd`, 선택 `client_id`(또는 `clients[].repo_ids`로 소속).
+- **`repos[]`**: `id`, `git_repo_url`, 선택 `tenant_cd`, 선택 `roadmap`, 선택 `client_id`(또는 `clients[].repo_ids`로 소속).
 - **`agents[]`**: `primary_repo`/`repos`로 workspace. 직원 5인에는 `client_id`를 두지 않는다. 개발자 agent는 선택적으로 client/repo 귀속.
 - `render-agents.sh` → TA(ta) `.cursor/tenant-cd-registry.json`. **bridge.json에는 미포함.**
 - `render-agents.sh` → qa / aa / ta `.cursor/clients-repos-registry.json` (`clients[]`×`repos[].git_repo_url`). 주간 NF·품질 게이트는 `tenant-repo-sync`로 ephemeral sync 후 `.factory/quality.yaml`을 읽는다( primary workspace만 믿지 않음 ).
+- `render-agents.sh` → pm `.cursor/roadmap-registry.json` (`repos[].roadmap.enabled`).
 - `repos[]` `org-wiki`/`wiki` → `ORG_WIKI_URL`. 품질 discovery는 테넌트 `.factory/quality.yaml`(`examples/tenant-quality/`).
 
 `enabled: false` 또는 필드 없음 → CD 비대상.

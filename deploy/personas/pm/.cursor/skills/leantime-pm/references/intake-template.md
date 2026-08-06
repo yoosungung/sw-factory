@@ -1,6 +1,6 @@
 # Intake / architecture / sprint-lite (M8)
 
-제품 vision·스프린트 도구는 테넌트/Leantime 보드에 둔다. 공장 ROADMAP에 제품 기능을 적지 않는다.
+제품 vision·스프린트 도구는 테넌트/Leantime 보드에 둔다. 공장 ROADMAP에 제품 기능을 적지 않는다. 테넌트 repo의 `ROADMAP.md`는 `repos[].roadmap.enabled`일 때 pm `pm-roadmap-sync`가 **current 마일스톤 1개만** 티켓화한다(`references/roadmap-sync.md`).
 
 ## Intake (부모 티켓 필수 섹션)
 

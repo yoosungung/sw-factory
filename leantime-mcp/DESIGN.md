@@ -38,7 +38,22 @@ pytest
 
 ## `update_ticket` (partial)
 
-Leantime JSON-RPC `Tickets.updateTicket`은 미전달 필드를 `''`로 덮어쓴다(본문·담당자 소실). MCP `update_ticket`은 **`Tickets.patchTicket`** 으로 넘긴 필드만 갱신한다. 도구 인자 `assignedTo`는 Leantime 컬럼 `editorId`로 매핑한다. `project_id`는 도구 시그니처 호환용이며 patch에 보내지 않는다.
+Leantime JSON-RPC `Tickets.updateTicket`은 미전달 필드를 `''`로 덮어쓴다(본문·담당자 소실). MCP `update_ticket`은 **`Tickets.patchTicket`** 으로 넘긴 필드만 갱신한다. 도구 인자 `assignedTo`는 Leantime 컬럼 `editorId`로 매핑한다. `project_id`는 도구 시그니처 호환용이며 patch에 보내지 않는다. 선택 `milestoneid` / `sprint`은 DB 컬럼명(소문자 `milestoneid`)으로 전달한다 — camelCase `milestoneId`는 무시될 수 있음(#3692).
+
+## MCP tools (create / update ticket)
+
+| tool | 추가 인자 | 동작 |
+|------|-----------|------|
+| `create_ticket` | `milestoneid?`, `sprint?` | `addTicket` values에 포함 |
+| `update_ticket` | `milestoneid?`, `sprint?` | `patchTicket` values에 포함 |
+
+## MCP tools (milestones / sprints)
+
+| tool | 인자 | 동작 |
+|------|------|------|
+| `list_milestones` | `project_id?` | `Tickets.Tickets.getAllMilestones` (`searchCriteria.currentProject`) |
+| `create_milestone` | `headline`, `project_id`, `user_id`, `date?`, `description?` | `addTicket` + `type: milestone` |
+| `list_sprints` | `project_id?` | `Sprints.Sprints.getAllSprints` (`projectId`) |
 
 ## MCP tools (status labels)
 

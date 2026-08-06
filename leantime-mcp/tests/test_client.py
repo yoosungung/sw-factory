@@ -266,3 +266,82 @@ async def test_update_ticket_maps_description_headline_priority(client: Leantime
             "description": "<p>d</p>",
             "priority": "3",
         }
+
+
+@pytest.mark.asyncio
+async def test_create_ticket_passes_milestoneid_and_sprint(client: LeantimeClient):
+    with patch.object(client, "call", new_callable=AsyncMock) as call:
+        call.return_value = 101
+
+        await client.create_ticket(
+            "Item",
+            8,
+            2,
+            date="2026-08-06",
+            milestoneid=55,
+            sprint=3,
+        )
+
+        method, params = call.await_args.args
+        assert method == "leantime.rpc.Tickets.Tickets.addTicket"
+        assert params["values"]["milestoneid"] == 55
+        assert params["values"]["sprint"] == 3
+        assert params["values"]["headline"] == "Item"
+
+
+@pytest.mark.asyncio
+async def test_update_ticket_passes_milestoneid_and_sprint(client: LeantimeClient):
+    with patch.object(client, "call", new_callable=AsyncMock) as call:
+        call.return_value = True
+
+        await client.update_ticket(101, 8, milestoneid=55, sprint=3)
+
+        method, params = call.await_args.args
+        assert method == "leantime.rpc.Tickets.Tickets.patchTicket"
+        assert params == {"id": 101, "values": {"milestoneid": 55, "sprint": 3}}
+
+
+@pytest.mark.asyncio
+async def test_list_milestones_uses_get_all_milestones(client: LeantimeClient):
+    with patch.object(client, "call", new_callable=AsyncMock) as call:
+        call.return_value = [{"id": 55, "headline": "M1"}]
+
+        result = await client.list_milestones(project_id=8)
+
+        method, params = call.await_args.args
+        assert method == "leantime.rpc.Tickets.Tickets.getAllMilestones"
+        assert params == {"searchCriteria": {"currentProject": 8}}
+        assert result == [{"id": 55, "headline": "M1"}]
+
+
+@pytest.mark.asyncio
+async def test_create_milestone_uses_add_ticket_type_milestone(client: LeantimeClient):
+    with patch.object(client, "call", new_callable=AsyncMock) as call:
+        call.return_value = 55
+
+        await client.create_milestone(
+            headline="M1 — Feature",
+            project_id=8,
+            user_id=2,
+            date="2026-08-06",
+        )
+
+        method, params = call.await_args.args
+        assert method == "leantime.rpc.Tickets.Tickets.addTicket"
+        assert params["values"]["type"] == "milestone"
+        assert params["values"]["headline"] == "M1 — Feature"
+        assert params["values"]["projectId"] == 8
+        assert params["values"]["userId"] == 2
+
+
+@pytest.mark.asyncio
+async def test_list_sprints_uses_get_all_sprints(client: LeantimeClient):
+    with patch.object(client, "call", new_callable=AsyncMock) as call:
+        call.return_value = [{"id": 3, "name": "Sprint 1"}]
+
+        result = await client.list_sprints(project_id=8)
+
+        method, params = call.await_args.args
+        assert method == "leantime.rpc.Sprints.Sprints.getAllSprints"
+        assert params == {"projectId": 8}
+        assert result == [{"id": 3, "name": "Sprint 1"}]

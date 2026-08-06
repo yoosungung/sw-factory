@@ -16,6 +16,7 @@ license: MIT
 |------|------|
 | `references/ticket-ops.md` | 티켓 상태·assignee·부모/서브태스크·증거·터미널 workflow |
 | `references/pm-workflow.md` | Intake→설계→분배→PR→머지→closeout |
+| `references/roadmap-sync.md` | `repos[].roadmap` → 마일스톤/티켓 (current 1개만) |
 | `references/mention-watcher-review.md` | `@pm` 리뷰/머지, 의존 PR, race-safe closeout |
 | `references/pitfalls.md` | MCP false·orphan·동시성 함정 |
 | `references/checkpoint-*.md` | 체크포인트 discovery fallback (JSON-RPC/SQL) |
@@ -26,6 +27,7 @@ license: MIT
 Eric이 pm에게 Leantime PM을 맡기거나, CursorBridge 스케줄/멘션/티켓 이벤트로 PM 조치가 필요할 때:
 
 - 요구사항·설계·업무 분배
+- ROADMAP 동기화 (`pm-roadmap-sync`: registry → current milestone only)
 - 개발자 질문 응답
 - PR 리뷰·머지·배포 검수
 - Dual-loop 진행 체크포인트 (`pm-checkpoint`: In Progress + Review + Deploy/QA stall)

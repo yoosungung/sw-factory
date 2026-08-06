@@ -24,6 +24,10 @@ repos:
 
   - id: landing-web
     git_repo_url: https://github.com/demo-org/landing-web.git
+    # Optional: PM syncs ROADMAP.md → Leantime (one current milestone at a time)
+    roadmap:
+      enabled: true
+      path: ROADMAP.md
     # Tenant CD: registry key = clients[].leantime_client_id + repo_id
     tenant_cd:
       enabled: true
@@ -163,6 +167,18 @@ settings:
         - "At most 5 new actionable add_comment this run (status-board edit_comment excluded)."
         - "No-op/SLA updates use edit_comment on <!-- pm-checkpoint-status --> (no new verify spam)."
         - "Final reply lists acted/skipped tickets with classification."
+    - id: pm-roadmap-sync
+      cron: "0 22 * * *"
+      agents: [pm]
+      prompt: >-
+        Use the leantime-pm skill and references/roadmap-sync.md.
+        Read .cursor/roadmap-registry.json. For each enabled repo, sync ROADMAP:
+        one current milestone only (first ## section with unchecked - [ ] items);
+        do not enqueue later milestones. Create missing milestones/tickets via MCP
+        (milestoneid on create_ticket). Dedup with <!-- roadmap:repo_id:slug -->.
+      success_checks:
+        - "Only the current (first incomplete) milestone received new tickets this run."
+        - "Final reply lists per-repo current section, created/skipped counts."
     - id: github-issue-check
       cron: "0 23 * * *"
       prompt: >-

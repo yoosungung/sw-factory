@@ -22,6 +22,8 @@ sys.path.insert(0, sys.argv[5])
 from clients import CLIENTS_REPOS_CURSOR_PATH, clients_repos_registry_json
 from persona_bundle import build_persona_bundle, bundle_for_configmap
 from repos import index_repos, resolve_agent_repo
+from roadmap import REGISTRY_CURSOR_PATH as ROADMAP_CURSOR_PATH
+from roadmap import roadmap_registry_json
 from tenant_cd import REGISTRY_CURSOR_PATH, registry_json
 
 agents_yaml, out_dir, ss_tpl_path, svc_tpl_path, _scripts_dir = sys.argv[1:6]
@@ -41,8 +43,10 @@ tenant_registry = registry_json(agents, data.get("repos"), data.get("clients"))
 clients_repos_registry = clients_repos_registry_json(
     data.get("clients"), data.get("repos")
 )
+roadmap_registry = roadmap_registry_json(data.get("clients"), data.get("repos"))
 # Staff NF/gates: qa, aa, ta need full clients×repos URLs (not only tenant_cd).
 CLIENTS_REPOS_PERSONAS = frozenset({"qa", "aa", "ta"})
+ROADMAP_PERSONAS = frozenset({"pm"})
 org_wiki = repos_by_id.get("org-wiki") or repos_by_id.get("wiki") or {}
 org_wiki_url = str(org_wiki.get("git_repo_url") or "").strip()
 
@@ -122,6 +126,9 @@ for persona in persona_emails:
     # M11 NF/gates: qa/aa/ta get clients×repos for tenant-repo-sync.
     if persona in CLIENTS_REPOS_PERSONAS:
         bundle[CLIENTS_REPOS_CURSOR_PATH] = clients_repos_registry
+    # ROADMAP → tickets: pm gets enabled repos[].roadmap registry.
+    if persona in ROADMAP_PERSONAS:
+        bundle[ROADMAP_CURSOR_PATH] = roadmap_registry
     cm = {
         "apiVersion": "v1",
         "kind": "ConfigMap",

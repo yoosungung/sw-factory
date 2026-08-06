@@ -238,6 +238,52 @@ class LeantimeClient:
             {"id": ticket_id, "values": values},
         )
 
+    async def list_milestones(self, project_id: Optional[int] = None) -> list:
+        search: dict[str, Any] = {}
+        if project_id is not None:
+            search["currentProject"] = project_id
+        return await self.call(
+            "leantime.rpc.Tickets.Tickets.getAllMilestones",
+            {"searchCriteria": search},
+        )
+
+    async def create_milestone(
+        self,
+        headline: str,
+        project_id: int,
+        user_id: int,
+        date: Optional[str] = None,
+        description: Optional[str] = None,
+        **kwargs,
+    ) -> dict:
+        from datetime import datetime
+
+        if date is None:
+            date = datetime.now().strftime("%Y-%m-%d")
+        values: dict[str, Any] = {
+            "headline": headline,
+            "type": "milestone",
+            "projectId": project_id,
+            "userId": user_id,
+            "date": date,
+            **kwargs,
+        }
+        if description is not None:
+            values["description"] = description
+        return await self.call(
+            "leantime.rpc.Tickets.Tickets.addTicket",
+            {"values": values},
+        )
+
+    async def list_sprints(self, project_id: Optional[int] = None) -> list:
+        params: dict[str, Any] = {}
+        if project_id is not None:
+            params["projectId"] = project_id
+        return await self.call(
+            "leantime.rpc.Sprints.Sprints.getAllSprints",
+            params,
+        )
+
     async def get_status_labels(self, project_id: Optional[int] = None) -> dict:
         """Fetch status labels. Pass project_id to avoid empty-key cache poison (#60)."""
         params: dict[str, Any] = {}
