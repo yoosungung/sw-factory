@@ -17,7 +17,7 @@ credentials.json
 **/secrets/**
 
 # Local identity / deploy config (commit *.sample only)
-deploy/k8s/agents.yaml*
+deploy/k8s/agents.*
 !deploy/k8s/agents.yaml.sample
 leantime-plugin/bridge.json
 deploy/personas/**
