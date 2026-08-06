@@ -64,6 +64,8 @@ spec:
                 exit 0
               fi
               if [ ! -d /workspace/repo/.git ]; then
+                # Non-git leftover dirs (partial clone / prior crash) block `git clone`.
+                rm -rf /workspace/repo
                 CLONE_URL="$GIT_REPO_URL"
                 TOKEN="${GH_TOKEN_OVERRIDE:-$GH_TOKEN}"
                 if [ -n "$TOKEN" ]; then
