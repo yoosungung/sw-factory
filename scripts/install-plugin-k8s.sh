@@ -24,6 +24,9 @@ cp "$PLUGIN"/BridgeConfig.php \
    "$PLUGIN"/SessionStore.php \
    "$PLUGIN"/ScheduleCron.php \
    "$PLUGIN"/ScheduleTicker.php \
+   "$PLUGIN"/ReadyCatchupTicker.php \
+   "$PLUGIN"/RunnerReadyProbe.php \
+   "$PLUGIN"/HttpRunnerReadyProbe.php \
    "$PLUGIN"/ScheduleGates.php \
    "$PLUGIN"/DefaultScheduleGates.php \
    "$PLUGIN"/InProgressTicketProbe.php \
@@ -83,7 +86,8 @@ data:
     for f in BridgeConfig.php Listener.php Plugin.php ResilientRunnerClient.php Router.php \\
              RunnerClient.php RunnerTransport.php OpenAIRunnerClient.php DelegatingRunnerClient.php \\
              RunnerSessionNotFoundException.php RunnerCreateThrottledException.php SessionStore.php \\
-             ScheduleCron.php ScheduleTicker.php ScheduleGates.php DefaultScheduleGates.php \\
+             ScheduleCron.php ScheduleTicker.php ReadyCatchupTicker.php RunnerReadyProbe.php \\
+             HttpRunnerReadyProbe.php ScheduleGates.php DefaultScheduleGates.php \\
              InProgressTicketProbe.php NullInProgressTicketProbe.php LeantimeInProgressTicketProbe.php \\
              LeantimeCliBootstrap.php \\
              TicketLookup.php NullTicketLookup.php \\

@@ -18,6 +18,8 @@ Leantime MCP 서버(`leantime`) 도구를 사용한다. 작업 전 읽기, 작�
 - 쓰기: `add_comment`의 `module_id`와 `update_ticket`의 `ticket_id`는 **항상 N**
 - 세션 대화에 다른 티켓(예: 이미 Done인 관련 이슈)이 나와도, 사용자가 다른 id를 명시하지 않는 한 그 티켓에 코멘트·상태 변경하지 않는다.
 
+**예외 — Ready catch-up / `schedules[]` 티켓리스 세션:** Active ticket_id가 없다. catch-up은 `agent-catch-up` 스킬로 배정·멘션을 훑고 **한 건**을 고른 뒤 그 티켓에만 읽고 쓴다.
+
 ## 작업 전 (읽기)
 
 1. `get_ticket`으로 **Active ticket_id** 상세를 확인한다.
@@ -68,7 +70,7 @@ Leantime 멘션은 **HTML `data-tagged-user-id`** 로 저장해야 알림·봇 �
 | `add_comment` | 진행·요약·핸드오프 코멘트 |
 | `update_ticket` | 상태·담당자·본문 변경 |
 | `create_ticket` / `upsert_subtask` | 새 티켓·서브태스크 |
-| `list_projects` / `list_tickets` | 탐색 |
+| `list_projects` / `list_tickets` | 탐색 (`list_tickets(assigned_to=me)` 배정함) |
 | `list_ticket_files` | 티켓 첨부 목록 |
 | `upload_ticket_file` | 로컬 파일 첨부 |
 | `download_ticket_file` | 첨부 다운로드 (`content_base64`) |

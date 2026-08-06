@@ -65,6 +65,30 @@ def _filter_since(
     return filtered
 
 
+def _assignee_user_id(item: dict) -> Optional[int]:
+    """Leantime tickets expose assignee as editorId (preferred) or assignedTo."""
+    for key in ("editorId", "assignedTo", "editor_id", "assigned_to"):
+        raw = item.get(key)
+        if raw is None or raw == "":
+            continue
+        try:
+            value = int(raw)
+        except (TypeError, ValueError):
+            continue
+        if value > 0:
+            return value
+    return None
+
+
+def _filter_assigned_to(items: list, assigned_to: int) -> list:
+    want = int(assigned_to)
+    return [
+        item
+        for item in items
+        if isinstance(item, dict) and _assignee_user_id(item) == want
+    ]
+
+
 def _mentions_user(text: str, user_id: int) -> bool:
     for match in _MENTION_USER_RE.finditer(text or ""):
         if int(match.group(1)) == user_id:
@@ -154,15 +178,20 @@ class LeantimeClient:
         self,
         project_id: Optional[int] = None,
         updated_since: Optional[str] = None,
+        assigned_to: Optional[int] = None,
     ) -> list:
         searchCriteria = {}
         if project_id:
             searchCriteria["currentProject"] = project_id
         params = {"searchCriteria": searchCriteria}
         result = await self.call("leantime.rpc.Tickets.Tickets.getAll", params)
-        if updated_since and isinstance(result, list):
+        if not isinstance(result, list):
+            return result
+        if assigned_to is not None:
+            result = _filter_assigned_to(result, assigned_to)
+        if updated_since:
             # Prefer ticket.modified (last update); fall back to date when absent.
-            return _filter_since(result, updated_since, ("modified", "date"))
+            result = _filter_since(result, updated_since, ("modified", "date"))
         return result
 
     async def create_ticket(

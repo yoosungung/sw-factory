@@ -89,7 +89,8 @@
     "comment_added": "New comment on ticket. Read comments and respond with add_comment if needed.",
     "assignee_changed": "Assignee changed. If handing off for review: git-ship first (commit, push, PR), then add_comment with PR link and assign reviewer.",
     "mention": "You were @mentioned on ticket {ticket_id}. Read context and respond.",
-    "handoff": "Assignee handoff. If work is ready for review: complete git-ship (push + PR), set ticket to Review, assign human reviewer, add_comment with PR link. Do not ask humans to push. Then stop until reassigned."
+    "handoff": "Assignee handoff. If work is ready for review: complete git-ship (push + PR), set ticket to Review, assign human reviewer, add_comment with PR link. Do not ask humans to push. Then stop until reassigned.",
+    "catch_up": "Runner Ready catch-up (commute). No Active ticket_id — use agent-catch-up skill. Scan assigned open work and @mentions since {lookback_since}; pick ONE actionable item; start it in this session (MCP read/write on that ticket). If nothing actionable, exit quietly without ticket spam."
   },
   "status_prompts": {
     "4": "Status is In Progress. Continue implementation (local / developer).",

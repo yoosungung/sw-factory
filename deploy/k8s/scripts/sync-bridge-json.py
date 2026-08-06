@@ -34,6 +34,12 @@ PROMPTS = {
         "set ticket to Review, assign human reviewer, add_comment with PR link. "
         "Do not ask humans to push. Then stop until reassigned."
     ),
+    "catch_up": (
+        "Runner Ready catch-up (commute). No Active ticket_id — use agent-catch-up skill. "
+        "Scan assigned open work and @mentions since {lookback_since}; pick ONE actionable item; "
+        "start it in this session (MCP read/write on that ticket). "
+        "If nothing actionable, exit quietly without ticket spam."
+    ),
 }
 
 STATUS_PROMPT_BY_NAME = {

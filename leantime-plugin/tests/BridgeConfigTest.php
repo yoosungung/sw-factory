@@ -21,6 +21,10 @@ final class BridgeConfigTest extends TestCase
             $config->promptFor('mention', ['ticket_id' => '42'])
         );
         $this->assertStringContainsString('handoff', $config->promptFor('handoff'));
+        $this->assertStringContainsString(
+            '2026-08-04T01:00:00+00:00',
+            $config->promptFor('catch_up', ['lookback_since' => '2026-08-04T01:00:00+00:00'])
+        );
         $this->assertIsArray($config->schedules());
         $this->assertSame('path', (string) ($config->agentByName('path')['name'] ?? ''));
     }

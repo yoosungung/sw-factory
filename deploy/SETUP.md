@@ -394,6 +394,8 @@ kubectl -n sw-factory exec deploy/leantime -- \
 
 `cursorbridge-schedule-tick`이 **매분(UTC)** `tick-schedules.php`를 실행한다. 정본은 `deploy/k8s/agents.yaml` `settings.schedules` → `sync-bridge-json.py` → `bridge.json`. due인 항목은 선택 `gates`를 통과한 뒤 대상 agent마다 **티켓 없는 신규 세션**을 만들어 프롬프트를 보낸다 (`gates` 생략 시 무조건 발사; `agents` 생략 시 `type != human`이고 `runner_url` 있는 전원; 열린 티켓은 에이전트가 MCP로 조회).
 
+같은 틱에서 **Ready-edge catch-up**(재기동=출근)도 돈다: 각 bot `/readyz`(실패 시 `/healthz`) 프로브 → Ready 전이(false→true)면 `prompts.catch_up` 티켓리스 세션 1회. 새 `schedules[]` 항목이 아니다(`ARCHITECTURE` §2.4.2).
+
 ```bash
 # agents.yaml 예
 # settings:

@@ -45,4 +45,26 @@ final class SessionStoreTest extends TestCase
         $store->deleteRetry($pending[0]['ticket_id'], $pending[0]['runner_url']);
         $this->assertSame([], $store->pendingRetries());
     }
+
+    public function testRunnerReadySnapshotAndCatchUpClaim(): void
+    {
+        $store = SessionStore::inMemory();
+        $this->assertNull($store->getRunnerReady('http://runner-a'));
+
+        $store->setRunnerReady('http://runner-a', false);
+        $row = $store->getRunnerReady('http://runner-a');
+        $this->assertNotNull($row);
+        $this->assertFalse($row['is_ready']);
+        $this->assertNull($row['last_catch_up_at']);
+
+        $this->assertTrue($store->claimCatchUp('http://runner-a', 'epoch-1'));
+        $this->assertFalse($store->claimCatchUp('http://runner-a', 'epoch-1'));
+        $this->assertTrue($store->claimCatchUp('http://runner-a', 'epoch-2'));
+
+        $store->setRunnerReady('http://runner-a', true, 'epoch-2', '2026-08-06T01:00:00+00:00');
+        $ready = $store->getRunnerReady('http://runner-a');
+        $this->assertTrue($ready['is_ready']);
+        $this->assertSame('epoch-2', $ready['ready_since']);
+        $this->assertSame('2026-08-06T01:00:00+00:00', $ready['last_catch_up_at']);
+    }
 }

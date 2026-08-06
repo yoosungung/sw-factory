@@ -95,4 +95,14 @@ final class Plugin
             new DefaultScheduleGates(new LeantimeInProgressTicketProbe())
         ))->tick();
     }
+
+    public function tickReadyCatchup(): int
+    {
+        return (new ReadyCatchupTicker(
+            $this->config,
+            $this->sessions,
+            $this->runner,
+            HttpRunnerReadyProbe::fromCurl()
+        ))->tick();
+    }
 }

@@ -18,7 +18,7 @@ Leantime × Cursor Agent 협업 시스템 계약 및 인터페이스.
 2. **별도 Bridge 서비스 없음** — 오케스트레이션은 Leantime `CursorBridge` 플러그인이 담당한다.
 3. **티켓 ↔ session/conversation 1:1** — `ticket_id`마다 고유 `agent_id` 하나; 플러그인 DB가 포인터를 보관한다. `sessions`는 Cursor `agent_id`, `openai`는 named `conversation`(`leantime-ticket-{id}`).
 4. **Leantime 계정 ↔ runner 1:1** — 최대 10 agent; `bridge.json` / `agents.yaml`이 정본이다. `sessions`는 `cursor-agent-{name}` Pod(+PVC), `openai`는 외부 `runner_url`.
-5. **이벤트 기반 실행** — Leantime 이벤트 또는 플러그인 `schedules[]` 틱이 있을 때만 runner에 inference를 요청한다. 스케줄 틱도 CursorBridge가 오케스트레이션하며 runner를 직접 cron하지 않는다.
+5. **이벤트 기반 실행** — runner에 inference를 요청하는 wake는 다음뿐이다: (1) Leantime 이벤트, (2) 플러그인 `schedules[]` 틱, (3) **runner Ready-edge catch-up**(재기동=출근). 모두 CursorBridge가 오케스트레이션하며 runner는 자체 cron하지 않는다. Ready catch-up은 `schedules[]` 항목이 아니라 Ready 전이(false→true)가 트리거다(§2.4.2).
 6. **자기 반향(self-echo) 억제** — `type`이 `human`이 아닌 에이전트가 **자기 담당 티켓**에 낸 이벤트만 담당 runner 디스패치를 생략한다. 다른 에이전트·인간이 낸 이벤트(에이전트 간 코멘트 포함)는 정상 라우팅한다.
 7. **읽기 우선** — 에이전트는 Leantime MCP로 `get_ticket` / `get_comments` 후 행동한다.
 8. **K8s namespace** — `sw-factory` (Leantime과 동일 NS; 레거시 `leantime` NS는 SETUP 참고).
@@ -38,7 +38,7 @@ Leantime × Cursor Agent 협업 시스템 계약 및 인터페이스.
 | `agents[]` | array | ≤10; `name`, `leantime_user_id`, `email`, `runner_url`, `git_repo_url`(sync가 `primary_repo` resolve), `persona`, `type`(`human`\|`sessions`\|`openai`). `human`: Pod 없음·`runner_url` 빈 문자열. `sessions`: Pod/Service `cursor-agent-{name}`, sync가 runner_url 생성, `model`(선택), `gh_token_secret_key`(선택, 기본 `GH_TOKEN`). `openai`: YAML `runner_url` 필수(외부 OpenAI-compatible), StatefulSet 없음. `tenant_cd`는 **bridge.json에 넣지 않음** — ta `tenant-cd-registry.json`만(§2.8). 주간 NF용 `clients-repos-registry.json`은 qa/aa/ta에 시드(§2.8) |
 | `model` | string | 기본 모델 (`agents.yaml` `settings.model`에서 sync; `sessions`별 override는 `agents[].model`) |
 | `debounce_ms` | int | 동일 티켓 이벤트 디바운스 |
-| `prompts` | object | `ticket_created`, `ticket_updated`, `comment_added`, `assignee_changed`, `mention` (`{ticket_id}`), `handoff`. Router가 매 이벤트에 `Active ticket_id=N` 스코프 문장을 붙여 MCP 읽기/쓰기를 그 티켓으로 고정한다. |
+| `prompts` | object | `ticket_created`, `ticket_updated`, `comment_added`, `assignee_changed`, `mention` (`{ticket_id}`), `handoff`, `catch_up`(티켓리스; `{lookback_since}`). Router가 **이벤트** 프롬프트에만 `Active ticket_id=N` 스코프 문장을 붙여 MCP 읽기/쓰기를 그 티켓으로 고정한다. `catch_up`·`schedules[]` 세션에는 Active-ticket 스코프를 붙이지 않는다. |
 | `status_prompts` | object | 상태별 추가 프롬프트 (M3) |
 | `mention_routing` | bool | Tiptap `data-tagged-user-id` 또는 `@email` 멘션 시 해당 runner 알림 (M3) |
 | `schedules[]` | array | 주기 프롬프트. `id`, `cron`(5필드·UTC), `prompt` 필수; `agents`(name 목록) 생략 시 `type != human`이고 `runner_url` 비어 있지 않은 전원. 선택 `gates`(string 배열, **생략/`[]` = 무조건 발사**): 나열된 게이트를 **AND**로 만족할 때만 세션 생성. 지원 `in_progress`(status=4), `flow_active`(In Progress·Review·Deploying Test·QA·Deploying Prod = 4/10/11/12/13, 공장 기본 status_board id). 미지원 게이트는 발사하지 않음(fail-closed). 정본은 `deploy/k8s/agents.yaml` `settings.schedules` → sync |
@@ -70,6 +70,13 @@ runner 일시 장애 시 Leantime 요청은 실패하지 않고, **티켓×계�
 - 동일 `(ticket_id, runner_url)` 재실패 → **UPSERT**(최신 prompt/event로 덮어씀, `attempts` 리셋).
 - 동일 `(ticket_id, runner_url)` runner 호출 **성공** → 해당 행 **삭제**(이후 이벤트가 이미 처리됨).
 - `@mention`·핸드오프로 **다른 runner**가 같은 티켓에 디스패치되면 runner별로 별도 행.
+
+### 2.2.2 플러그인 DB — `cursorbridge_runner_ready` / `cursorbridge_catch_up_fires`
+
+| 테이블 | 용도 |
+|--------|------|
+| `cursorbridge_runner_ready` | `runner_url` PK; `is_ready`, `ready_since`, `last_catch_up_at`, `updated_at` |
+| `cursorbridge_catch_up_fires` | `(runner_url, epoch)` PK — Ready epoch당 catch-up 1회 claim |
 
 ### 2.3 Runner HTTP dialect
 
@@ -112,6 +119,20 @@ HTTP 계약은 불변(409 `skipped_active_run` 포함). 프로세스 내부는 *
 
 K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `bin/tick-schedules.php`를 실행한다. due인 `schedules[]`마다 `gates`를 평가한 뒤(생략 시 통과), 대상 bot에 **티켓 없는 신규 세션**을 `POST /sessions`으로 만든다(프롬프트만; 에이전트가 MCP로 열린 티켓을 찾음). `cursorbridge_sessions`에는 올리지 않는다. 동일 `(schedule_id, YYYY-MM-DDTHH:MM)`는 한 번만 발사(SQLite dedupe).
 
+### 2.4.2 Ready-edge catch-up (재기동 = 출근)
+
+같은 CronJob이 `tick-schedules.php`에서 **Ready catch-up**도 돌린다(새 `schedules[]` 항목 아님).
+
+| 단계 | 동작 |
+|------|------|
+| 프로브 | 각 `type != human`·`runner_url` 비어 있지 않은 bot에 `GET {runner_url}/readyz` → 실패 시 `/healthz`. HTTP 2xx면 Ready. |
+| 스냅샷 | SQLite `cursorbridge_runner_ready`에 runner별 `is_ready`·`ready_since`·`last_catch_up_at` 보관. |
+| 전이 | **false→true** 또는 **unknown→true**일 때만 catch-up. 연속 Ready는 no-op. Ready가 false로 떨어진 뒤 다시 true면 새 출근. |
+| 발사 | `prompts.catch_up`으로 **티켓 없는** `POST /sessions` 1회. `cursorbridge_sessions` 미등록. 동일 Ready epoch당 1회(SQLite `cursorbridge_catch_up_fires` claim). |
+| lookback | 프롬프트 `{lookback_since}` = 직전 `last_catch_up_at`, 없으면 지금−48h(ISO). |
+
+에이전트는 MCP로 배정함·멘션을 훑고 **한 건**을 골라 그 세션에서 착수한다(persona `agent-catch-up`). 실패 디스패치 재전송(`flush-retries`)과 별개다. DB 스키마는 §2.2.2.
+
 ### 2.5 Persona 번들 (`deploy/personas/_default/` + `deploy/personas/{persona}/`)
 
 `render-agents.sh`가 `_default/`와 persona 오버레이를 병합해 ConfigMap `persona-{persona}`를 생성한다.
@@ -142,8 +163,8 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
 | `Blocked` | 막힘 | PM |
 | `Waiting for Approval` | 사람 결정 | human |
 
-1. MCP 읽기 우선 — 이벤트 프롬프트의 `Active ticket_id`만 범위.
-2. 쓰기는 `add_comment` 우선 — `module_id`는 Active ticket_id.
+1. MCP 읽기 우선 — **이벤트** 프롬프트의 `Active ticket_id`만 범위. **예외:** Ready catch-up·`schedules[]` 티켓리스 세션에는 Active-ticket 스코프가 없다. catch-up은 배정/멘션 triage 후 **한 건**을 골라 그 세션에서 MCP로 읽고 쓰며, 이후 해당 티켓 이벤트는 기존 티켓 바인딩 세션으로 라우팅한다.
+2. 쓰기는 `add_comment` 우선 — 이벤트 세션의 `module_id`는 Active ticket_id. catch-up·스케줄 세션은 선정한 티켓 id.
 3. **기능 루프 (CD 대상):** `In Progress` → `Review`(PM merge) → `Deploying Test`(TA) → `QA`(QA E2E ∥ AA 보안) → 둘 다 통과 후 `Deploying Prod`(TA) → 증거 충족 시 `Done`. 실패 시 개발자·`In Progress`/`Blocked`. `tenant_cd` 없으면 Review → Done(기존).
 4. **리뷰 핸드오프 전 배송(ship) 필수** — 봇 runner는 `git-ship`으로 push·PR 후 Review·`@pm`. 사람에게 로컬 push를 요청하지 않는다.
 5. 핸드오프: assignee + 같은 티켓 코멘트. merge 후 CD면 TA에 `merge_sha`; test 성공 후 `@qa` `@aa`; 게이트 통과 후 TA에 prod.

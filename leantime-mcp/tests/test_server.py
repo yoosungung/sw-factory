@@ -133,9 +133,26 @@ async def test_list_tickets_tool_passes_updated_since(monkeypatch):
     result = await server.list_tickets.fn(project_id=21, updated_since="2026-07-18")
 
     mock_client.list_tickets.assert_awaited_once_with(
-        project_id=21, updated_since="2026-07-18"
+        project_id=21, updated_since="2026-07-18", assigned_to=None
     )
     assert json.loads(result) == [{"id": 1}]
+
+
+@pytest.mark.asyncio
+async def test_list_tickets_tool_passes_assigned_to(monkeypatch):
+    monkeypatch.setenv("LEANTIME_URL", "https://leantime.example.com")
+    monkeypatch.setenv("LEANTIME_ACCESS_TOKEN", "pat")
+
+    mock_client = AsyncMock()
+    mock_client.list_tickets.return_value = [{"id": 2}]
+    monkeypatch.setattr(server, "get_client", lambda: mock_client)
+
+    result = await server.list_tickets.fn(assigned_to=6)
+
+    mock_client.list_tickets.assert_awaited_once_with(
+        project_id=None, updated_since=None, assigned_to=6
+    )
+    assert json.loads(result) == [{"id": 2}]
 
 
 @pytest.mark.asyncio

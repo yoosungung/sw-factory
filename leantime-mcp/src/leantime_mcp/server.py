@@ -105,16 +105,23 @@ async def get_ticket(ticket_id: int) -> str:
 
 
 @app.tool()
-async def list_tickets(project_id: int = None, updated_since: str = None) -> str:
-    """List tickets, optionally filtered by project ID and last-updated time.
+async def list_tickets(
+    project_id: int = None,
+    updated_since: str = None,
+    assigned_to: int = None,
+) -> str:
+    """List tickets, optionally filtered by project, assignee, and last-updated time.
 
+    assigned_to: Leantime user id (editorId). Client-side filter after getAll.
     updated_since: ISO date/datetime (e.g. 2026-07-18). Keeps tickets whose
     `modified` (fallback: `date`) is on or after that instant. Filtering is
     client-side; Leantime JSON-RPC has no modifiedAfter for tickets.
     """
     client = get_client()
     result = await client.list_tickets(
-        project_id=project_id, updated_since=updated_since
+        project_id=project_id,
+        updated_since=updated_since,
+        assigned_to=assigned_to,
     )
     return json.dumps(result, indent=2)
 

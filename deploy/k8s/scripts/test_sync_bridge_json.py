@@ -23,6 +23,14 @@ def test_handoff_prompt_requires_git_ship():
     assert "push" in mod.PROMPTS["handoff"].lower()
 
 
+def test_catch_up_prompt_is_ticketless_commute():
+    text = mod.PROMPTS["catch_up"]
+    assert "agent-catch-up" in text
+    assert "{lookback_since}" in text
+    assert "No Active ticket_id" in text
+    assert "ONE" in text or "one" in text.lower()
+
+
 def test_review_status_prompt_requires_push():
     review = mod.STATUS_PROMPT_BY_NAME["Review"]
     assert "git-ship" in review
@@ -38,6 +46,7 @@ def test_bridge_json_matches_sync_prompts():
     path = BRIDGE_JSON if BRIDGE_JSON.is_file() else ROOT / "leantime-plugin" / "bridge.json.sample"
     bridge = json.loads(path.read_text())
     assert bridge["prompts"]["handoff"] == mod.PROMPTS["handoff"]
+    assert bridge["prompts"]["catch_up"] == mod.PROMPTS["catch_up"]
     # Review prompt lives under status_board id (sample: 10) or legacy 4
     status_blob = " ".join(bridge["status_prompts"].values())
     assert "git-ship" in status_blob or "Review" in status_blob

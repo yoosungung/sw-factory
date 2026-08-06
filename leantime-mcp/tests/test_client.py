@@ -108,6 +108,38 @@ async def test_list_tickets_filters_by_updated_since(client: LeantimeClient):
 
 
 @pytest.mark.asyncio
+async def test_list_tickets_filters_by_assigned_to(client: LeantimeClient):
+    tickets = [
+        {"id": 1, "editorId": 6},
+        {"id": 2, "assignedTo": "6"},
+        {"id": 3, "editorId": 9},
+        {"id": 4, "editorId": 0},
+        {"id": 5},
+    ]
+    with patch.object(client, "call", new_callable=AsyncMock) as call:
+        call.return_value = tickets
+
+        result = await client.list_tickets(assigned_to=6)
+
+        assert [t["id"] for t in result] == [1, 2]
+
+
+@pytest.mark.asyncio
+async def test_list_tickets_assigned_to_and_updated_since(client: LeantimeClient):
+    tickets = [
+        {"id": 1, "editorId": 6, "modified": "2026-07-20 10:00:00"},
+        {"id": 2, "editorId": 6, "modified": "2026-07-10 10:00:00"},
+        {"id": 3, "editorId": 9, "modified": "2026-07-20 10:00:00"},
+    ]
+    with patch.object(client, "call", new_callable=AsyncMock) as call:
+        call.return_value = tickets
+
+        result = await client.list_tickets(assigned_to=6, updated_since="2026-07-18")
+
+        assert [t["id"] for t in result] == [1]
+
+
+@pytest.mark.asyncio
 async def test_list_tickets_passes_project_and_skips_filter_without_since(
     client: LeantimeClient,
 ):

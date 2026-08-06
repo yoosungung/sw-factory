@@ -144,4 +144,5 @@ M0–M10 완료(실클러스터 데모·일부 수동 검증 제외). **M11 Dual
 2. 티켓 assignee=agent → 코멘트/상태 변경으로 E2E 검증
 3. M5/M11: 데모 테넌트 `tenant_cd`·quality 어댑터 + 실 E2E
 4. **M11 후속:** #172 QA 세션 수동 재기동(필요 시) — R1–R5·PM→TA stall 사다리는 문서/스킬 반영됨
-5. `git commit` + `git push`
+5. **M11 후속: Ready-edge catch-up (재기동=출근)** — Bridge가 `/readyz` 전이(false→true) 시 티켓리스 `prompts.catch_up` 세션 1회. 정본: [`ARCHITECTURE` §1.5 / §2.4.2](ARCHITECTURE.md) · `ReadyCatchupTicker` · `_default` `agent-catch-up` · MCP `list_tickets(assigned_to=)`
+6. `git commit` + `git push`

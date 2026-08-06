@@ -49,6 +49,8 @@ final class SessionStore
         );
         $this->migrateRetryQueue();
         $this->migrateScheduleFires();
+        $this->migrateRunnerReady();
+        $this->migrateCatchUpFires();
     }
 
     private function migrateScheduleFires(): void
@@ -59,6 +61,31 @@ final class SessionStore
                 fire_key TEXT NOT NULL,
                 created_at TEXT NOT NULL,
                 PRIMARY KEY (schedule_id, fire_key)
+            )'
+        );
+    }
+
+    private function migrateRunnerReady(): void
+    {
+        $this->pdo->exec(
+            'CREATE TABLE IF NOT EXISTS cursorbridge_runner_ready (
+                runner_url TEXT PRIMARY KEY,
+                is_ready INTEGER NOT NULL,
+                ready_since TEXT,
+                last_catch_up_at TEXT,
+                updated_at TEXT NOT NULL
+            )'
+        );
+    }
+
+    private function migrateCatchUpFires(): void
+    {
+        $this->pdo->exec(
+            'CREATE TABLE IF NOT EXISTS cursorbridge_catch_up_fires (
+                runner_url TEXT NOT NULL,
+                epoch TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                PRIMARY KEY (runner_url, epoch)
             )'
         );
     }
@@ -261,5 +288,87 @@ final class SessionStore
             'DELETE FROM cursorbridge_retry_queue WHERE ticket_id = ? AND runner_url = ?'
         );
         $stmt->execute([$ticketId, $runnerUrl]);
+    }
+
+    /**
+     * @return array{is_ready: bool, ready_since: ?string, last_catch_up_at: ?string}|null
+     */
+    public function getRunnerReady(string $runnerUrl): ?array
+    {
+        $stmt = $this->pdo->prepare(
+            'SELECT is_ready, ready_since, last_catch_up_at
+             FROM cursorbridge_runner_ready WHERE runner_url = ?'
+        );
+        $stmt->execute([$runnerUrl]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        if ($row === false) {
+            return null;
+        }
+
+        return [
+            'is_ready' => ((int) $row['is_ready']) === 1,
+            'ready_since' => $row['ready_since'] !== null ? (string) $row['ready_since'] : null,
+            'last_catch_up_at' => $row['last_catch_up_at'] !== null
+                ? (string) $row['last_catch_up_at']
+                : null,
+        ];
+    }
+
+    public function setRunnerReady(
+        string $runnerUrl,
+        bool $isReady,
+        ?string $readySince = null,
+        ?string $lastCatchUpAt = null
+    ): void {
+        $prev = $this->getRunnerReady($runnerUrl);
+        if ($readySince === null && $isReady) {
+            $readySince = $prev['ready_since'] ?? null;
+        }
+        if (!$isReady) {
+            $readySince = null;
+        }
+        if ($lastCatchUpAt === null) {
+            $lastCatchUpAt = $prev['last_catch_up_at'] ?? null;
+        }
+
+        $stmt = $this->pdo->prepare(
+            'INSERT INTO cursorbridge_runner_ready
+               (runner_url, is_ready, ready_since, last_catch_up_at, updated_at)
+             VALUES (?, ?, ?, ?, ?)
+             ON CONFLICT(runner_url) DO UPDATE SET
+               is_ready = excluded.is_ready,
+               ready_since = excluded.ready_since,
+               last_catch_up_at = excluded.last_catch_up_at,
+               updated_at = excluded.updated_at'
+        );
+        $stmt->execute([
+            $runnerUrl,
+            $isReady ? 1 : 0,
+            $readySince,
+            $lastCatchUpAt,
+            (new \DateTimeImmutable())->format(DATE_ATOM),
+        ]);
+    }
+
+    /**
+     * Claim a catch-up fire for this Ready epoch. Returns false if already claimed.
+     */
+    public function claimCatchUp(string $runnerUrl, string $epoch): bool
+    {
+        try {
+            $stmt = $this->pdo->prepare(
+                'INSERT INTO cursorbridge_catch_up_fires (runner_url, epoch, created_at)
+                 VALUES (?, ?, ?)'
+            );
+            $stmt->execute([
+                $runnerUrl,
+                $epoch,
+                (new \DateTimeImmutable())->format(DATE_ATOM),
+            ]);
+
+            return true;
+        } catch (\PDOException) {
+            return false;
+        }
     }
 }

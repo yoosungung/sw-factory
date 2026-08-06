@@ -50,7 +50,7 @@ Leantime JSON-RPC `Tickets.updateTicket`은 미전달 필드를 `''`로 덮어�
 
 | tool | 인자 | 동작 |
 |------|------|------|
-| `list_tickets` | `project_id?`, `updated_since?` | JSON-RPC `Tickets.Tickets.getAll` 후, `updated_since`(ISO)가 있으면 응답의 **`modified`**(없으면 `date`) ≥ cutoff만 남김 |
+| `list_tickets` | `project_id?`, `updated_since?`, `assigned_to?` | JSON-RPC `Tickets.Tickets.getAll` 후 클라이언트 필터. `assigned_to`=Leantime user id → **`editorId`**(없으면 `assignedTo`) 일치만. `updated_since`(ISO)가 있으면 응답의 **`modified`**(없으면 `date`) ≥ cutoff만 남김 |
 
 서버측 `modifiedAfter`는 없다. `searchCriteria.dateFrom`/`dateTo`는 **생성일(`date`)** 기준이라 last-updated와 다르다.
 
@@ -72,7 +72,7 @@ Leantime JSON-RPC `Tickets.updateTicket`은 미전달 필드를 `''`로 덮어�
 | `since` | 코멘트 **`date`**(생성) ≥ cutoff. 코멘트에는 신뢰할 `modified`가 없다 |
 | `mentioned_user_id` | HTML `data-tagged-user-id="N"` 멘션만 (plain `@name` 제외) |
 
-나를 멘션한 코멘트 찾기: 후보 티켓을 `list_tickets(updated_since=...)`로 좁힌 뒤, 각 티켓에 `get_comments(module=ticket, mentioned_user_id=<내 user id>, since=...)`. 전역 mention inbox API는 아직 MCP에 노출하지 않는다.
+나를 멘션한 코멘트 찾기: 후보 티켓을 `list_tickets(updated_since=...)`로 좁힌 뒤, 각 티켓에 `get_comments(module=ticket, mentioned_user_id=<내 user id>, since=...)`. 내 배정함: `list_tickets(assigned_to=<내 user id>)`. 전역 mention inbox API는 아직 MCP에 노출하지 않는다.
 
 `edit_comment` / `delete_comment`는 작성자이거나 `comments.moderate` 권한이 있을 때만 성공한다. `comment_id`는 `get_comments` 응답의 `id`를 사용한다.
 

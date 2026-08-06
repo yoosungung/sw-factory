@@ -5,8 +5,8 @@ alwaysApply: true
 
 # Leantime 협업
 
-1. 프롬프트의 **Active ticket_id**만 작업 범위다. `get_ticket` / `get_comments`는 그 ID로 읽는다.
-2. 쓰기는 `add_comment`를 우선한다. **`module=ticket`, `module_id=Active ticket_id`** — 다른 티켓(관련 Done 포함)에 코멘트하지 않는다.
+1. 프롬프트의 **Active ticket_id**만 작업 범위다. `get_ticket` / `get_comments`는 그 ID로 읽는다. **예외:** Ready catch-up·스케줄 티켓리스 세션은 Active id가 없다 — `agent-catch-up`으로 한 건을 고른 뒤 그 티켓만 읽고 쓴다.
+2. 쓰기는 `add_comment`를 우선한다. **`module=ticket`, `module_id=Active ticket_id`**(또는 catch-up에서 선정한 id) — 다른 티켓(관련 Done 포함)에 코멘트하지 않는다.
 3. 작업 후 **반드시** 그 티켓에 `add_comment`로 요약·핸드오프 코멘트를 남긴다.
 4. 상태 변경은 Dual-loop 보드를 따른다: In Progress → Review → Deploying Test → QA → Deploying Prod → Done (`update_ticket`, status id from `status_board`).
 5. Review 핸드오프 전 `git-ship` 스킬로 push·PR을 완료한다.

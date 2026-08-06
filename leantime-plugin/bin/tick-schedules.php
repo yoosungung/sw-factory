@@ -29,4 +29,7 @@ use Leantime\Plugins\CursorBridge\Plugin;
 
 LeantimeCliBootstrap::boot($appRoot);
 
-echo 'scheduled=' . Plugin::createDefault()->tickSchedules() . PHP_EOL;
+$plugin = Plugin::createDefault();
+echo 'scheduled=' . $plugin->tickSchedules()
+    . ' catch_up=' . $plugin->tickReadyCatchup()
+    . PHP_EOL;
