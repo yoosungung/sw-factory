@@ -70,6 +70,7 @@ This file provides guidance to AI coding assistants (Claude Code, Codex, Gemini,
 - 개발은 TDD 방식으로 진행한다. (코드 스켈레톤 -> 테스트 코드 -> 기능 구현)
 
 - 민감 설정(`deploy/k8s/agents.yaml`, `leantime-plugin/bridge.json`, `deploy/personas/**/MEMORY.md`)은 gitignore. 템플릿만 `*.sample`로 커밋. 클론/CI는 `./scripts/bootstrap-config.sh`(`--force`는 덮어쓰기).
+- **Git 신원 경계:** 공장 직원(`pm`/`km`/`ta`/`qa`/`aa` + `_default`) persona·스킬은 커밋 OK. 실고객(client/repo/developer agent·테넌트 persona)은 **로컬만**(`agents.yaml`, `docs/`, `deploy/personas/{tenant}/`). sample은 `demo-*` placeholder만.
 
 - 한국어/영어 혼용을 허용한다. 한 문서 내 일관성만 지킨다(현재 AGENTS/ARCHITECTURE/ROADMAP/DESIGN은 한국어 본문 + 영어 식별자).
 
@@ -77,7 +78,7 @@ This file provides guidance to AI coding assistants (Claude Code, Codex, Gemini,
 
 ## 3. Status
 
-M0–M5: `leantime-plugin/`, `agent-runner/`, `deploy/k8s/`, Tenant CD(`repos[].tenant_cd`·ta `tenant-cd`). M4: PVC/spend CronJobs. **M10** org-wiki. **M11** Dual-loop: 직원 5인(PM/KM/QA/TA/AA), tenant≡`client_id`, 기능(test→QA∥AA→prod) + 주간 NF(부하·클린·대량품질; `tenant-repo-sync`+`clients-repos-registry`). CI: `.github/workflows/ci.yml`. 제품 소스·품질 기준은 테넌트 repo. `settings.schedules` → `cursorbridge-schedule-tick`(+ Ready-edge catch-up). CursorBridge My Work **Created by me** 위젯(기본 Calendar 슬롯 대체; author + open/Done≤5d). `docs/`·테넌트 persona(예: candidate)는 로컬 전용(gitignore). candidate: `GH_TOKEN_candidate` + Pod `agent/.env`(Naver) — 절차는 `deploy/SETUP.md`.
+M0–M5: `leantime-plugin/`, `agent-runner/`, `deploy/k8s/`, Tenant CD(`repos[].tenant_cd`·ta `tenant-cd`). M4: PVC/spend CronJobs. **M10** org-wiki. **M11** Dual-loop: 직원 5인(PM/KM/QA/TA/AA), tenant≡`client_id`, 기능(test→QA∥AA→prod) + 주간 NF(부하·클린·대량품질; `tenant-repo-sync`+`clients-repos-registry`). CI: `.github/workflows/ci.yml`. 제품 소스·품질 기준은 테넌트 repo. `settings.schedules` → `cursorbridge-schedule-tick`(+ Ready-edge catch-up). CursorBridge My Work **Created by me** 위젯(기본 Calendar 슬롯 대체; author + open/Done≤5d). `docs/`·실테넌트 persona/설정은 로컬 전용(gitignore).
 
  
 

@@ -5,6 +5,9 @@
 # M11: clients[] ≡ Leantime client_id. repos[] + optional tenant_cd.
 # Factory staff (pm/km/ta/qa/aa) are not bound to a client.
 # Developers (human|sessions) bind via primary_repo under a client.
+#
+# Git policy: commit only demo-* placeholders here. Real tenants (client ids,
+# repo URLs, developer agents, personas) live in local agents.yaml / docs/ only.
 
 clients:
   - id: demo-acme
@@ -12,26 +15,9 @@ clients:
     project_id: 1
     repo_ids: [landing-web, shop-api]
 
-  # Example real client (see deploy/SETUP.md §B)
-  - id: sw-factory
-    leantime_client_id: 2
-    project_id: 5
-    repo_ids: [sw-factory]
-
-  - id: nl2sql
-    leantime_client_id: 3
-    project_id: 6
-    repo_ids: [nl2sql]
-
 repos:
   - id: bridge-harness
     git_repo_url: https://github.com/demo-org/bridge-harness.git
-
-  - id: sw-factory
-    git_repo_url: https://github.com/yoosungung/sw-factory.git
-
-  - id: nl2sql
-    git_repo_url: https://github.com/yoosungung/nl2sql.git
 
   - id: shop-api
     git_repo_url: https://github.com/demo-org/shop-api.git
@@ -73,73 +59,54 @@ agents:
     primary_repo: bridge-harness
     type: human
 
-  # Factory staff (PM) — cross-client
+  # Factory staff — soft-factory sequential ids: pm=2…aa=6 (seed rewrites on install)
   - name: pm
-    leantime_user_id: 4
+    leantime_user_id: 2
     email: pm@example.com
     persona: pm
     primary_repo: shop-api
     type: sessions
     gh_token_secret_key: GH_TOKEN_pm
 
-  # Example developer agent (sessions) — yoosungung/sw-factory client repo
-  - name: sw-factory
-    leantime_user_id: 7
-    email: sw-factory@example.com
-    persona: sw-factory
-    primary_repo: sw-factory
-    type: sessions
-
-  - name: nl2sql
-    leantime_user_id: 8
-    email: nl2sql@example.com
-    persona: nl2sql
-    primary_repo: nl2sql
-    type: sessions
-
-  # Example developer agent (sessions) — repo under client
+  # Demo-only developer agents — placeholder ids (remap / replace in local agents.yaml)
   - name: asky
-    leantime_user_id: 5
+    leantime_user_id: 101
     email: asky@example.com
     persona: asky
     primary_repo: landing-web
     type: sessions
 
   - name: path
-    leantime_user_id: 6
+    leantime_user_id: 102
     email: path@example.com
     persona: path
     primary_repo: topology-lib
     type: sessions
 
-  # Factory staff (TA)
   - name: ta
-    leantime_user_id: 13
+    leantime_user_id: 4
     email: ta@example.com
     persona: ta
     primary_repo: k8s-test
     type: sessions
     gh_token_secret_key: GH_TOKEN_ta
 
-  # Factory staff (KM)
   - name: km
-    leantime_user_id: 9
+    leantime_user_id: 3
     email: km@example.com
     persona: km
     primary_repo: org-wiki
     type: sessions
 
-  # Factory staff (QA)
   - name: qa
-    leantime_user_id: 15
+    leantime_user_id: 5
     email: qa@example.com
     persona: qa
     primary_repo: bridge-harness
     type: sessions
 
-  # Factory staff (AA)
   - name: aa
-    leantime_user_id: 16
+    leantime_user_id: 6
     email: aa@example.com
     persona: aa
     primary_repo: bridge-harness
@@ -191,7 +158,7 @@ settings:
         for no-op/SLA/skip (no @mentions in board). New add_comment only for actionable @mentions/misroute.
         Never add_comment "PM verify" / "Outcome record only". No kubectl/E2E/security/re-run by pm.
         Dual-loop Done needs test+qa+aa+prod evidence.
-        Mentions: eric=1,pm=4,asky=5,path=6,km=9,ta=13,qa=15,aa=16. ≤5 new actionable comments/run.
+        Mentions: resolve each name via bridge.json `leantime_user_id` (never hardcode ids). ≤5 new actionable comments/run.
       success_checks:
         - "At most 5 new actionable add_comment this run (status-board edit_comment excluded)."
         - "No-op/SLA updates use edit_comment on <!-- pm-checkpoint-status --> (no new verify spam)."

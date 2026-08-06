@@ -192,43 +192,8 @@ subjects:
     name: cursor-agent-ta
     namespace: sw-factory
 ---
-apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
-metadata:
-  name: cursor-agent-test-ns-write
-  namespace: nl2sql
-  labels:
-    app: cursor-agent
-rules:
-  - apiGroups: [""]
-    resources: ["configmaps", "secrets", "services", "persistentvolumeclaims"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-  - apiGroups: [""]
-    resources: ["pods"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-  - apiGroups: ["apps"]
-    resources: ["deployments", "statefulsets"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
-  - apiGroups: ["networking.k8s.io"]
-    resources: ["ingresses"]
-    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
----
-apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
-metadata:
-  name: cursor-agent-test-ns-write
-  namespace: nl2sql
-  labels:
-    app: cursor-agent
-roleRef:
-  apiGroup: rbac.authorization.k8s.io
-  kind: Role
-  name: cursor-agent-test-ns-write
-subjects:
-  - kind: ServiceAccount
-    name: cursor-agent-ta
-    namespace: sw-factory
----
+# Additional tenant test-NS Role/RoleBinding copies belong in a local overlay
+# (real tenant NS names are not committed). Factory NS write is above.
 # path-graph Argo: bound to ta SA for now (path agent not in soft-factory staff).
 # Reintroduce path-dedicated SA when path bot returns.
 apiVersion: rbac.authorization.k8s.io/v1

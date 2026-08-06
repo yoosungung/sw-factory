@@ -175,7 +175,27 @@ def test_agents_yaml_sample_has_org_wiki_and_km():
     schedules = {s["id"]: s for s in data["settings"]["schedules"]}
     assert "km-wiki" in schedules
     assert "Inbox drain" in schedules["km-wiki"]["prompt"] or "inbox" in schedules["km-wiki"]["prompt"].lower()
-    assert "km=9" in schedules["pm-checkpoint"]["prompt"]
+    prompt = schedules["pm-checkpoint"]["prompt"]
+    assert "bridge.json" in prompt and "leantime_user_id" in prompt
+    assert "never hardcode" in prompt.lower() or "Mentions: resolve" in prompt
+    assert "pm=2" not in prompt and "km=3" not in prompt
+    assert "sw-factory=" not in prompt
+    assert "nl2sql=" not in prompt
+    assert "candidate=" not in prompt
+    assert "ta=13" not in prompt and "qa=15" not in prompt and "aa=16" not in prompt
+    assert next(a for a in data["agents"] if a["name"] == "pm")["leantime_user_id"] == 2
+    assert next(a for a in data["agents"] if a["name"] == "km")["leantime_user_id"] == 3
+    assert next(a for a in data["agents"] if a["name"] == "ta")["leantime_user_id"] == 4
+    assert next(a for a in data["agents"] if a["name"] == "qa")["leantime_user_id"] == 5
+    assert next(a for a in data["agents"] if a["name"] == "aa")["leantime_user_id"] == 6
+    agent_names = {a["name"] for a in data["agents"]}
+    assert "nl2sql" not in agent_names and "candidate" not in agent_names
+    # "sw-factory" as developer agent is tenant-local; sample must not include it
+    assert "sw-factory" not in agent_names
+    client_ids = {c["id"] for c in data.get("clients", [])}
+    assert client_ids == {"demo-acme"}
+    repo_urls = " ".join(r.get("git_repo_url", "") for r in data.get("repos", []))
+    assert "yoosungung" not in repo_urls and "berryking" not in repo_urls
     assert schedules["pm-checkpoint"]["gates"] == ["flow_active"]
     assert "Deploying" in schedules["pm-checkpoint"]["prompt"]
     # §2.6 #14 stall ladder: 2h → assignee health-check; +1h silence → @ta runtime check

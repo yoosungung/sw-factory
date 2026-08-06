@@ -35,7 +35,7 @@ final class CreatedByMeTicketsTest extends TestCase
                     'headline' => 'quality.yaml',
                     'status' => 0,
                     'projectId' => 1,
-                    'projectName' => 'nl2sql',
+                    'projectName' => 'demo-acme',
                     'editorId' => 2,
                     'editorName' => 'pm',
                     'type' => 'task',

@@ -2,7 +2,7 @@
 
 Factory-side automated chain: `pytest deploy/k8s/scripts/test_tenant_cd.py`.
 
-목표 테넌트(예): asky / `askwho.net` (Leantime project id 19). 공장 repo에는 제품 소스를 넣지 않는다.
+목표 테넌트: 로컬 `agents.yaml`의 demo/`landing-web`(asky) 등. 공장 repo에는 제품 소스를 넣지 않는다. 실고객 이름·project id는 이 파일에 적지 않는다.
 
 ## Once per demo tenant
 
@@ -13,7 +13,7 @@ Factory-side automated chain: `pytest deploy/k8s/scripts/test_tenant_cd.py`.
 
 ## Ticket loop (1건)
 
-1. Leantime에 askwho(또는 데모 프로젝트) 티켓 생성 → assignee = 제품 봇(asky 등).
+1. Leantime에 데모 프로젝트 티켓 생성 → assignee = 제품 봇(asky 등).
 2. Dev bot: 구현 → `git-ship`(push+PR) → Review 핸드오프.
 3. pm: required checks 초록이면 merge → 코멘트에 `pr_url` + `merge_sha` → assignee=`ta` + `@mention`.
 4. ta: `tenant-cd` 스킬 → `workflow_dispatch` → run watch → `kubectl rollout status` → in-cluster HTTP smoke → 증거 코멘트.

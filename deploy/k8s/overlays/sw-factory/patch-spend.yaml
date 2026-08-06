@@ -15,12 +15,12 @@ spec:
                   value: "2000000"
                 - name: LEANTIME_URL
                   value: http://leantime.sw-factory.svc
-                - name: LEANTIME_PROJECT_ID
-                  value: "1"
-                - name: LEANTIME_USER_ID
-                  value: "13"
-                - name: LEANTIME_ASSIGNED_TO
-                  value: "1"
+                - name: LEANTIME_PROJECT_NAME
+                  value: sw-factory
+                - name: LEANTIME_AUTHOR_AGENT
+                  value: ta
+                - name: LEANTIME_ASSIGNEE_AGENT
+                  value: eric
                 - name: LEANTIME_ACCESS_TOKEN
                   valueFrom:
                     secretKeyRef:

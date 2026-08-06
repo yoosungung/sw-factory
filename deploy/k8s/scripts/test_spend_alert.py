@@ -13,6 +13,7 @@ sys.path.insert(0, str(ROOT / "base" / "ops-scripts"))
 import spend_alert as spend  # noqa: E402
 
 CRONJOB = ROOT / "base" / "cronjob-spend-alert.yaml"
+OVERLAY = ROOT / "overlays" / "sw-factory" / "patch-spend.yaml"
 KUSTOMIZATION = ROOT / "base" / "kustomization.yaml"
 FLUSH = ROOT / "base" / "cronjob-flush-retries.yaml"
 
@@ -72,7 +73,85 @@ def test_ticket_headline_and_description_include_totals():
     assert "threshold" in body.lower() or "100" in body
 
 
-def test_spend_alert_cronjob_manifest():
+def test_find_project_id_by_name():
+    projects = [
+        {"id": 5, "name": "sw-factory"},
+        {"id": 1, "name": "demo-acme"},
+    ]
+    assert spend.find_project_id_by_name(projects, "sw-factory") == 5
+    assert spend.find_project_id_by_name(projects, "DEMO-ACME") == 1
+    try:
+        spend.find_project_id_by_name(projects, "missing")
+        assert False, "expected LookupError"
+    except LookupError as exc:
+        assert "missing" in str(exc)
+
+
+def test_find_user_id_by_agent_name():
+    users = [
+        {"id": 1, "firstname": "Eric", "username": "suyoo@didim.com"},
+        {"id": 4, "firstname": "ta", "username": "ta@example.com"},
+        {"id": 2, "firstname": "pm", "username": "pm@example.com"},
+    ]
+    assert spend.find_user_id_by_agent_name(users, "eric") == 1
+    assert spend.find_user_id_by_agent_name(users, "ta") == 4
+    assert spend.find_user_id_by_agent_name(users, "pm") == 2
+    try:
+        spend.find_user_id_by_agent_name(users, "ghost")
+        assert False, "expected LookupError"
+    except LookupError:
+        pass
+
+
+def test_resolve_targets_from_agents_yaml(tmp_path):
+    path = tmp_path / "agents.yaml"
+    path.write_text(
+        "\n".join(
+            [
+                "clients:",
+                "- id: demo-acme",
+                "  leantime_client_id: 2",
+                "  project_id: 55",
+                "agents:",
+                "- name: eric",
+                "  leantime_user_id: 11",
+                "- name: ta",
+                "  leantime_user_id: 44",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    got = spend.resolve_targets_from_agents_yaml(
+        path,
+        project_name="demo-acme",
+        author_agent="ta",
+        assignee_agent="eric",
+    )
+    assert got == {"project_id": 55, "user_id": 44, "assigned_to": 11}
+
+
+def test_spend_alert_defaults_are_names_not_numeric_ids():
+    assert spend.DEFAULT_PROJECT_NAME == "sw-factory"
+    assert spend.DEFAULT_AUTHOR_AGENT == "ta"
+    assert spend.DEFAULT_ASSIGNEE_AGENT == "eric"
+    assert not hasattr(spend, "DEFAULT_PROJECT_ID")
+    src = (ROOT / "base" / "ops-scripts" / "spend_alert.py").read_text()
+    assert "LEANTIME_PROJECT_NAME" in src
+    assert "LEANTIME_AUTHOR_AGENT" in src
+    assert "LEANTIME_ASSIGNEE_AGENT" in src
+    # no committed numeric id defaults for ticket targets
+    assert 'LEANTIME_PROJECT_ID", "' not in src
+    assert 'LEANTIME_USER_ID", "' not in src
+
+
+def _env_map(cron_path: Path) -> dict:
+    docs = list(yaml.safe_load_all(cron_path.read_text()))
+    cron = next(d for d in docs if d["kind"] == "CronJob")
+    container = cron["spec"]["jobTemplate"]["spec"]["template"]["spec"]["containers"][0]
+    return {e["name"]: e for e in container.get("env", [])}
+
+
+def test_spend_alert_cronjob_manifest_uses_names():
     docs = list(yaml.safe_load_all(CRONJOB.read_text()))
     cron = next(d for d in docs if d["kind"] == "CronJob")
     assert cron["metadata"]["name"] == "cursorbridge-spend-alert"
@@ -83,12 +162,25 @@ def test_spend_alert_cronjob_manifest():
     cmd = "\n".join(container["command"])
     assert "spend_alert.py" in cmd
     assert "kubectl" in cmd and "logs" in cmd
-    env_names = {e["name"] for e in container.get("env", [])}
-    assert "SPEND_TOKEN_THRESHOLD" in env_names
-    assert "LEANTIME_ACCESS_TOKEN" in env_names
-    assert "LEANTIME_PROJECT_ID" in env_names
-    token_env = next(e for e in container["env"] if e["name"] == "LEANTIME_ACCESS_TOKEN")
+    env = _env_map(CRONJOB)
+    assert "SPEND_TOKEN_THRESHOLD" in env
+    assert "LEANTIME_ACCESS_TOKEN" in env
+    assert env["LEANTIME_PROJECT_NAME"]["value"] == "sw-factory"
+    assert env["LEANTIME_AUTHOR_AGENT"]["value"] == "ta"
+    assert env["LEANTIME_ASSIGNEE_AGENT"]["value"] == "eric"
+    assert "LEANTIME_PROJECT_ID" not in env
+    assert "LEANTIME_USER_ID" not in env
+    assert "LEANTIME_ASSIGNED_TO" not in env
+    token_env = env["LEANTIME_ACCESS_TOKEN"]
     assert token_env["valueFrom"]["secretKeyRef"]["key"] == "LEANTIME_ACCESS_TOKEN_ta"
+
+
+def test_overlay_spend_patch_uses_names():
+    env = _env_map(OVERLAY)
+    assert env["LEANTIME_PROJECT_NAME"]["value"] == "sw-factory"
+    assert env["LEANTIME_AUTHOR_AGENT"]["value"] == "ta"
+    assert env["LEANTIME_ASSIGNEE_AGENT"]["value"] == "eric"
+    assert "LEANTIME_PROJECT_ID" not in env
 
 
 def test_flush_role_allows_pods_log():

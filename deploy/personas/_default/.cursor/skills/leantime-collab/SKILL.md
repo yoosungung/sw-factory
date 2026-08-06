@@ -46,13 +46,15 @@ Leantime 코멘트·티켓 본문은 Tiptap(HTML)으로 저장·표시된다. MC
 
 Leantime 멘션은 **HTML `data-tagged-user-id`** 로 저장해야 알림·봇 라우팅이 동작한다. `@이름`만 쓰면 일반 텍스트다.
 
+`data-tagged-user-id`는 **절대 하드코딩하지 말고** `bridge.json`(또는 persona `MEMORY.md`)에서 해당 agent의 `leantime_user_id`를 조회한다. ID는 seed마다 바뀐다.
+
 ```html
-<a class="tiptap-mention" data-tagged-user-id="4">@pm</a> 리뷰 부탁드립니다.
+<a class="tiptap-mention" data-tagged-user-id="{bridge.agents[<name>].leantime_user_id}">@<name></a>
 ```
 
-리뷰 핸드오프의 기본 멘션·assignee는 **메인 리뷰어 pm**(user id `4`). 플랫폼/`GH_TOKEN` 등 인프라 blocker만 eric(`1`).
+리뷰 핸드오프의 기본 멘션·assignee는 **메인 리뷰어 pm**. 플랫폼/`GH_TOKEN` 등 인프라 blocker만 eric. 둘 다 `bridge.json`에서 id를 읽는다.
 
-`MEMORY.md` 팀 표의 Leantime 이메일과 `bridge.json`의 `leantime_user_id`를 대응시킨다. 예: eric=1, pm=2, km=3, ta=4, qa=5, aa=6, sw-factory=7, nl2sql=8.
+`MEMORY.md` 팀 표의 Leantime 이메일과 `bridge.json`의 `leantime_user_id`를 대응시킨다.
 
 ## 작업 후 (필수)
 

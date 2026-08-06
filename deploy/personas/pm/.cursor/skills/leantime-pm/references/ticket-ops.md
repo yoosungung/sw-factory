@@ -25,21 +25,17 @@ Use this format in MCP-created comments/descriptions when a real notification is
 <a class="tiptap-mention" data-tagged-user-id="USER_ID">@firstname</a>
 ```
 
-Known examples:
-
-- Eric: `<a class="tiptap-mention" data-tagged-user-id="1">@eric</a>`
-- path developer: `<a class="tiptap-mention" data-tagged-user-id="6">@path</a>`
-- pm (PM/self): `<a class="tiptap-mention" data-tagged-user-id="4">@pm</a>`
+Resolve every mention id from `bridge.json` / `MEMORY.md` by agent **name**. Never paste numeric ids from old docs or schedules.
 
 Rules:
 
-1. Do not invent mention handles. Resolve the user id/name from Leantime (`get_user`, project ownership, or the known Leantime user/repo map) before commenting.
+1. Do not invent mention handles. Resolve the user id/name from `bridge.json`, Leantime (`get_user`), or project ownership before commenting.
 2. Use the HTML anchor mention when the comment is meant to notify a person.
 3. Plain `@name` may be used only as prose when notification is not required.
 4. If the intended user cannot be resolved, assign the ticket to the known owner or ask Eric rather than writing a fake mention.
-5. Keep the rest of the comment as simple Leantime/Tiptap HTML. Wrap paragraphs in `<p>`, use `<br>` for line breaks inside a paragraph, and use `<ul><li>...</li></ul>` for lists. Do not rely on raw newlines or Markdown bullets. Example:
+5. Keep the rest of the comment as simple Leantime/Tiptap HTML. Wrap paragraphs in `<p>`, use `<br>` for line breaks inside a paragraph, and use `<ul><li>...</li></ul>` for lists. Do not rely on raw newlines or Markdown bullets. Example shape (fill `USER_ID` from `bridge.json`):
    ```html
-   <p><a class="tiptap-mention" data-tagged-user-id="6">@path</a> 다음 진행 지시입니다.</p>
+   <p><a class="tiptap-mention" data-tagged-user-id="USER_ID">@pm</a> 다음 진행 지시입니다.</p>
    <p><b>범위</b></p>
    <ul>
      <li>항목 1</li>
@@ -90,7 +86,7 @@ PM checkpoint / queue hygiene (ARCHITECTURE §2.6 #13): fix tickets wrongly park
 
 **Candidates (per run):**
 - Status `Waiting for Approval`, or
-- Newest actionable comment `@eric` / assignee Eric (`data-tagged-user-id="1"`), even if status is not Approval yet.
+- Newest actionable comment `@eric` / assignee Eric (HTML mention id from `bridge.json` eric `leantime_user_id`), even if status is not Approval yet.
 
 **Classify the newest concrete ask (not the ticket title alone):**
 

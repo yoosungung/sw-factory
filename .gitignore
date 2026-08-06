@@ -27,12 +27,14 @@ deploy/personas/**
 !deploy/personas/ta/
 !deploy/personas/qa/
 !deploy/personas/aa/
-!deploy/personas/sw-factory/
-!deploy/personas/nl2sql/
 !deploy/personas/*/.cursor/
 !deploy/personas/*/.cursor/**
 !deploy/personas/*/MEMORY.md.sample
 !leantime-plugin/bridge.json.sample
+# Real tenant personas stay local (factory staff only above).
+deploy/personas/sw-factory/
+deploy/personas/nl2sql/
+deploy/personas/candidate/
 
 # Logs
 *.log
@@ -70,7 +72,6 @@ __pycache__/
 deploy/k8s/base/generated/**
 !deploy/k8s/base/generated/.gitkeep
 
-# 로컬 전용 문서·테넌트 (push 금지)
+# 로컬 전용 문서·테넌트 런타임 (push 금지)
 docs/
-deploy/personas/candidate/
 deploy/k8s/base/cronjob-candydate.yaml

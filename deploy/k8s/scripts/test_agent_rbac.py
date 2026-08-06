@@ -117,7 +117,7 @@ def test_path_graph_argo_bound_to_ta_sa():
 def test_test_ns_write_bound_to_ta_only():
     """TA Deploying Test: full app stack write in test NS (CM/Secret/Svc/PVC/Ingress/workload)."""
     docs = _docs()
-    for ns in ("sw-factory", "nl2sql"):
+    for ns in ("sw-factory",):
         role = next(
             d
             for d in docs

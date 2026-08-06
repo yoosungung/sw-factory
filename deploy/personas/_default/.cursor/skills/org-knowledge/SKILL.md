@@ -85,4 +85,4 @@ Active 티켓 `add_comment`에 다음 중 하나:
 - `wiki: inbox/{agent}/YYYY-MM-DD-slug.md`
 - `wiki: N/A — <사유>` (재사용 가치 없음)
 
-승격이 급하면 같은 코멘트에 `<a class="tiptap-mention" data-tagged-user-id="9">@km</a>`.
+승격이 급하면 같은 코멘트에 `@km` HTML 멘션 — `data-tagged-user-id`는 `bridge.json`의 km `leantime_user_id`(하드코딩 금지).

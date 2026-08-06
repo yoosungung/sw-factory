@@ -65,19 +65,15 @@ M0–M10 완료(실클러스터 데모·일부 수동 검증 제외). **M11 Dual
 
 **성공기준:** 데모 테넌트에서 사람 kubectl 없이 dispatch→rollout→smoke 코멘트→Done. 새 테넌트는 `repos[].tenant_cd` + 어댑터 복사로 동일 루프. (공장 자동화 검증은 pytest로 충족; 실클러스터는 수동 체크리스트.)
 
-**비범위 (M5):** `kubectl set image`/Argo CLI 기본 드라이버, 제품 소스 흡수, `docs/candidate/` 크론 런타임 편입(아래 seewin Phase B). 다배포/`depends_on` DAG는 테넌트 workflow에 두고 공장 스키마 확장은 후속.
-## M5b — candidate (candidate.win 클라이언트 + agent)
+**비범위 (M5):** `kubectl set image`/Argo CLI 기본 드라이버, 제품 소스 흡수, 테넌트 전용 cron 런타임 편입(로컬 `docs/`). 다배포/`depends_on` DAG는 테넌트 workflow에 두고 공장 스키마 확장은 후속.
 
-- [x] Phase A (구 seewin): sessions 봇 온보딩 이력
-- [x] Phase B: Candydate cron → LLM `settings.schedules` + K8s CronJob 이식 이력
-- [x] **재등록:** 클라이언트 `candidate` + agent `candidate` (`docs/candidate/`, persona, NS `sw-factory`)
-  - repo: `https://github.com/berryking404/candidate.win.git`
-  - GitHub: `GH_TOKEN_candidate` (`GH_TOKEN_OVERRIDE`; 임시=`GH_TOKEN_pm` 복사 → 전용 PAT 교체 권장)
-  - 테넌트 secrets: Pod `agent/.env` (`NAVER_CLIENT_ID`/`SECRET` — radar)
-  - schedules: `candidate-people-curation` / `candidate-publication-review` / `candidate-issue-radar-today`
-  - CronJobs: `candydate-pass-*` → `persona=candidate`
+## M5b — 테넌트 온보딩(sessions 봇) 이력
 
-**성공기준(A):** assignee=`candidate` 티켓이 `cursor-agent-candidate` 세션을 연다. **(B):** 6잡 스케줄/CronJob 공장 등록.
+- [x] Phase A: sessions 봇 온보딩 패턴
+- [x] Phase B: 테넌트 cron → LLM `settings.schedules` + (선택) K8s CronJob 이식 패턴
+- [x] 실고객 재등록·PAT·`.env`·스케줄 상세는 **로컬 `docs/` / `agents.yaml`** (git 비포함)
+
+**성공기준:** 로컬 agents에 등록한 developer assignee 티켓이 해당 `cursor-agent-{name}` 세션을 연다. 스케줄/CronJob은 공장 메커니즘으로 등록 가능.
 
 ## M6 — Review 품질 게이트 (FW CI + 테넌트 checks)
 
@@ -128,7 +124,7 @@ M0–M10 완료(실클러스터 데모·일부 수동 검증 제외). **M11 Dual
 - [x] 직원 개명: `candy`→`pm`, `finder`→`km`, `infra`→`ta` (persona·스케줄·샘플·문서)
 - [x] 원샷 설치: `scripts/install-sw-factory.sh` + `seed_factory_users.py` (직원 5인·PAT·plugin enable, My Project 미생성)
 - [x] 장시간 NF: detach + `nf-progress:` 하트비트; pm stall=헬스체크(§2.6 #10/#14 · weekly skills)
-- [x] **agent-runner zombie `active_run` 복구** — worker crash 후 `skipped_active_run` 영구화 금지(R1–R5). 정본: [`agent-runner/DESIGN.md`](agent-runner/DESIGN.md) § Recovery · 계약 [`ARCHITECTURE` §2.3.1](ARCHITECTURE.md) / §2.6 #14. (사후: nl2sql #172 QA runner · #197)
+- [x] **agent-runner zombie `active_run` 복구** — worker crash 후 `skipped_active_run` 영구화 금지(R1–R5). 정본: [`agent-runner/DESIGN.md`](agent-runner/DESIGN.md) § Recovery · 계약 [`ARCHITECTURE` §2.3.1](ARCHITECTURE.md) / §2.6 #14.
 - [x] **PM stall → TA runtime check** — Deploy/QA: ≥2h → assignee health-check; +1h 무응답 → `@ta` `assignee-runtime-check` (R1–R5와 별계층). 정본: [`ARCHITECTURE` §2.6 #14](ARCHITECTURE.md) · pm/ta skills · `pm-checkpoint` prompt.
 - [x] **PM checkpoint status-board upsert** — `<!-- pm-checkpoint-status -->` + `edit_comment` for no-op/SLA; new `add_comment` only for actionable `@mention` (anti verify-spam). 정본: ARCHITECTURE §2.6 #14 · leantime-pm · `pm-checkpoint`.
 

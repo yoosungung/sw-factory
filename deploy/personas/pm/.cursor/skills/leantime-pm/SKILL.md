@@ -40,7 +40,7 @@ pm is the **PM**, not the default developer.
 3. 구현 전 설계·범위 조율.
 4. 증거 필수: PR·테스트·배포/스모크 로그.
 5. 기준 미달이면 수정 요청; 통과 전에는 머지하지 않음.
-6. 제품/범위/비용/리스크 모호하면 Eric에게 HTML 멘션으로 에스컬레이션 (`data-tagged-user-id="1"`).
+6. 제품/범위/비용/리스크 모호하면 Eric에게 HTML `@eric` 멘션으로 에스컬레이션 (`data-tagged-user-id`는 `bridge.json`에서 조회).
 
 ## 30-Minute Developer Work Timebox
 
@@ -85,7 +85,7 @@ When Eric asks for a flow checkpoint monitor/watchdog run (`pm-checkpoint`):
 
 ## Escalate to Eric
 
-Ask Eric with `<a class="tiptap-mention" data-tagged-user-id="1">@eric</a>` when:
+Ask Eric with an HTML `@eric` mention (`data-tagged-user-id` from `bridge.json`) when:
 
 - Requirements conflict
 - Scope expansion is proposed

@@ -3,6 +3,9 @@
 
 Reads kubectl log text (stdin or --logs-file), sums run.completed usage tokens,
 and optionally creates a Leantime ticket in the factory project.
+
+Ticket targets are resolved by **name** at runtime (Leantime API or AGENTS_YAML).
+Do not bake numeric project/user ids into CronJob manifests.
 """
 from __future__ import annotations
 
@@ -10,13 +13,17 @@ import argparse
 import html
 import json
 import os
+import re
 import sys
 import urllib.error
 import urllib.request
+from pathlib import Path
 from typing import Any
 
 DEFAULT_THRESHOLD = 2_000_000
-DEFAULT_PROJECT_ID = 16  # agents-runtime
+DEFAULT_PROJECT_NAME = "sw-factory"
+DEFAULT_AUTHOR_AGENT = "ta"
+DEFAULT_ASSIGNEE_AGENT = "eric"
 DEFAULT_URL = "http://leantime.sw-factory.svc"
 
 
@@ -130,6 +137,176 @@ def auth_headers(env: dict[str, str]) -> dict[str, str]:
     return headers
 
 
+def rpc_call(env: dict[str, str], method: str, params: dict[str, Any] | None = None) -> Any:
+    payload = json.dumps(
+        {
+            "jsonrpc": "2.0",
+            "method": method,
+            "params": params or {},
+            "id": 1,
+        }
+    ).encode("utf-8")
+    req = urllib.request.Request(
+        env["LEANTIME_URL"] + "/api/jsonrpc",
+        data=payload,
+        headers=auth_headers(env),
+    )
+    with urllib.request.urlopen(req, timeout=30) as resp:
+        data = json.loads(resp.read().decode("utf-8"))
+    if "error" in data:
+        err = data["error"]
+        raise RuntimeError(f"{method}: {err.get('message')} ({err.get('code')})")
+    return data.get("result")
+
+
+def find_project_id_by_name(projects: list[Any], name: str) -> int:
+    want = name.strip().lower()
+    for row in projects or []:
+        if not isinstance(row, dict):
+            continue
+        if str(row.get("name") or "").strip().lower() == want:
+            return int(row["id"])
+    raise LookupError(f"Leantime project not found by name: {name!r}")
+
+
+def find_user_id_by_agent_name(users: list[Any], agent_name: str) -> int:
+    """Match agent name to Leantime user firstname (case-insensitive) or username local-part."""
+    want = agent_name.strip().lower()
+    for row in users or []:
+        if not isinstance(row, dict):
+            continue
+        first = str(row.get("firstname") or "").strip().lower()
+        if first == want:
+            return int(row["id"])
+        user = str(row.get("username") or "").strip().lower()
+        local = user.split("@", 1)[0]
+        if local == want:
+            return int(row["id"])
+    raise LookupError(f"Leantime user not found for agent name: {agent_name!r}")
+
+
+def _parse_agents_yaml_bindings(text: str) -> tuple[dict[str, int], dict[str, int]]:
+    """Minimal YAML scrape: clients[].id→project_id, agents[].name→leantime_user_id."""
+    projects: dict[str, int] = {}
+    users: dict[str, int] = {}
+    section = ""
+    cur_client: str | None = None
+    cur_agent: str | None = None
+    for raw in text.splitlines():
+        line = raw.rstrip()
+        if re.match(r"^clients:\s*$", line):
+            section = "clients"
+            cur_client = cur_agent = None
+            continue
+        if re.match(r"^agents:\s*$", line):
+            section = "agents"
+            cur_client = cur_agent = None
+            continue
+        if re.match(r"^[a-zA-Z_][\w-]*:\s*", line) and not line.startswith(" "):
+            section = ""
+            cur_client = cur_agent = None
+            continue
+        if section == "clients":
+            m = re.match(r"^-\s*id:\s*(\S+)\s*$", line.strip()) or re.match(
+                r"^id:\s*(\S+)\s*$", line.strip()
+            )
+            if m and (line.strip().startswith("-") or cur_client is None or "id:" in line):
+                if line.lstrip().startswith("-") or re.match(r"^-\s*id:", line.strip()):
+                    cur_client = m.group(1).strip().strip("\"'")
+                elif cur_client is None:
+                    cur_client = m.group(1).strip().strip("\"'")
+            m = re.match(r"^-?\s*id:\s*(\S+)\s*$", line.strip())
+            if m and line.lstrip().startswith("-"):
+                cur_client = m.group(1).strip().strip("\"'")
+            m = re.match(r"^project_id:\s*(\d+)\s*$", line.strip())
+            if m and cur_client:
+                projects[cur_client] = int(m.group(1))
+        if section == "agents":
+            m = re.match(r"^-?\s*name:\s*(\S+)\s*$", line.strip())
+            if m and line.lstrip().startswith("-"):
+                cur_agent = m.group(1).strip().strip("\"'")
+            m = re.match(r"^leantime_user_id:\s*(\d+)\s*$", line.strip())
+            if m and cur_agent:
+                users[cur_agent] = int(m.group(1))
+    return projects, users
+
+
+def resolve_targets_from_agents_yaml(
+    path: Path | str,
+    *,
+    project_name: str,
+    author_agent: str,
+    assignee_agent: str,
+) -> dict[str, int]:
+    text = Path(path).read_text(encoding="utf-8")
+    try:
+        import yaml  # type: ignore
+
+        data = yaml.safe_load(text) or {}
+        projects = {
+            str(c.get("id")): int(c["project_id"])
+            for c in (data.get("clients") or [])
+            if c.get("id") is not None and c.get("project_id") is not None
+        }
+        users = {
+            str(a.get("name")): int(a["leantime_user_id"])
+            for a in (data.get("agents") or [])
+            if a.get("name") is not None and a.get("leantime_user_id") is not None
+        }
+    except Exception:
+        projects, users = _parse_agents_yaml_bindings(text)
+    if project_name not in projects:
+        raise LookupError(f"clients[].id={project_name!r} missing project_id in {path}")
+    if author_agent not in users:
+        raise LookupError(f"agents[].name={author_agent!r} missing leantime_user_id in {path}")
+    if assignee_agent not in users:
+        raise LookupError(
+            f"agents[].name={assignee_agent!r} missing leantime_user_id in {path}"
+        )
+    return {
+        "project_id": projects[project_name],
+        "user_id": users[author_agent],
+        "assigned_to": users[assignee_agent],
+    }
+
+
+def resolve_ticket_targets(env: dict[str, str]) -> dict[str, int]:
+    project_name = (
+        os.environ.get("LEANTIME_PROJECT_NAME") or DEFAULT_PROJECT_NAME
+    ).strip()
+    author_agent = (
+        os.environ.get("LEANTIME_AUTHOR_AGENT") or DEFAULT_AUTHOR_AGENT
+    ).strip()
+    assignee_agent = (
+        os.environ.get("LEANTIME_ASSIGNEE_AGENT") or DEFAULT_ASSIGNEE_AGENT
+    ).strip()
+
+    agents_yaml = (os.environ.get("AGENTS_YAML") or "").strip()
+    if agents_yaml:
+        return resolve_targets_from_agents_yaml(
+            agents_yaml,
+            project_name=project_name,
+            author_agent=author_agent,
+            assignee_agent=assignee_agent,
+        )
+
+    projects = rpc_call(env, "leantime.rpc.Projects.getAll")
+    if not isinstance(projects, list):
+        projects = rpc_call(env, "leantime.rpc.Projects.Projects.getAll") or []
+    users = rpc_call(env, "leantime.rpc.Users.getAll")
+    if not isinstance(users, list):
+        users = rpc_call(env, "leantime.rpc.Users.Users.getAll") or []
+    if not isinstance(projects, list):
+        raise RuntimeError("Projects.getAll did not return a list")
+    if not isinstance(users, list):
+        raise RuntimeError("Users.getAll did not return a list")
+    return {
+        "project_id": find_project_id_by_name(projects, project_name),
+        "user_id": find_user_id_by_agent_name(users, author_agent),
+        "assigned_to": find_user_id_by_agent_name(users, assignee_agent),
+    }
+
+
 def create_ticket(
     env: dict[str, str],
     *,
@@ -207,18 +384,17 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     env = load_leantime_env()
-    project_id = int(os.environ.get("LEANTIME_PROJECT_ID", str(DEFAULT_PROJECT_ID)))
-    user_id = int(os.environ.get("LEANTIME_USER_ID", "13"))  # ta
-    assigned_to = int(os.environ.get("LEANTIME_ASSIGNED_TO", "1"))  # eric
+    targets = resolve_ticket_targets(env)
+    print(json.dumps({"resolved": targets}, sort_keys=True), flush=True)
     result = create_ticket(
         env,
         headline=ticket_headline(summary, threshold),
         description=ticket_description(
             summary, threshold=threshold, window=args.window
         ),
-        project_id=project_id,
-        user_id=user_id,
-        assigned_to=assigned_to,
+        project_id=targets["project_id"],
+        user_id=targets["user_id"],
+        assigned_to=targets["assigned_to"],
     )
     print(json.dumps({"ticket": result}, default=str), flush=True)
     return 0

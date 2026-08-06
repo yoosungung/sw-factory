@@ -54,14 +54,14 @@ kubectl -n sw-factory get pods,sts,cronjob,ing
 
 ## B. 클라이언트 추가 (wipe 없음)
 
-이미 돌아가는 `sw-factory`에 **고객사(client) + GitHub repo + (선택) 개발자 agent-runner**만 붙인다. `install-sw-factory.sh --wipe`를 쓰지 않는다. `agents[]` ≤10.
+이미 돌아가는 공장 NS(`sw-factory`)에 **고객사(client) + GitHub repo + (선택) 개발자 agent-runner**만 붙인다. `install-sw-factory.sh --wipe`를 쓰지 않는다. `agents[]` ≤10.
 
-예: 클라이언트 `sw-factory`, repo `https://github.com/yoosungung/sw-factory.git`, agent `sw-factory`.
+실고객 id·repo URL·개발자 agent/persona는 **로컬** `deploy/k8s/agents.yaml`·`docs/`·`deploy/personas/{tenant}/`에만 둔다(gitignore). 아래는 `demo-acme` placeholder.
 
 ### B.1 Leantime
 
 1. **Company → Clients**에 클라이언트 생성 → `leantime_client_id` 기록  
-2. 그 client 소속 **Project** 생성 (이름 **`My Project` 금지**, 예: `sw-factory`) → `project_id` 기록  
+2. 그 client 소속 **Project** 생성 (이름 **`My Project` 금지**, 예: `demo-acme`) → `project_id` 기록  
 3. **To-Do Status**를 Dual-loop 보드로 맞춤 ([§1](#dual-loop-status-board-m11)):  
    `.venv/bin/python deploy/k8s/scripts/status_board.py --project-id <project_id>`  
 4. 개발자 유저 생성 → Profile → **Personal Access Token** 발급 → `leantime_user_id` 기록  
@@ -71,23 +71,23 @@ kubectl -n sw-factory get pods,sts,cronjob,ing
 
 ```yaml
 clients:
-  - id: sw-factory
+  - id: demo-acme
     leantime_client_id: <B.1>
     project_id: <B.1>
-    repo_ids: [sw-factory]
+    repo_ids: [landing-web]
 
 repos:
-  - id: sw-factory
-    git_repo_url: https://github.com/yoosungung/sw-factory.git
+  - id: landing-web
+    git_repo_url: https://github.com/demo-org/landing-web.git
     # CD면 tenant_cd: …  (examples/tenant-cd/)
     # 품질이면 테넌트 repo에 .factory/quality.yaml  (examples/tenant-quality/)
 
 agents:
-  - name: sw-factory
+  - name: asky
     leantime_user_id: <B.1>
-    email: sw-factory@example.com
-    persona: sw-factory      # 없으면 _default; 선택: deploy/personas/sw-factory/
-    primary_repo: sw-factory
+    email: asky@example.com
+    persona: asky           # 없으면 _default; 테넌트 persona는 로컬 전용
+    primary_repo: landing-web
     type: sessions
 ```
 
@@ -98,10 +98,10 @@ agents:
 ```bash
 NS=sw-factory
 kubectl -n "$NS" patch secret cursor-api-key --type merge \
-  -p '{"stringData":{"LEANTIME_ACCESS_TOKEN_sw-factory":"<PAT>"}}'
+  -p '{"stringData":{"LEANTIME_ACCESS_TOKEN_asky":"<PAT>"}}'
 ```
 
-공유 `GH_TOKEN`에 해당 repo **Contents/PR write**를 추가하거나, agent별 `GH_TOKEN_sw-factory`를 넣어 `gh_token_secret_key: GH_TOKEN_sw-factory`로 지정한다.
+공유 `GH_TOKEN`에 해당 repo **Contents/PR write**를 추가하거나, agent별 `GH_TOKEN_{name}`을 넣어 `gh_token_secret_key`로 지정한다.
 
 ### B.4 반영 (기존 Pod 유지)
 
@@ -113,7 +113,7 @@ NS=sw-factory
 ./deploy/k8s/scripts/render-agents.sh
 kubectl apply -k deploy/k8s/overlays/sw-factory
 CURSORBRIDGE_NS="$NS" ./scripts/install-plugin-k8s.sh   # bridge.json 갱신
-kubectl -n "$NS" rollout status "statefulset/cursor-agent-sw-factory"
+kubectl -n "$NS" rollout status "statefulset/cursor-agent-asky"
 ```
 
 기존 staff STS/PVC·DB는 그대로다. render가 새 StatefulSet·Service·persona ConfigMap만 추가한다.
@@ -121,7 +121,7 @@ kubectl -n "$NS" rollout status "statefulset/cursor-agent-sw-factory"
 ### B.5 스모크
 
 1. 해당 Project에 티켓 생성, Assignee = 개발자 이메일  
-2. `kubectl -n sw-factory logs -f cursor-agent-sw-factory-0 -c agent-runner` → `session.create`  
+2. `kubectl -n sw-factory logs -f cursor-agent-asky-0 -c agent-runner` → `session.create`  
 3. (tenant_cd 있으면) Review→Deploying Test 핸드오프는 TA(`ta`) 경로로 검증  
 
 ---
@@ -222,13 +222,14 @@ Fine-grained PAT 기준. Classic이면 대략 `repo`(ta는 Actions까지 필요�
 | Agent | Secret | Repository access | Permissions |
 |-------|--------|-------------------|-------------|
 | pm | `GH_TOKEN_pm` | 리뷰/머지 대상 product repos | Contents R/W, Pull requests R/W |
-| candidate | `GH_TOKEN_candidate` (`GH_TOKEN_{name}` override) | `berryking404/candidate.win` | Contents R/W (main 직푸시). **임시**: 값은 `GH_TOKEN_pm` 복사본 — 전용 fine-grained PAT로 교체 권장 |
 | km | `GH_TOKEN_km` (권장) 또는 좁힌 공유 | `org-wiki`만 | Contents R/W (main 직푸시) |
 | qa / aa | 공유 `GH_TOKEN`을 **읽기 전용**으로 축소하거나 repo write 제거 | 필요 시 product repos Read | Contents Read만(가능하면). git-ship 거의 없음 |
-| sw-factory / nl2sql (dev) | `GH_TOKEN_sw-factory` / `GH_TOKEN_nl2sql` 권장 | 각자 `primary_repo`만 | Contents R/W, Pull requests R/W |
-| ta | `GH_TOKEN_ta` (`gh_token_secret_key`) | `sw-factory` + `k8s-test` + tenant CD repos | **sw-factory**: Actions R/W (및 Actions Read). **k8s-test/tenants**: Contents R/W, Pull requests R/W. **Packages write 불필요** |
+| developer (sessions) | `GH_TOKEN_{name}` 권장 | 각자 `primary_repo`만 | Contents R/W, Pull requests R/W |
+| ta | `GH_TOKEN_ta` (`gh_token_secret_key`) | 공장 repo + `k8s-test` + tenant CD repos | **공장**: Actions R/W (및 Actions Read). **k8s-test/tenants**: Contents R/W, Pull requests R/W. **Packages write 불필요** |
 
 공유 `GH_TOKEN`에 `write:packages`를 넣지 않는다. runner 이미지 push는 아래 §4 워크플로.
+
+실테넌트 PAT·`.env`(Naver 등) 값은 **로컬 `docs/` / Secret**에만 두고 이 파일에 고객 repo·agent 이름을 적지 않는다.
 
 ### GH_TOKEN 발급 (GitHub PAT)
 
@@ -237,7 +238,7 @@ Fine-grained PAT 기준. Classic이면 대략 `repo`(ta는 Actions까지 필요�
 **Fine-grained PAT (권장)**
 
 1. GitHub → **Settings** → **Developer settings** → **Personal access tokens** → **Fine-grained tokens** → **Generate new token**
-2. **Resource owner**: 토큰 소유 org/user (예: `yoosungung`)
+2. **Resource owner**: 토큰 소유 org/user
 3. **Repository access**: 위 표의 repo만 선택 (*All repositories* 지양)
 4. **Permissions**: 표의 Contents / Pull requests / Actions
 5. 만료일 설정 후 생성 → **토큰 문자열을 한 번만** 복사
@@ -255,44 +256,11 @@ kubectl -n sw-factory patch secret cursor-api-key --type merge \
 kubectl -n sw-factory rollout restart statefulset -l app=cursor-agent
 ```
 
-**candidate `GH_TOKEN_candidate` (STS `GH_TOKEN_OVERRIDE` ← `GH_TOKEN_{name}`)**
-
-공유 fine-grained `GH_TOKEN`(yoosungung)은 `berryking404/candidate.win` Contents write가 없을 수 있다. agent별 키를 넣으면 entrypoint가 override한다.
-
-```bash
-# 임시: GH_TOKEN_pm(berryking404) 값을 별칭으로 복사 — 이후 candidate.win-only PAT로 교체
-PM_B64=$(kubectl -n sw-factory get secret cursor-api-key -o jsonpath='{.data.GH_TOKEN_pm}')
-kubectl -n sw-factory patch secret cursor-api-key --type merge \
-  -p "{\"data\":{\"GH_TOKEN_candidate\":\"$PM_B64\"}}"
-kubectl -n sw-factory rollout restart statefulset/cursor-agent-candidate
-```
-
-**candidate 테넌트 `.env` (issue radar Naver 등)**
-
-테넌트 repo는 `agent/.env`(gitignore)에서 `NAVER_CLIENT_ID` / `NAVER_CLIENT_SECRET`을 읽는다. 값은 Secret/챗에 남기지 말고 Pod PVC에만 둔다.
-
-```bash
-kubectl -n sw-factory exec -i cursor-agent-candidate-0 -c agent-runner -- \
-  python3 -c 'from pathlib import Path; import sys
-p=Path("/workspace/repo/agent/.env"); d={}
-if p.exists():
-  for line in p.read_text().splitlines():
-    if "=" in line and not line.strip().startswith("#"):
-      k,_,v=line.partition("="); d[k.strip()]=v
-d["NAVER_CLIENT_ID"]=sys.argv[1]; d["NAVER_CLIENT_SECRET"]=sys.argv[2]
-p.write_text("\n".join(f"{k}={v}" for k,v in d.items())+"\n"); p.chmod(0o600)' \
-  "<NAVER_CLIENT_ID>" "<NAVER_CLIENT_SECRET>"
-# restart 불필요 — issue_radar가 load_dotenv(agent/.env)
-```
-
 **Pod에서 확인**
 
 ```bash
 kubectl -n sw-factory exec cursor-agent-pm-0 -c agent-runner -- gh auth status
 # "Logged in to github.com account ... (GH_TOKEN)" — 정상
-kubectl -n sw-factory exec cursor-agent-candidate-0 -c agent-runner -- \
-  sh -c 'export GH_TOKEN="$GH_TOKEN_OVERRIDE"; gh api user --jq .login'
-# berryking404 (또는 write-capable identity)
 ```
 
 `GH_TOKEN` 없이 봇 Pod는 시작하지 않는다 (`entrypoint.sh`).
@@ -302,7 +270,7 @@ kubectl -n sw-factory exec cursor-agent-candidate-0 -c agent-runner -- \
 | SA | 누가 | 권한 |
 |----|------|------|
 | `cursor-agent` | pm, km, qa, aa, dev | ClusterRole `cursor-agent-observer` — **read-only** (`get/list/watch`) |
-| `cursor-agent-ta` | ta만 | ClusterRole `cursor-agent-ta-operator` — mutate·`namespaces` create·`pods/exec`; test NS(`sw-factory`,`nl2sql`) Role `cursor-agent-test-ns-write` (CM/Secret/Svc/PVC/Ingress/Deploy/STS/Pod write); path-graph Argo workflows (path bot 재도입 시 전용 SA로 이전 권장) |
+| `cursor-agent-ta` | ta만 | ClusterRole `cursor-agent-ta-operator` — mutate·`namespaces` create·`pods/exec`; factory test NS(`sw-factory`) Role `cursor-agent-test-ns-write` (CM/Secret/Svc/PVC/Ingress/Deploy/STS/Pod write); 추가 테넌트 NS Role은 로컬 overlay; path-graph Argo workflows (path bot 재도입 시 전용 SA로 이전 권장) |
 
 RBAC 객체(write)·Secret 클러스터 전역 list는 미부여. `render-agents.sh`가 ta STS에만 `serviceAccountName: cursor-agent-ta`를 넣는다.
 
@@ -428,7 +396,7 @@ kubectl -n sw-factory exec deploy/leantime -- \
 ## 7. E2E (assignee = bot)
 
 1. https://sw-factory.k8s-test — **사람** 계정으로 로그인  
-2. 티켓 생성, Assignee = `path@example.com` (또는 로컬 `agents.yaml`의 path 이메일, user 6)  
+2. 티켓 생성, Assignee = `path@example.com` (또는 로컬 `agents.yaml`의 path 이메일; soft-factory에는 path 없음 — id는 `bridge.json`/`agents.yaml`에서 조회)  
 3. 확인:
    - `kubectl -n sw-factory logs -f cursor-agent-path-0 -c agent-runner` → `session.create`  
    - `kubectl -n sw-factory exec deploy/leantime -- php -r '… sqlite sessions …'` 에 행 추가  
@@ -442,6 +410,6 @@ agent별 PVC 이름: `cursor-home-cursor-agent-{name}-0` (mount `/cursor-home`, 
 | CronJob | schedule (UTC) | 동작 |
 |---------|----------------|------|
 | `cursorbridge-pvc-retention` | `15 3 * * *` | label `app=cursor-agent` Pod에 `find … -mtime +$CHAT_RETENTION_DAYS -delete` (기본 14일) |
-| `cursorbridge-spend-alert` | `0 */6 * * *` | 최근 24h agent-runner 로그의 `run.completed` usage 합산; `SPEND_TOKEN_THRESHOLD`(기본 2_000_000) 이상이면 project `agents-runtime`에 티켓 (작성자 ta → assignee Eric) |
+| `cursorbridge-spend-alert` | `0 */6 * * *` | 최근 24h agent-runner 로그의 `run.completed` usage 합산; 임계값 초과 시 Leantime API로 **이름** resolve 후 티켓 생성 (`LEANTIME_PROJECT_NAME`=`sw-factory`, `LEANTIME_AUTHOR_AGENT`=`ta`, `LEANTIME_ASSIGNEE_AGENT`=`eric`). 숫자 project/user id는 매니페스트에 두지 않는다. |
 
 스크립트: ConfigMap `cursorbridge-ops-scripts` ← `deploy/k8s/base/ops-scripts/`. SA `cursorbridge-flush`에 `pods/log` get 포함. 임계값·보관일은 CronJob env로 조정.

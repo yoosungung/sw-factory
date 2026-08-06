@@ -14,7 +14,7 @@
     },
     {
       "name": "pm",
-      "leantime_user_id": 4,
+      "leantime_user_id": 2,
       "email": "pm@example.com",
       "runner_url": "http://cursor-agent-pm.sw-factory.svc:8080",
       "git_repo_url": "https://github.com/demo-org/shop-api.git",
@@ -24,7 +24,7 @@
     },
     {
       "name": "asky",
-      "leantime_user_id": 5,
+      "leantime_user_id": 101,
       "email": "asky@example.com",
       "runner_url": "http://cursor-agent-asky.sw-factory.svc:8080",
       "git_repo_url": "https://github.com/demo-org/landing-web.git",
@@ -34,7 +34,7 @@
     },
     {
       "name": "path",
-      "leantime_user_id": 6,
+      "leantime_user_id": 102,
       "email": "path@example.com",
       "runner_url": "http://cursor-agent-path.sw-factory.svc:8080",
       "git_repo_url": "https://github.com/demo-org/topology-lib.git",
@@ -44,7 +44,7 @@
     },
     {
       "name": "ta",
-      "leantime_user_id": 13,
+      "leantime_user_id": 4,
       "email": "ta@example.com",
       "runner_url": "http://cursor-agent-ta.sw-factory.svc:8080",
       "git_repo_url": "https://github.com/demo-org/k8s-test.git",
@@ -54,7 +54,7 @@
     },
     {
       "name": "km",
-      "leantime_user_id": 9,
+      "leantime_user_id": 3,
       "email": "km@example.com",
       "runner_url": "http://cursor-agent-km.sw-factory.svc:8080",
       "git_repo_url": "https://github.com/demo-org/org-wiki.git",
@@ -64,7 +64,7 @@
     },
     {
       "name": "qa",
-      "leantime_user_id": 15,
+      "leantime_user_id": 5,
       "email": "qa@example.com",
       "runner_url": "http://cursor-agent-qa.sw-factory.svc:8080",
       "git_repo_url": "https://github.com/demo-org/bridge-harness.git",
@@ -74,7 +74,7 @@
     },
     {
       "name": "aa",
-      "leantime_user_id": 16,
+      "leantime_user_id": 6,
       "email": "aa@example.com",
       "runner_url": "http://cursor-agent-aa.sw-factory.svc:8080",
       "git_repo_url": "https://github.com/demo-org/bridge-harness.git",
@@ -98,7 +98,7 @@
     "11": "Status is Deploying Test. TA runs tenant_cd with environment=test, leaves test_* evidence, then @qa and @aa and set status QA.",
     "12": "Status is QA. QA runs browser E2E; AA runs security-review (parallel). On both pass: hand off to TA for Deploying Prod. On fail: developer + In Progress.",
     "13": "Status is Deploying Prod. TA deploys environment=production, leaves prod_* evidence. PM marks Done only when feature evidence (test+qa+aa+prod) is complete.",
-    "0": "Status is Done. Close out only when feature Done evidence is present: pr_url, merge_sha, test_*, qa: pass, aa: pass, prod_* (ARCHITECTURE \u00a72.8). Merge alone is never Done for CD tickets.",
+    "0": "Status is Done. Close out only when feature Done evidence is present: pr_url, merge_sha, test_*, qa: pass, aa: pass, prod_* (ARCHITECTURE §2.8). Merge alone is never Done for CD tickets.",
     "1": "Status is Blocked. Unblock or escalate to @eric / PM.",
     "2": "Status is Waiting for Approval. Await human decision (@eric); do not invent scope.",
     "3": "Status is New. PM intake / breakdown before In Progress."
@@ -107,7 +107,7 @@
     {
       "id": "pm-checkpoint",
       "cron": "5,20,35,50 * * * *",
-      "prompt": "Use the leantime-pm skill. Dual-loop flow checkpoint (ARCHITECTURE \u00a72.6 #14). Scan In Progress + Review + Deploying Test + QA + Deploying Prod. In Progress: 30m timebox. Review: PM review/merge. Deploying*/QA stall \u22652h \u2192 re-@mention assignee only (no execute). Mentions: eric=1,pm=4,asky=5,path=6,km=9,ta=13,qa=15,aa=16. \u22645 comments/run.",
+      "prompt": "Use the leantime-pm skill. Dual-loop flow checkpoint (ARCHITECTURE §2.6 #14). Scan In Progress + Review + Deploying Test + QA + Deploying Prod. In Progress: 30m timebox. Review: PM review/merge. Deploying*/QA stall ≥2h → re-@mention assignee only (no execute). Mentions: resolve each name via bridge.json leantime_user_id (never hardcode ids). ≤5 comments/run.",
       "agents": [
         "pm"
       ],
@@ -123,7 +123,7 @@
     {
       "id": "github-issue-check",
       "cron": "0 23 * * *",
-      "prompt": "github issue \uc810\uac80\ud558\uc5ec \uc2e0\uaddc\ub294 \ud2f0\ucf13\uc73c\ub85c \ubcc0\ud658\ud558\uace0, \ube14\ub85c\ucee4\uac00 \uc788\uc73c\uba74 add_comment \ucc98\ub9ac. QA\uac00 \uc7ac\ud604\u00b7\uc2dc\ub098\ub9ac\uc624 \ub4f1\ub85d\ud560 \uc218 \uc788\uac8c client \ud504\ub85c\uc81d\ud2b8\uc5d0 \ub454\ub2e4.",
+      "prompt": "github issue 점검하여 신규는 티켓으로 변환하고, 블로커가 있으면 add_comment 처리. QA가 재현·시나리오 등록할 수 있게 client 프로젝트에 둔다.",
       "success_checks": [
         "New GitHub issues are reflected as Leantime tickets or explicitly skipped with a comment.",
         "Blockers are reported via add_comment."
@@ -132,7 +132,7 @@
     {
       "id": "km-wiki",
       "cron": "30 23 * * *",
-      "prompt": "Use km-researcher then knowledge-promote as needed. Inbox drain + wiki research ingest; commit\u00b7push directly to default branch(main). PR\u00b7feature branch\u00b7git-ship \uae08\uc9c0. \uc2e4\ud328 \uc2dc ticket(New), \uc131\uacf5 \uc2dc ticket(Done).",
+      "prompt": "Use km-researcher then knowledge-promote as needed. Inbox drain + wiki research ingest; commit·push directly to default branch(main). PR·feature branch·git-ship 금지. 실패 시 ticket(New), 성공 시 ticket(Done).",
       "agents": [
         "km"
       ],
@@ -146,12 +146,12 @@
     {
       "id": "ta-k8s-daily",
       "cron": "0 1 * * *",
-      "prompt": "Use the k8s-operator-operations skill. \uc77c\uc77c k8s \uc6b4\uc601 \ub9ac\ud3ec\ud2b8(read-only). mutate/\ubc30\ud3ec \uae08\uc9c0. \uc870\uce58 \uac00\ub2a5 \uc7a5\uc560\ub294 incident-tickets.md\ub300\ub85c client \ud504\ub85c\uc81d\ud2b8 \ud2f0\ucf13.",
+      "prompt": "Use the k8s-operator-operations skill. 일일 k8s 운영 리포트(read-only). mutate/배포 금지. 조치 가능 장애는 incident-tickets.md대로 client 프로젝트 티켓.",
       "agents": [
         "ta"
       ],
       "success_checks": [
-        "Report uses the k8s \uc6b4\uc601 \ub9ac\ud3ec\ud2b8 format with a clear status summary.",
+        "Report uses the k8s 운영 리포트 format with a clear status summary.",
         "No mutating kubectl actions in this scheduled run.",
         "Actionable incidents are ticketed or explicitly listed as none."
       ]
@@ -159,7 +159,7 @@
     {
       "id": "ta-load-weekly",
       "cron": "0 2 * * 1",
-      "prompt": "Use load-weekly skill. For each clients[] entry, run tenant .factory/quality.yaml load commands against test env. Failures \u2192 New ticket in that client's project_id. Do not mark feature tickets Done from this run.",
+      "prompt": "Use load-weekly skill. For each clients[] entry, run tenant .factory/quality.yaml load commands against test env. Failures → New ticket in that client's project_id. Do not mark feature tickets Done from this run.",
       "agents": [
         "ta"
       ],
@@ -171,7 +171,7 @@
     {
       "id": "aa-clean-weekly",
       "cron": "30 2 * * 1",
-      "prompt": "Use clean-code-weekly skill. For each client repo, run tenant clean_code checks. Findings \u2192 New ticket in client project_id. Not a prod gate for feature tickets.",
+      "prompt": "Use clean-code-weekly skill. For each client repo, run tenant clean_code checks. Findings → New ticket in client project_id. Not a prod gate for feature tickets.",
       "agents": [
         "aa"
       ],
@@ -183,7 +183,7 @@
     {
       "id": "qa-bulk-weekly",
       "cron": "0 3 * * 1",
-      "prompt": "Use bulk-api-probe and opik-eval as configured in tenant .factory/quality.yaml. Weekly bulk quality across clients. Failures \u2192 New tickets on client project_id.",
+      "prompt": "Use bulk-api-probe and opik-eval as configured in tenant .factory/quality.yaml. Weekly bulk quality across clients. Failures → New tickets on client project_id.",
       "agents": [
         "qa"
       ],
@@ -197,7 +197,7 @@
     "Read Active ticket via Leantime MCP before writing.",
     "Leave an add_comment outcome on the Active ticket.",
     "If Review-ready: git-ship (push + PR) before handoff.",
-    "If tenant_cd-enabled: feature Done needs test+qa+aa+prod evidence (ARCHITECTURE \u00a72.8).",
+    "If tenant_cd-enabled: feature Done needs test+qa+aa+prod evidence (ARCHITECTURE §2.8).",
     "Wiki-first (org-knowledge); after work: inbox path or wiki: N/A on Active ticket."
   ],
   "budget": {
