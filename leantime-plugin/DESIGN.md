@@ -27,7 +27,7 @@ tests/
 
 ### My Work widget (Created by me)
 
-`register.php`가 `availableWidgets` / `defaultWidgets` 필터로 위젯을 등록하고 **기본 Calendar 슬롯을 대체**한다(카탈로그의 Calendar는 유지 → 설정에서 다시 켤 수 있음). 목록: `userId`=현재 사용자, milestone/subtask 제외, `status≠0` 또는 Done(`0`)이면서 `zp_tickethistory` 종료 시각(없으면 `modified`)이 5일 이내.
+`register.php`가 `availableWidgets` / `defaultWidgets` 필터로 위젯을 등록하고 **기본 Calendar 슬롯을 대체**한다(카탈로그의 Calendar는 유지 → 설정에서 다시 켤 수 있음). 목록: `userId`=현재 사용자, milestone/subtask 제외, `status≠0` 또는 Done(`0`)이면서 `zp_tickethistory` 종료 시각(없으면 `modified`)이 5일 이내. 정렬: open dual-loop → Done(`0`) → Archived(`-1`), 그다음 `closedAt`/`modified` DESC (`CreatedByMeTickets::STATUS_GROUP_ORDER_SQL`; 보드 `sortKey`와 무관).
 
 저장된 그리드 마이그레이션:
 
