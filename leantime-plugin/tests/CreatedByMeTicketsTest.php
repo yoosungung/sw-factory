@@ -61,4 +61,30 @@ final class CreatedByMeTicketsTest extends TestCase
 
         $this->assertSame([], $svc->listFor(1));
     }
+
+    public function testStatusGroupRankOrdersOpenThenDoneThenArchived(): void
+    {
+        // Open dual-loop (e.g. In Progress=4) above Done(0) above Archived(-1).
+        $this->assertSame(0, CreatedByMeTickets::statusGroupRank(4));
+        $this->assertSame(0, CreatedByMeTickets::statusGroupRank(3));
+        $this->assertSame(1, CreatedByMeTickets::statusGroupRank(0));
+        $this->assertSame(2, CreatedByMeTickets::statusGroupRank(-1));
+        $this->assertLessThan(
+            CreatedByMeTickets::statusGroupRank(0),
+            CreatedByMeTickets::statusGroupRank(4),
+        );
+        $this->assertLessThan(
+            CreatedByMeTickets::statusGroupRank(-1),
+            CreatedByMeTickets::statusGroupRank(0),
+        );
+    }
+
+    public function testDefaultQueryOrderSqlMatchesStatusGroupRank(): void
+    {
+        $sql = CreatedByMeTickets::STATUS_GROUP_ORDER_SQL;
+        $this->assertStringContainsString('t.status = 0', $sql);
+        $this->assertStringContainsString('t.status = -1', $sql);
+        // Bug regression: bare (t.status = 0) ASC puts Archived above Done.
+        $this->assertStringNotContainsString('(t.status = 0) ASC', $sql);
+    }
 }

@@ -11,6 +11,18 @@ final class CreatedByMeTickets
 {
     public const DEFAULT_DONE_WITHIN_DAYS = 5;
 
+    /**
+     * SQL CASE for list order: open (0) → Done (1) → Archived (2).
+     * Must stay aligned with {@see statusGroupRank()}.
+     */
+    public const STATUS_GROUP_ORDER_SQL = <<<'SQL'
+CASE
+    WHEN t.status = 0 THEN 1
+    WHEN t.status = -1 THEN 2
+    ELSE 0
+END
+SQL;
+
     /** @var null|callable(int, int): list<array<string, mixed>> */
     private $query;
 
@@ -23,6 +35,18 @@ final class CreatedByMeTickets
     {
         $this->query = $query;
         $this->doneWithinDays = max(0, $doneWithinDays);
+    }
+
+    /**
+     * Widget sort group: open dual-loop = 0, Done = 1, Archived = 2 (ASC).
+     */
+    public static function statusGroupRank(int $status): int
+    {
+        return match ($status) {
+            0 => 1,
+            -1 => 2,
+            default => 0,
+        };
     }
 
     /**
@@ -52,7 +76,8 @@ final class CreatedByMeTickets
             return [];
         }
 
-        $sql = <<<'SQL'
+        $statusGroupOrder = self::STATUS_GROUP_ORDER_SQL;
+        $sql = <<<SQL
 SELECT
     t.id,
     t.headline,
@@ -82,7 +107,7 @@ WHERE t.userId = ?
             AND COALESCE(c.closed_at, t.modified) >= (NOW() - INTERVAL ? DAY)
         )
   )
-ORDER BY (t.status = 0) ASC, COALESCE(c.closed_at, t.modified) DESC
+ORDER BY {$statusGroupOrder} ASC, COALESCE(c.closed_at, t.modified) DESC
 LIMIT 100
 SQL;
 
