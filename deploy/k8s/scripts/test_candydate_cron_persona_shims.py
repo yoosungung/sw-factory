@@ -56,6 +56,7 @@ def test_thin_shim_fixture_passes() -> None:
         ),
         _cm_key("paths.sh"): textwrap.dedent(
             """\
+            # Runtime shim → repo agent/cron/paths.sh
             _CANDYDATE_CRON="${CANDYDATE_REPO:-/workspace/repo}/agent/cron"
             source "$_CANDYDATE_CRON/paths.sh"
             CANDYDATE_SCRIPTS_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
