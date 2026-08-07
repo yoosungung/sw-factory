@@ -176,6 +176,8 @@ python deploy/k8s/scripts/sync-bridge-json.py
 
 `render-agents.sh`는 `deploy/k8s/base/generated/`에 StatefulSet·Service·ConfigMap·kustomization을 생성합니다. Persona ConfigMap은 `deploy/personas/_default/`와 `deploy/personas/{persona}/`를 병합합니다 (`persona_bundle.py`). Cursor rules·skills·`mcp.json`은 매 기동 시 시드로 덮어쓰고, `.cursor/MEMORY.md`만 **seed-once**(없으면 생성, 있으면 PVC 내용 유지)입니다. 시드를 강제로 다시 쓰려면 Pod에서 해당 파일을 지운 뒤 restart합니다.
 
+**Candydate cron skills (`deploy/personas/candidate/.cursor/skills/candydate-cron/scripts/`):** 반드시 thin shim만 시드한다 (`exec bash|python3 …/agent/cron/…`). stale full copy(`nohup` + bare `exec "$@"`)를 넣으면 PVC 0644에서 Permission denied → monitor **exit 99**(ticket 308). 로컬 재생성: candidate.win `agent/cron/install_skill_shims.sh <skill-scripts-dir>`. 회귀 테스트: `deploy/k8s/scripts/test_candydate_cron_persona_shims.py`.
+
 ## 3. Secret
 
 `cursor-api-key` — **전 runner 공유**.
