@@ -38,7 +38,7 @@ M0–M10 완료(실클러스터 데모·일부 수동 검증 제외). **M11 Dual
 ## M4 — 운영 ✅
 
 - [x] PVC chat retention CronJob (`cursorbridge-pvc-retention`, 기본 14일, `/cursor-home/.cursor/chats`)
-- [x] CURSOR_API_KEY spend 알림 (`cursorbridge-spend-alert`, 24h `run.completed` usage ≥ threshold → Leantime 티켓)
+- [x] CURSOR_API_KEY spend 알림 (`cursorbridge-spend-alert`, 24h usage ≥ `len(clients)×SPEND_TOKENS_PER_CLIENT`(기본 20M) → Leantime 티켓)
 - [x] retry queue 주기 flush (`cursorbridge-flush-retries` CronJob, 5분)
 - [x] agent 공통/개별 `schedules[]` (`agents.yaml` → `bridge.json`, `cursorbridge-schedule-tick` CronJob)
 - [x] agent-runner SDK worker pool (auth 격리·pre-lease recycle·auth-stale retire)

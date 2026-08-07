@@ -34,8 +34,8 @@ spec:
               image: ghcr.io/yoosungung/cursor-agent-runner:latest
               imagePullPolicy: IfNotPresent
               env:
-                - name: SPEND_TOKEN_THRESHOLD
-                  value: "2000000"
+                - name: SPEND_TOKENS_PER_CLIENT
+                  value: "20000000"
                 - name: LEANTIME_URL
                   value: http://leantime.sw-factory.svc
                 - name: LEANTIME_PROJECT_NAME

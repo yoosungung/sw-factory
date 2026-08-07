@@ -20,7 +20,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-DEFAULT_THRESHOLD = 2_000_000
+DEFAULT_TOKENS_PER_CLIENT = 20_000_000
+DEFAULT_THRESHOLD = DEFAULT_TOKENS_PER_CLIENT  # legacy alias: 1 client × 20M
 DEFAULT_PROJECT_NAME = "sw-factory"
 DEFAULT_AUTHOR_AGENT = "ta"
 DEFAULT_ASSIGNEE_AGENT = "eric"
@@ -86,19 +87,32 @@ def ticket_headline(summary: dict[str, Any], threshold: int) -> str:
 
 
 def ticket_description(
-    summary: dict[str, Any], *, threshold: int, window: str
+    summary: dict[str, Any],
+    *,
+    threshold: int,
+    window: str,
+    client_count: int | None = None,
+    tokens_per_client: int | None = None,
 ) -> str:
     lines = [
         "## CURSOR_API_KEY spend alert",
         f"window: {window}",
         f"threshold_tokens: {threshold}",
-        f"total_tokens: {summary['total_tokens']}",
-        f"input_tokens: {summary['input_tokens']}",
-        f"output_tokens: {summary['output_tokens']}",
-        f"runs_with_usage: {summary['runs']}",
-        "",
-        "### by_agent",
     ]
+    if client_count is not None:
+        lines.append(f"client_count: {client_count}")
+    if tokens_per_client is not None:
+        lines.append(f"tokens_per_client: {tokens_per_client}")
+    lines.extend(
+        [
+            f"total_tokens: {summary['total_tokens']}",
+            f"input_tokens: {summary['input_tokens']}",
+            f"output_tokens: {summary['output_tokens']}",
+            f"runs_with_usage: {summary['runs']}",
+            "",
+            "### by_agent",
+        ]
+    )
     for agent, tokens in sorted(summary.get("by_agent", {}).items()):
         lines.append(f"- {agent}: {tokens}")
     lines.extend(
@@ -350,8 +364,96 @@ def create_ticket(
     return data.get("result")
 
 
+def _count_clients_scrape(text: str) -> int:
+    """Count clients[] list items without PyYAML."""
+    section = ""
+    count = 0
+    for raw in text.splitlines():
+        line = raw.rstrip()
+        if re.match(r"^clients:\s*$", line):
+            section = "clients"
+            continue
+        if re.match(r"^[a-zA-Z_][\w-]*:\s*", line) and not line.startswith(" "):
+            section = ""
+            continue
+        if section != "clients":
+            continue
+        if re.match(r"^-\s+", line.lstrip()) and (
+            line.startswith(" ") or line.startswith("-")
+        ):
+            # top-level list entry under clients (indent 0 "- " or "  - ")
+            stripped = line.lstrip()
+            indent = len(line) - len(stripped)
+            if indent <= 2 and stripped.startswith("-"):
+                count += 1
+    return count
+
+
+def count_clients_from_agents_yaml(path: Path | str) -> int:
+    text = Path(path).read_text(encoding="utf-8")
+    try:
+        import yaml  # type: ignore
+
+        data = yaml.safe_load(text) or {}
+        return len(data.get("clients") or [])
+    except Exception:
+        return _count_clients_scrape(text)
+
+
+def count_clients_via_leantime(env: dict[str, str]) -> int:
+    """Count Leantime clients (factory N ≡ registered clients)."""
+    clients = rpc_call(env, "leantime.rpc.Clients.getAll")
+    if not isinstance(clients, list):
+        clients = rpc_call(env, "leantime.rpc.Clients.Clients.getAll") or []
+    if not isinstance(clients, list):
+        raise RuntimeError("Clients.getAll did not return a list")
+    return len(clients)
+
+
+def tokens_per_client_from_env() -> int:
+    return max(
+        1,
+        int(os.environ.get("SPEND_TOKENS_PER_CLIENT", str(DEFAULT_TOKENS_PER_CLIENT))),
+    )
+
+
+def threshold_from_client_count(
+    client_count: int, *, tokens_per_client: int | None = None
+) -> int:
+    per = DEFAULT_TOKENS_PER_CLIENT if tokens_per_client is None else tokens_per_client
+    n = max(1, int(client_count))
+    return max(1, n * max(1, int(per)))
+
+
 def threshold_from_env() -> int:
-    return max(1, int(os.environ.get("SPEND_TOKEN_THRESHOLD", str(DEFAULT_THRESHOLD))))
+    """Legacy: fixed SPEND_TOKEN_THRESHOLD if set; else 1× tokens_per_client."""
+    raw = os.environ.get("SPEND_TOKEN_THRESHOLD")
+    if raw is not None and str(raw).strip() != "":
+        return max(1, int(raw))
+    return threshold_from_client_count(1, tokens_per_client=tokens_per_client_from_env())
+
+
+def resolve_threshold(*, explicit: int | None = None) -> tuple[int, int | None, int]:
+    """Return (threshold, client_count|None, tokens_per_client).
+
+    Precedence: explicit CLI → SPEND_TOKEN_THRESHOLD →
+    len(clients)×SPEND_TOKENS_PER_CLIENT (AGENTS_YAML or Leantime Clients API).
+    """
+    per = tokens_per_client_from_env()
+    if explicit is not None:
+        return max(1, int(explicit)), None, per
+    raw = os.environ.get("SPEND_TOKEN_THRESHOLD")
+    if raw is not None and str(raw).strip() != "":
+        return max(1, int(raw)), None, per
+
+    agents_yaml = (os.environ.get("AGENTS_YAML") or "").strip()
+    if agents_yaml:
+        n = count_clients_from_agents_yaml(agents_yaml)
+        return threshold_from_client_count(n, tokens_per_client=per), n, per
+
+    env = load_leantime_env()
+    n = count_clients_via_leantime(env)
+    return threshold_from_client_count(n, tokens_per_client=per), n, per
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -371,9 +473,22 @@ def main(argv: list[str] | None = None) -> int:
     else:
         log_text = sys.stdin.read()
 
-    threshold = args.threshold if args.threshold is not None else threshold_from_env()
+    threshold, client_count, tokens_per_client = resolve_threshold(
+        explicit=args.threshold
+    )
     summary = sum_run_completed_usage(log_text)
-    print(json.dumps({"threshold": threshold, **summary}, sort_keys=True), flush=True)
+    print(
+        json.dumps(
+            {
+                "threshold": threshold,
+                "client_count": client_count,
+                "tokens_per_client": tokens_per_client,
+                **summary,
+            },
+            sort_keys=True,
+        ),
+        flush=True,
+    )
 
     if not should_alert(summary["total_tokens"], threshold):
         print("ok: under threshold", flush=True)
@@ -390,7 +505,11 @@ def main(argv: list[str] | None = None) -> int:
         env,
         headline=ticket_headline(summary, threshold),
         description=ticket_description(
-            summary, threshold=threshold, window=args.window
+            summary,
+            threshold=threshold,
+            window=args.window,
+            client_count=client_count,
+            tokens_per_client=tokens_per_client,
         ),
         project_id=targets["project_id"],
         user_id=targets["user_id"],

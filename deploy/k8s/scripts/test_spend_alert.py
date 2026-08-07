@@ -57,6 +57,64 @@ def test_should_alert_respects_threshold():
     assert spend.should_alert(99, threshold=100) is False
 
 
+def test_tokens_per_client_default_is_20m():
+    assert spend.DEFAULT_TOKENS_PER_CLIENT == 20_000_000
+
+
+def test_count_clients_from_agents_yaml(tmp_path):
+    path = tmp_path / "agents.yaml"
+    path.write_text(
+        "\n".join(
+            [
+                "clients:",
+                "- id: sw-factory",
+                "  leantime_client_id: 2",
+                "  project_id: 5",
+                "- id: nl2sql",
+                "  leantime_client_id: 3",
+                "  project_id: 6",
+                "agents:",
+                "- name: ta",
+                "  leantime_user_id: 4",
+            ]
+        ),
+        encoding="utf-8",
+    )
+    assert spend.count_clients_from_agents_yaml(path) == 2
+
+
+def test_threshold_from_client_count():
+    assert spend.threshold_from_client_count(4) == 80_000_000
+    assert spend.threshold_from_client_count(0) == spend.DEFAULT_TOKENS_PER_CLIENT
+    assert spend.threshold_from_client_count(2, tokens_per_client=10_000_000) == 20_000_000
+
+
+def test_resolve_threshold_prefers_explicit_env(monkeypatch, tmp_path):
+    path = tmp_path / "agents.yaml"
+    path.write_text("clients:\n- id: a\n  project_id: 1\n", encoding="utf-8")
+    monkeypatch.setenv("AGENTS_YAML", str(path))
+    monkeypatch.setenv("SPEND_TOKEN_THRESHOLD", "12345")
+    monkeypatch.delenv("SPEND_TOKENS_PER_CLIENT", raising=False)
+    threshold, client_count, _per = spend.resolve_threshold()
+    assert threshold == 12345
+    assert client_count is None
+
+
+def test_resolve_threshold_uses_clients_times_per_client(monkeypatch, tmp_path):
+    path = tmp_path / "agents.yaml"
+    path.write_text(
+        "clients:\n- id: a\n  project_id: 1\n- id: b\n  project_id: 2\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("AGENTS_YAML", str(path))
+    monkeypatch.delenv("SPEND_TOKEN_THRESHOLD", raising=False)
+    monkeypatch.setenv("SPEND_TOKENS_PER_CLIENT", "20000000")
+    threshold, client_count, per = spend.resolve_threshold()
+    assert threshold == 40_000_000
+    assert client_count == 2
+    assert per == 20_000_000
+
+
 def test_ticket_headline_and_description_include_totals():
     summary = {
         "runs": 2,
@@ -163,7 +221,9 @@ def test_spend_alert_cronjob_manifest_uses_names():
     assert "spend_alert.py" in cmd
     assert "kubectl" in cmd and "logs" in cmd
     env = _env_map(CRONJOB)
-    assert "SPEND_TOKEN_THRESHOLD" in env
+    assert "SPEND_TOKENS_PER_CLIENT" in env
+    assert env["SPEND_TOKENS_PER_CLIENT"]["value"] == "20000000"
+    assert "SPEND_TOKEN_THRESHOLD" not in env
     assert "LEANTIME_ACCESS_TOKEN" in env
     assert env["LEANTIME_PROJECT_NAME"]["value"] == "sw-factory"
     assert env["LEANTIME_AUTHOR_AGENT"]["value"] == "ta"
@@ -177,6 +237,8 @@ def test_spend_alert_cronjob_manifest_uses_names():
 
 def test_overlay_spend_patch_uses_names():
     env = _env_map(OVERLAY)
+    assert env["SPEND_TOKENS_PER_CLIENT"]["value"] == "20000000"
+    assert "SPEND_TOKEN_THRESHOLD" not in env
     assert env["LEANTIME_PROJECT_NAME"]["value"] == "sw-factory"
     assert env["LEANTIME_AUTHOR_AGENT"]["value"] == "ta"
     assert env["LEANTIME_ASSIGNEE_AGENT"]["value"] == "eric"
