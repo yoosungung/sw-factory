@@ -204,7 +204,7 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
 | `path` | string | repo 내 ROADMAP 경로 (기본 `ROADMAP.md`) |
 
 - `clients[].repo_ids` 소속 필수(→ `project_id` / `leantime_client_id` join).
-- `render-agents.sh` → **pm** `.cursor/roadmap-registry.json`. 스케줄 `pm-roadmap-sync`: 문서 위→아래 **첫 미완료 `##` 섹션만** 마일스톤·New 티켓(통과 전 다음 섹션 금지). 미완료 `##`가 없으면 **pass-gate** 티켓을 `ta`/`qa`/`aa` 또는 클라이언트·admin 인간(`type: human`, 이름 고정 금지)에게 위임하고, 담당자 코멘트 `<!-- roadmap-pass:approved -->` 후에만 다음 `###` 마일스톤 parent 티켓을 만든다.
+- `render-agents.sh` → **pm** `.cursor/roadmap-registry.json`. 스케줄 `pm-roadmap-sync`: 문서 위→아래 **첫 미완료 `##` 섹션만** 마일스톤·New 티켓(통과 전 다음 섹션 금지). 미완료 `##`가 없으면 **pass-gate** 티켓을 `ta`/`qa`/`aa` 또는 클라이언트·admin 인간(`type: human`, 이름 고정 금지)에게 위임하고, 담당자 코멘트 `<!-- roadmap-pass:approved -->` 후에만 다음 `###` 마일스톤 parent 티켓을 만든다. `next`는 문서 순서 첫 `###`가 아니라 **passed의 `M{n}` 다음 id**(`M2`→`### M3`)로 고른다.
 - MCP: `milestoneid`/`sprint` on create/update; `list_milestones` / `create_milestone` / `list_sprints`.
 
 #### `repos[].tenant_cd`

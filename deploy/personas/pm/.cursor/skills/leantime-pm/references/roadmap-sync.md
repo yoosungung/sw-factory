@@ -27,7 +27,7 @@ Registry: `~/.cursor/roadmap-registry.json` (seeded for pm only). Empty/`repos: 
 5. **If current exists** → jump to **Milestone upsert** + **Tickets** below. Skip pass-gate.
 6. **If no incomplete `##` section** → **Pass gate** (do not silent no-op):
    - `passed` = last `##` section whose checklist is all `[x]` (if none, skip repo: “no passed section”).
-   - `next` = first `###` milestone heading that appears after `passed` in document order (trim title). If missing → session reply “no next ###”; do not invent scope.
+   - `next` = **Next `###` resolve** (below). If missing → session reply “no next ###”; do not invent scope. **Do not** use “first `###` after `passed` in document order” — catalogs like `### M0`… under a later `## 마일스톤` would wrongly pick M0.
    - Marker: `<!-- roadmap:{repo_id}:pass-gate:{passed-slug} -->` (`passed-slug` = stable slug of passed title).
    - Find existing ticket with that marker (`list_tickets` + description/comments). Missing → `create_ticket`:
      - `headline` = `ROADMAP pass gate — {passed} → {next}`
@@ -38,6 +38,15 @@ Registry: `~/.cursor/roadmap-registry.json` (seeded for pm only). Empty/`repos: 
    - Not approved → session reply `pass-gate → @{who}`; **do not** create next milestone tickets.
    - Approved → **Next enqueue** (this run only), then stop everyday rules for this repo.
 7. **Never** enqueue the next milestone while current still has unchecked `- [ ]`.
+
+### Next `###` resolve
+
+Milestone id from a heading: first match of `\bM(\d+(?:\.\d+)?)\b` (e.g. `M2 — current` → `2`, `### M3.1` → `3.1`). Compare as version numbers (`2` < `3` < `3.1` < `4`).
+
+1. Let `passedId` = id from `passed` title (if none → step 3).
+2. Prefer the `###` heading whose id is the **least id strictly greater than `passedId`** (e.g. passed `M2` → `### M3 …`, not `### M0` / `### M2`).
+3. If `passedId` missing: among all `###` headings, pick the least id that does **not** already have marker `<!-- roadmap:{repo_id}:milestone:{slug} -->` on any ticket; if still none, session reply “no next ###”.
+4. Trim the chosen heading text as `next`. Never invent a milestone that is not in the ROADMAP.
 
 ### Delegate (pm picks exactly one)
 

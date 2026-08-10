@@ -178,7 +178,8 @@ settings:
         If no incomplete ##: create/reuse pass-gate ticket; delegate to ta|qa|aa or
         client/admin human (type:human from bridge/agents — never hardcode eric);
         only after assignee comment <!-- roadmap-pass:approved --> create next ###
-        milestone parent ticket. Dedup with <!-- roadmap:repo_id:… --> markers.
+        milestone parent ticket (next = least M{id} strictly greater than passed, e.g. M2→M3;
+        not first ### in document order). Dedup with <!-- roadmap:repo_id:… --> markers.
       success_checks:
         - "Only current incomplete ## tickets OR (pass-gate handoff) OR (approved next ### parent) this run."
         - "Final reply lists per-repo current / pass-gate assignee / approved→next, created/skipped counts."
