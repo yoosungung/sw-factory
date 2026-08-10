@@ -78,7 +78,7 @@ This file provides guidance to AI coding assistants (Claude Code, Codex, Gemini,
 
 ## 3. Status
 
-M0–M5: `leantime-plugin/`, `agent-runner/`, `deploy/k8s/`, Tenant CD(`repos[].tenant_cd`·ta `tenant-cd`). M4: PVC/spend CronJobs. **M10** org-wiki. **M11** Dual-loop: 직원 5인(PM/KM/QA/TA/AA), tenant≡`client_id`, 기능(test→QA∥AA→prod) + 주간 NF(부하·클린·대량품질; `tenant-repo-sync`+`clients-repos-registry`). **M8+:** `repos[].roadmap` → pm `pm-roadmap-sync`(current 마일스톤 1개). CI: `.github/workflows/ci.yml`. 제품 소스·품질 기준은 테넌트 repo. `settings.schedules` → `cursorbridge-schedule-tick`(+ Ready-edge catch-up). CursorBridge My Work **Created by me** 위젯(기본 Calendar 슬롯 대체; author + open/Done≤5d). `docs/`·실테넌트 persona/설정은 로컬 전용(gitignore).
+M0–M5: `leantime-plugin/`, `agent-runner/`, `deploy/k8s/`, Tenant CD(`repos[].tenant_cd`·ta `tenant-cd`). M4: PVC/spend CronJobs. **M10** org-wiki. **M11** Dual-loop: 직원 5인(PM/KM/QA/TA/AA), tenant≡`client_id`, 기능(test→QA∥AA→prod) + 주간 NF(부하·클린·대량품질; `tenant-repo-sync`+`clients-repos-registry`). **M8+:** `repos[].roadmap` → pm `pm-roadmap-sync`(current 1개; 완료 시 pass-gate → 승인 후 next). CI: `.github/workflows/ci.yml`. 제품 소스·품질 기준은 테넌트 repo. `settings.schedules` → `cursorbridge-schedule-tick`(+ Ready-edge catch-up). CursorBridge My Work **Created by me** 위젯(기본 Calendar 슬롯 대체; author + open/Done≤5d). `docs/`·실테넌트 persona/설정은 로컬 전용(gitignore).
 
  
 

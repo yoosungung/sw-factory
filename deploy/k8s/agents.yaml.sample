@@ -174,11 +174,14 @@ settings:
         Use the leantime-pm skill and references/roadmap-sync.md.
         Read .cursor/roadmap-registry.json. For each enabled repo, sync ROADMAP:
         one current milestone only (first ## section with unchecked - [ ] items);
-        do not enqueue later milestones. Create missing milestones/tickets via MCP
-        (milestoneid on create_ticket). Dedup with <!-- roadmap:repo_id:slug -->.
+        do not enqueue later ## milestones while current is open.
+        If no incomplete ##: create/reuse pass-gate ticket; delegate to ta|qa|aa or
+        client/admin human (type:human from bridge/agents — never hardcode eric);
+        only after assignee comment <!-- roadmap-pass:approved --> create next ###
+        milestone parent ticket. Dedup with <!-- roadmap:repo_id:… --> markers.
       success_checks:
-        - "Only the current (first incomplete) milestone received new tickets this run."
-        - "Final reply lists per-repo current section, created/skipped counts."
+        - "Only current incomplete ## tickets OR (pass-gate handoff) OR (approved next ### parent) this run."
+        - "Final reply lists per-repo current / pass-gate assignee / approved→next, created/skipped counts."
     - id: github-issue-check
       cron: "0 23 * * *"
       prompt: >-
