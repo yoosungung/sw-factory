@@ -72,6 +72,8 @@ __pycache__/
 # --- K8s render output (run deploy/k8s/scripts/render-agents.sh) ---
 deploy/k8s/base/generated/**
 !deploy/k8s/base/generated/.gitkeep
+# Generated Leantime 3.9.7 overlay (apply-tickets-services-not-done.sh)
+deploy/k8s/leantime-app-patch/Tickets.Services.php
 
 # 로컬 전용 문서·테넌트 런타임 (push 금지)
 docs/

@@ -2,6 +2,18 @@
 
 Cluster ConfigMap `leantime-app-patch` (NS `sw-factory`) mounts PHP/blade overlays into the Leantime Deployment.
 
+## Tickets.Services.php (Kanban/To-Do default `not_done`)
+
+When the board search has no `status` param, default to `not_done` (Done/Archived hidden) — same rule as milestone overview. Explicit `status=all` / Done / id list still wins. Generated from live Leantime **3.9.7** via `tickets_services_not_done.py` (do not hand-edit the overlay).
+
+```bash
+CURSORBRIDGE_NS=sw-factory ./deploy/k8s/scripts/apply-tickets-services-not-done.sh
+```
+
+| ConfigMap key | Mount path |
+|---------------|------------|
+| `Tickets.Services.php` | `/var/www/html/app/Domain/Tickets/Services/Tickets.php` |
+
 ## Tickets.Repositories.php (#60)
 
 `getStateLabels` resolves `session('currentProject')` **before** the cache lookup so a sessionless seed write under `projectsettings..ticketlabels` cannot poison Kanban columns.
@@ -23,9 +35,11 @@ ROOT=deploy/k8s/leantime-app-patch
 # Prefer merging keys into the existing CM (do not wipe unrelated overlays).
 kubectl -n "$NS" create configmap leantime-app-patch \
   --from-file=Tickets.Repositories.php="$ROOT/Tickets.Repositories.php" \
+  --from-file=Tickets.Services.php="$ROOT/Tickets.Services.php" \
   --from-file=showAll.submodules.blade.php="$ROOT/showAll.submodules.blade.php" \
   --from-file=showAll.blade.php="$ROOT/showAll.blade.php" \
   --dry-run=client -o yaml | kubectl apply -f -   # only if CM is owned by these keys; else patch data keys
+# Prefer: ./deploy/k8s/scripts/apply-tickets-services-not-done.sh (merge + mount + rollout)
 
 # volumeMount (ticket Files tab — required; top-level showAll may already be mounted):
 # mountPath: /var/www/html/app/Domain/Files/Templates/submodules/showAll.blade.php
