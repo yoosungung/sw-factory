@@ -32,7 +32,7 @@ ta가 클러스터 안에서 Pod/Service/PV/PVC를 모니터링하고, 필요할
 
 Daily reports that find actionable CrashLoop/rollout/PV faults: follow `references/incident-tickets.md` (ticket create/update only — still no cluster mutate on the schedule).
 
-When PM `@mention`s ta with **`assignee-runtime-check`** on a stalled Deploying*/QA ticket: follow `references/assignee-runtime-check.md` (read Pod/runner logs; do not take over EX/E2E/CD).
+When PM `@mention`s ta with **`assignee-runtime-check`** on a stalled Deploying*/QA ticket: follow `references/assignee-runtime-check.md` (read Pod/runner logs; do not take over EX/E2E/CD). Reply with `Verdict: alive|dead` within ≈1h (PM Outcome SLA). If you are the ticket assignee, PM should not have sent ARC — reply once and resume or mark dead; do not expect ARC re-nudges.
 
 ## Operating posture
 

@@ -152,17 +152,20 @@ settings:
       agents: [pm]
       gates: [flow_active]
       prompt: >-
-        Use the leantime-pm skill. Dual-loop flow checkpoint (ARCHITECTURE §2.6 #14).
+        Use the leantime-pm skill. Dual-loop flow checkpoint (ARCHITECTURE §2.6 #14 closed-loop).
         Scan In Progress + Review + Deploying Test + QA + Deploying Prod.
-        In Progress: 30분 developer timebox. Review: PM review/merge work (do not self-nudge).
-        Deploying Test/Prod + QA stall ladder: ≥2h silence → re-@mention assignee health-check;
-        ≥1h after that health-check with no progress/`nf-progress:` → @ta assignee-runtime-check
-        (Pod/runner logs only; alive→resume assignee; dead→restart/Blocked; skip dup if session.recover ok).
-        Status board: one comment per ticket with `<!-- pm-checkpoint-status -->`; upsert via edit_comment
-        for no-op/SLA/skip (no @mentions in board). New add_comment only for actionable @mentions/misroute.
-        Never add_comment "PM verify" / "Outcome record only". No kubectl/E2E/security/re-run by pm.
-        Dual-loop Done needs test+qa+aa+prod evidence.
-        Mentions: resolve each name via bridge.json `leantime_user_id` (never hardcode ids). ≤5 new actionable comments/run.
+        Silence clock: only assignee progress / nf-progress / completion·blocker (not ladder @mentions or status-board).
+        In Progress: 30m timebox; after 3 empty checkpoints → Waiting for Approval + admin human.
+        Review: PM review/merge (no self-nudge); ≥2h no PM evidence → Approval + admin once.
+        Deploy/QA ladder: ≥2h silence → assignee health-check once; ≥1h after HC with no assignee evidence →
+        if assignee=ta skip ARC (dead-by-timeout) else @ta assignee-runtime-check once (Pod/runner logs only;
+        no EX/E2E/security/CD; never re-nudge ARC). TA Outcome Verdict alive|dead within 1h → resume or
+        restart/Blocked; no Outcome ≥1h → dead-by-timeout. Cycle cap=1 then terminal Approval + admin
+        (type:human from bridge; never hardcode ids). Status board: one `<!-- pm-checkpoint-status -->`
+        per ticket; upsert ladder_rung/ladder_cycle/arc_comment_id/hc_at via edit_comment (no @mentions in board).
+        New add_comment only for actionable @mentions/misroute/terminal. Never "PM verify" / "Outcome record only".
+        No kubectl/E2E/security/re-run by pm. Dual-loop Done needs test+qa+aa+prod evidence.
+        Mentions: resolve each name via bridge.json `leantime_user_id`. ≤5 new actionable comments/run.
       success_checks:
         - "At most 5 new actionable add_comment this run (status-board edit_comment excluded)."
         - "No-op/SLA updates use edit_comment on <!-- pm-checkpoint-status --> (no new verify spam)."

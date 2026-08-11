@@ -27,6 +27,6 @@
 
 ## Sprint-lite
 
-- pm `pm-checkpoint`가 dual-loop 활성 흐름(`In Progress`·`Review`·`Deploying*`·`QA`)을 감시. Deploy/QA stall 사다리: ≥2h → assignee health-check; +1h 무응답 → `@ta` assignee-runtime-check (실행 대행 금지).
+- pm `pm-checkpoint`가 dual-loop 활성 흐름(`In Progress`·`Review`·`Deploying*`·`QA`)을 감시. Deploy/QA stall **closed-loop**(ARCHITECTURE §2.6 #14): ≥2h → HC 1회; +1h → ARC 1회(또는 assignee=ta면 skip) → Outcome SLA 1h/dead-by-timeout → cycle=1 후 Approval+admin. ARC 무한 re-nudge 금지.
 - 벨로시티·스프린트 전용 도구를 공장에 만들지 않음.
 - 주간 범위는 Leantime 보드/필터 관례로만.

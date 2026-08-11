@@ -64,13 +64,17 @@ Rules:
 4. If PM requests developer action, keep/mark `In Progress`.
 5. If Eric confirmation **or human-only unblock** is required, mark `Waiting for Approval`, assignee Eric, and `@eric` with a concrete ask — do not leave assignee on a developer who already proved they lack the required privilege (RBAC, admin/BFF session, secrets, cluster policy).
 6. Never ping-pong `Blocked` + developer assignee when the developer's latest evidence is "cannot proceed without human privilege"; convert to Eric handoff immediately so developer timebox (which skips Blocked/Approval) does not create silent drift. Misroute sweep still reviews Approval for agent-actionable asks.
-7. **Flow stall (ARCHITECTURE §2.6 #14):** `pm-checkpoint` also watches `Review` / `Deploying Test` / `QA` / `Deploying Prod`. Treat `nf-progress:` / progress heartbeats as evidence (stall clock reset). PM does not execute TA/QA/AA work and does not kubectl. **Ladder:**
-   - **≥2h** silence (no evidence/`@mention`/`nf-progress:`) → one re-`@mention` to the **current assignee** (health-check only).
-   - **≥1h** after that health-check with still no assignee progress/`nf-progress:` → `@ta` with marker **`assignee-runtime-check`** (Pod Ready + runner logs: `session.prompt.skipped` / `session.recover` / zombie `active_run`). Do not ask ta to run the long job, E2E, security, or CD.
-   - After TA: **alive** → re-mention original assignee to resume; **dead** → restart/`Blocked`/new session. If recent `session.recover` already succeeded (R1–R5), do not duplicate restart — re-attach original assignee.
-   - Suppress duplicate `assignee-runtime-check` within 30 minutes on the same ticket (same as other actionable handoffs).
-   - **Do not treat a fresh `@mention` alone as alive.** Soft `budget.timeout_ms` expiry is not recovery. This ladder is complementary to agent-runner R1–R5, not a substitute.
-8. **Checkpoint status board (upsert):** Marker `<!-- pm-checkpoint-status -->` (first line of HTML body). Per ticket: find comment with marker (prefer pm) → `edit_comment`; else create once. Use for no-op / within-SLA / skipped summaries. **No** `@mention` HTML in the board (mentions do not reliably re-notify on edit anyway). Actionable handoffs (`@qa`/`@ta`/`@eric`, misroute bounce) always use **new** `add_comment`. Ban new comments titled `PM verify`, `Outcome record only`, or “prior run had no Leantime write” remediation spam — use `edit_comment` on the status board instead.
+7. **Flow stall (ARCHITECTURE §2.6 #14 closed-loop):** `pm-checkpoint` watches `Review` / `Deploying Test` / `QA` / `Deploying Prod`. **Silence clock reset** = assignee real progress / `nf-progress:` / completion·blocker only — **not** PM/TA ladder `@mention`s or status-board/seal. PM does not execute TA/QA/AA work and does not kubectl.
+   - **≥2h** silence → one re-`@mention` to the **current assignee** (health-check only). Record `hc_at` / `ladder_rung=hc` on the status board.
+   - **≥1h** after HC, still no assignee evidence:
+     - If assignee is **ta**: **skip** ARC (no self-check) → **dead-by-timeout**.
+     - Else: one `@ta` **`assignee-runtime-check`** (Pod/runner logs only). Record `arc_comment_id` / `ladder_rung=arc`. **Do not re-nudge ARC** on the same cycle (30m suppress is not a license to loop).
+   - **TA Outcome SLA:** Outcome with `Verdict: alive|dead` within **1h** of ARC → (3). No Outcome ≥**1h** → PM **dead-by-timeout** (no kubectl).
+   - After verdict/timeout: **alive** → re-mention original assignee resume; **dead** / dead-by-timeout → restart/`Blocked`/new session (skip dup restart if recent `session.recover` — R1–R5). If assignee=ta or no restart executor → go straight to terminal.
+   - **Cycle cap = 1:** after one HC→(ARC|timeout)→resume/restart with still no assignee evidence → **terminal**.
+   - **Terminal:** `Waiting for Approval` + admin human (`type: human` from bridge.json — never hardcode ids) `@mention` + concrete ask. Keep under #13 misroute when ask is admin-only.
+   - Soft `budget.timeout_ms` expiry is not recovery. Ladder complements R1–R5; does not replace it.
+8. **Checkpoint status board (upsert):** Marker `<!-- pm-checkpoint-status -->` (first line of HTML body). Per ticket: find comment with marker (prefer pm) → `edit_comment`; else create once. Use for no-op / within-SLA / skipped summaries **and** `ladder_rung` / `ladder_cycle` / `arc_comment_id` / `hc_at`. **No** `@mention` HTML in the board. Actionable handoffs (`@qa`/`@ta`/admin, misroute, terminal) always use **new** `add_comment`. Ban new comments titled `PM verify`, `Outcome record only`, or “prior run had no Leantime write” remediation spam — use `edit_comment` on the status board instead.
 - After merge on tenant_cd: status `Deploying Test`, assign/mention **ta** with `merge_sha`. After test evidence: ensure `@qa` `@aa`. After qa+aa pass: ensure ta `Deploying Prod`. Do not `Done` until feature evidence is complete.
 - In active watcher/agent environments, re-read the active ticket comments immediately before git-ship or review handoff, and again after opening a PR. If another agent already opened or merged the same scope, do not keep a duplicate PR alive just to satisfy a handoff shape; close the duplicate with a GitHub comment, add a Leantime correction/outcome on the active ticket, and base status on the canonical merged/open PR.
 
@@ -98,6 +102,7 @@ PM checkpoint / queue hygiene (ARCHITECTURE §2.6 #13): fix tickets wrongly park
 | Wiki / knowledge promote | Bounce → owning status, `@km` |
 | Local implementation still open | Bounce → `In Progress`, developer assignee + mention |
 | Secrets, RBAC/policy elevation, product/scope/cost judgment, GH_TOKEN/push needing human | **Keep** Approval + Eric |
+| Stall terminal (cycle exhausted / TA SLA miss / IP 3× empty / Review PM silence) | **Keep** Approval + admin |
 | Ambiguous / cannot tell | **Keep** Approval (fail-closed toward human) |
 
 **Bounce shape:**
