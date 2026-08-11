@@ -3,7 +3,11 @@ import { describe, expect, it } from "vitest";
 import { createApp } from "../src/app.js";
 import { loadSettings } from "../src/config.js";
 import type { AgentBackend, AgentSession, RunResult } from "../src/session-manager.js";
-import { CreateThrottledError, MockBackend } from "../src/session-manager.js";
+import {
+  ActiveRunError,
+  CreateThrottledError,
+  MockBackend,
+} from "../src/session-manager.js";
 
 function mockSettings() {
   return loadSettings({
@@ -119,6 +123,34 @@ describe("agent-runner API", () => {
     expect(await prompt.json()).toEqual({
       run_id: "",
       status: "skipped_active_run",
+      reason: "busy",
+    });
+  });
+
+  it("returns 409 sdk_zombie when SDK reports active run", async () => {
+    class ZombieBackend implements AgentBackend {
+      async create(): Promise<AgentSession> {
+        return { agentId: "agent-z", runs: [] };
+      }
+      async prompt(): Promise<RunResult> {
+        throw new ActiveRunError("agent-z", "sdk_zombie");
+      }
+      async cancel(): Promise<void> {}
+      spikeReport() {
+        return { sessions: 1, totalRuns: 0 };
+      }
+    }
+    const app = createApp(mockSettings(), new ZombieBackend());
+    const prompt = await app.request("/sessions/agent-z/prompt", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ prompt: "wake", ticket_id: 7 }),
+    });
+    expect(prompt.status).toBe(409);
+    expect(await prompt.json()).toEqual({
+      run_id: "",
+      status: "skipped_active_run",
+      reason: "sdk_zombie",
     });
   });
 

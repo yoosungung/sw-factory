@@ -113,7 +113,7 @@ export class MockBackend implements AgentBackend {
     void ticketId;
     void control;
     if (this.busyAgents.has(agentId)) {
-      throw new ActiveRunError(agentId);
+      throw new ActiveRunError(agentId, "busy");
     }
     const session = this.sessions.get(agentId);
     if (!session) {
@@ -239,7 +239,17 @@ export class SdkBackend implements AgentBackend {
         ticket_id: ticketId,
         action: "cancel",
       });
-    } catch {
+    } catch (error) {
+      console.error(
+        JSON.stringify({
+          ts: new Date().toISOString(),
+          event: "session.cancel.failed",
+          reason,
+          agent_id: agentId,
+          ticket_id: ticketId,
+          error: error instanceof Error ? error.message : String(error),
+        }),
+      );
       this.forgetAgentMapping(agentId, ticketId, reason);
     }
     this.skippedActiveRunCounts.delete(agentId);
@@ -271,8 +281,9 @@ export class SdkBackend implements AgentBackend {
     const reason = message.includes("exited during job")
       ? "worker_crash"
       : "done_reject";
-    this.forgetAgentMapping(agentId, ticketId, reason);
-    this.skippedActiveRunCounts.delete(agentId);
+    // Best-effort SDK cancelRun+delete (via pool.delete) so zombie active_run
+    // does not survive after worker crash; falls back to local forget.
+    void this.cancelAndForget(agentId, ticketId, reason);
   }
 
   async ensureStarted(): Promise<void> {
@@ -422,7 +433,7 @@ export class SdkBackend implements AgentBackend {
   ): Promise<RunResult> {
     await this.ensureStarted();
     if (this.busyAgents.has(agentId)) {
-      throw new ActiveRunError(agentId);
+      throw new ActiveRunError(agentId, "busy");
     }
     this.busyAgents.add(agentId);
     try {
@@ -522,15 +533,20 @@ function mapPoolError(error: unknown, agentId?: string): Error {
     code === "active_run" ||
     error.message.includes("already has active run")
   ) {
-    return new ActiveRunError(agentId ?? "unknown");
+    return new ActiveRunError(agentId ?? "unknown", "sdk_zombie");
   }
   return error;
 }
 
+export type ActiveRunReason = "busy" | "sdk_zombie";
+
 export class ActiveRunError extends Error {
-  constructor(agentId: string) {
+  readonly reason: ActiveRunReason;
+
+  constructor(agentId: string, reason: ActiveRunReason = "busy") {
     super(`Agent ${agentId} already has active run`);
     this.name = "ActiveRunError";
+    this.reason = reason;
   }
 }
 

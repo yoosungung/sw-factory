@@ -151,9 +151,16 @@ export function createApp(
           requestId,
           agent_id: agentId,
           ticket_id: body.ticket_id,
-          reason: "active_run",
+          reason: error.reason,
         });
-        return c.json({ run_id: "", status: "skipped_active_run" }, 409);
+        return c.json(
+          {
+            run_id: "",
+            status: "skipped_active_run",
+            reason: error.reason,
+          },
+          409,
+        );
       }
       throw error;
     } finally {
@@ -183,7 +190,14 @@ export function createApp(
       return c.json({ detail: "session not found" }, 404);
     }
     if (error instanceof ActiveRunError) {
-      return c.json({ run_id: "", status: "skipped_active_run" }, 409);
+      return c.json(
+        {
+          run_id: "",
+          status: "skipped_active_run",
+          reason: error.reason,
+        },
+        409,
+      );
     }
     if (error instanceof CreateThrottledError) {
       return c.json(

@@ -123,25 +123,21 @@ final class Router
                         'status' => 'created',
                     ];
                 } else {
-                    $run = $this->runner->prompt($runnerUrl, $agentId, $prompt, $event, $ticketId, $this->config->budget(), $this->config->successChecks(), $this->config->successRetryMaxAttempts());
+                    $run = $this->promptOrRebind(
+                        $runnerUrl,
+                        $agentId,
+                        $prompt,
+                        $event,
+                        $ticketId,
+                        $assigneeId,
+                        $this->config->budget(),
+                        $this->config->successChecks(),
+                        $this->config->successRetryMaxAttempts()
+                    );
                     if ($run === null) {
-                        $this->sessions->delete($ticketId);
-                        $created = $this->runner->createSession($runnerUrl, $prompt, $ticketId, $this->config->budget(), $this->config->successChecks(), $this->config->successRetryMaxAttempts());
-                        if ($created === null) {
-                            return $results;
-                        }
-                        $agentId = $created['agent_id'];
-                        $this->sessions->upsert($ticketId, $agentId, $assigneeId);
-                        $results[] = [
-                            'runner_url' => $runnerUrl,
-                            'agent_id' => $agentId,
-                            'run_id' => 'create',
-                            'status' => 'recreated',
-                        ];
-                    } else {
-                        $this->sessions->upsert($ticketId, $agentId, $assigneeId);
-                        $results[] = array_merge(['runner_url' => $runnerUrl, 'agent_id' => $agentId], $run);
+                        return $results;
                     }
+                    $results[] = $run;
                 }
             }
         }
@@ -458,11 +454,18 @@ final class Router
                     'status' => 'mentioned',
                 ];
             } else {
-                $run = $this->runner->prompt($runnerUrl, $agentId, $mentionPrompt, 'mention', $ticketId, $this->config->budget());
-                if ($run === null) {
-                    continue;
+                $run = $this->promptOrRebind(
+                    $runnerUrl,
+                    $agentId,
+                    $mentionPrompt,
+                    'mention',
+                    $ticketId,
+                    $userId,
+                    $this->config->budget()
+                );
+                if ($run !== null) {
+                    $results[] = $run;
                 }
-                $results[] = array_merge(['runner_url' => $runnerUrl, 'agent_id' => $agentId], $run);
             }
         }
 
@@ -498,6 +501,76 @@ final class Router
         }
 
         return array_map('intval', array_keys($unique));
+    }
+
+    /**
+     * Sticky prompt: 404 → recreate; 409 sdk_zombie → clear sticky + create rebind;
+     * 409 busy (or legacy skipped_active_run without reason) → keep sticky.
+     *
+     * @param array{timeout_ms?: int}|null $budget
+     * @param list<string> $successChecks
+     * @return array{runner_url: string, agent_id: string, run_id: string, status: string, reason?: string}|null
+     */
+    private function promptOrRebind(
+        string $runnerUrl,
+        string $agentId,
+        string $prompt,
+        string $event,
+        int $ticketId,
+        int $assigneeUserId,
+        ?array $budget = null,
+        array $successChecks = [],
+        ?int $successMaxAttempts = null
+    ): ?array {
+        $run = $this->runner->prompt(
+            $runnerUrl,
+            $agentId,
+            $prompt,
+            $event,
+            $ticketId,
+            $budget,
+            $successChecks,
+            $successMaxAttempts
+        );
+
+        $needsRebind = $run === null
+            || (
+                ($run['status'] ?? '') === 'skipped_active_run'
+                && ($run['reason'] ?? '') === 'sdk_zombie'
+            );
+
+        if (!$needsRebind) {
+            $this->sessions->upsert($ticketId, $agentId, $assigneeUserId);
+
+            return array_merge(['runner_url' => $runnerUrl, 'agent_id' => $agentId], $run ?? []);
+        }
+
+        $this->sessions->delete($ticketId);
+        if ($run !== null) {
+            $this->runner->deleteSession($runnerUrl, $agentId, $ticketId);
+        }
+
+        $created = $this->runner->createSession(
+            $runnerUrl,
+            $prompt,
+            $ticketId,
+            $budget,
+            $successChecks,
+            $successMaxAttempts
+        );
+        if ($created === null) {
+            return null;
+        }
+
+        $newAgentId = $created['agent_id'];
+        $this->sessions->upsert($ticketId, $newAgentId, $assigneeUserId);
+
+        return [
+            'runner_url' => $runnerUrl,
+            'agent_id' => $newAgentId,
+            'run_id' => 'create',
+            'status' => 'recreated',
+        ];
     }
 
     /**

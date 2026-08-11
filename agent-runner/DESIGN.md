@@ -93,7 +93,7 @@ ticket_id당 2분 창에서 create가 5회 쌓였는데 run 완료(`session.crea
 
 ## Recovery (zombie `active_run`)
 
-증상: worker 비정상 종료·미정리 후 parent `busyAgents`는 풀려도 SDK local agent에 active run이 남아, 이후 `POST …/prompt`(또는 create→기존 매핑 prompt)가 409 `skipped_active_run` / `session.prompt.skipped` `reason=active_run`으로 **영구 고착**한다. soft budget·pre-lease·PM `@mention`만으로는 풀리지 않는다.
+증상: worker 비정상 종료·미정리 후 parent `busyAgents`는 풀려도 SDK local agent에 active run이 남아, 이후 `POST …/prompt`(또는 create→기존 매핑 prompt)가 409 `skipped_active_run` / `session.prompt.skipped` `reason=sdk_zombie`으로 **영구 고착**한다. soft budget·pre-lease·PM `@mention`만으로는 풀리지 않는다. (진짜 in-flight는 `reason=busy` — Bridge는 recreate하지 않는다.)
 
 **HTTP 계약 불변** (ARCHITECTURE §2.3.1): `202` accepted, 409 `skipped_active_run` / `skipped_mutex` 의미·상태 코드 변경 없음. Recovery는 parent(session-manager / pool) 내부 동작이다.
 
@@ -101,9 +101,9 @@ ticket_id당 2분 창에서 create가 5회 쌓였는데 run 완료(`session.crea
 
 | ID | 트리거 | 동작 | `session.recover` |
 |----|--------|------|-------------------|
-| **R1** | Run 중 worker crash / unexpected exit | pool slot release + `busyAgents` clear + 해당 ticket↔agent 매핑 **forget** | `reason=worker_crash`, `action=forget` |
-| **R2** | `WorkerDone` reject / `active_run` fail path (SDK `already has active run` 등) | R1과 동일 release+forget. `mcpStickyReset`만으로 끝내지 않음; cancel 가능 시 best-effort `DELETE` | `reason=active_run_fail` 또는 `done_reject` |
-| **R3** | 동일 agent/ticket에 **연속** `skipped_active_run` (기본 threshold **2**) | cancel/force 시도: SDK `run.cancel` / `Agent.cancelRun` 가능 시 사용, 아니면 `DELETE /sessions/{id}`(=`backend.cancel`) + forget | `reason=skipped_threshold`, `action=cancel\|force\|delete` |
+| **R1** | Run 중 worker crash / unexpected exit | pool slot release + `busyAgents` clear + **best-effort** `cancelRun`(non-terminal)→`sdk.delete` + ticket↔agent 매핑 forget(삭제 실패 시) | `reason=worker_crash`, `action=cancel\|forget` |
+| **R2** | `WorkerDone` reject / `active_run` fail path (SDK `already has active run` 등) | R1과 동일. delete 전 `Agent.listRuns`+`Agent.cancelRun`(또는 delete 에러의 active run id)으로 zombie unlock | `reason=active_run_fail` 또는 `done_reject` |
+| **R3** | 동일 agent/ticket에 **연속** `skipped_active_run` (기본 threshold **2**) | cancel/force 시도: SDK `run.cancel` / `Agent.cancelRun` → `DELETE /sessions/{id}`(=`backend.cancel`) + forget | `reason=skipped_threshold`, `action=cancel\|force\|delete` |
 | **R4** | R3 cancel/force 후, 또는 매핑이 비어 다음 prompt가 필요할 때 | **새 session create** + ticket↔agent remap | `reason=recreate`, `action=recreate` |
 | **R5** | 모든 recovery 경로 | 구조화 로그 `session.recover` (`reason`, `agent_id`, `ticket_id?`, `action` ∈ `forget`\|`cancel`\|`force`\|`delete`\|`recreate`) + `AGENT_RUNNER_MOCK=1 npm test`에서 R1–R4 단위 테스트 green | (로그 자체) |
 
@@ -132,7 +132,7 @@ ticket_id당 2분 창에서 create가 5회 쌓였는데 run 완료(`session.crea
 | `success_check.skipped` | stream 미지원 등으로 검증 생략 |
 | `mcp.sticky_reset` | ticket agent 매핑 삭제(다음 create가 새 MCP host) |
 | `session.create.failed` / `run.background.failed` | worker exit·백그라운드 실패 (복구 트리거) |
-| `session.prompt.skipped` (`active_run` / `mutex`) | 후속 prompt 거부 — **연속 시 zombie 의심** |
+| `session.prompt.skipped` (`busy` / `sdk_zombie` / `mutex`) | 후속 prompt 거부 — **`sdk_zombie` 연속 시 zombie 의심**; Bridge는 `sdk_zombie`만 sticky recreate |
 | `session.recover` | zombie/`active_run` recovery (§ Recovery R1–R5: `reason`·`action`) |
 
 예시:
@@ -150,7 +150,7 @@ kubectl -n sw-factory logs -f cursor-agent-path-0 -c agent-runner | rg 'run\.(st
 1. `run.started` 후 worker가 job 중 exit → `session.create.failed` / `run.background.failed` (`worker … exited during job`).
 2. parent `busyAgents`는 `.finally`로 비울 수 있어도 **ticket→agent 매핑·SDK local active run**이 남음.
 3. exit 후 `done.then`의 `release(worker)`가 스킵되면 worker `busy` 고착 — `pre_lease` recycle는 **idle만** 대상이라 이 worker를 못 비움.
-4. 같은 `ticket_id`로 오는 create/prompt는 기존 agent에 resume → SDK/`ActiveRunError` → `session.prompt.skipped` `reason=active_run` **영구 반복**. soft `budget.timeout_ms`는 preamble뿐이라 hard cancel 없음.
+4. 같은 `ticket_id`로 오는 create/prompt는 기존 agent에 resume → SDK/`ActiveRunError` → `session.prompt.skipped` `reason=sdk_zombie` **영구 반복**. soft `budget.timeout_ms`는 preamble뿐이라 hard cancel 없음.
 
 ### AC (구현됨 · TDD · #197)
 

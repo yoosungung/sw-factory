@@ -53,13 +53,15 @@ const finished = (agentId: string, runId: string): WorkerDone => ({
 });
 
 describe("SdkBackend Recovery R1–R5", () => {
-  it("R1: worker crash on done reject → forget mapping + session.recover worker_crash", async () => {
+  it("R1: worker crash on done reject → cancel best-effort + session.recover worker_crash", async () => {
     const logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
+    const errSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     let doneReject!: (reason: unknown) => void;
     const crashDone = new Promise<WorkerDone>((_res, rej) => {
       doneReject = rej;
     });
     let creates = 0;
+    const deletes: string[] = [];
     const pool = mockPool({
       submit: async (job) => {
         if (job.type === "create") {
@@ -79,6 +81,9 @@ describe("SdkBackend Recovery R1–R5", () => {
           done: Promise.resolve(finished(job.agentId!, "run-p")),
         };
       },
+      delete: async (agentId) => {
+        deletes.push(agentId);
+      },
     });
 
     const backend = new SdkBackend(settings(), pool);
@@ -86,14 +91,20 @@ describe("SdkBackend Recovery R1–R5", () => {
 
     doneReject(new Error("worker w1 exited during job"));
     await vi.waitFor(() => {
-      expect(recoverLogs(logSpy).some((e) => e.reason === "worker_crash")).toBe(
-        true,
-      );
+      expect(
+        recoverLogs(logSpy).some(
+          (e) =>
+            e.reason === "worker_crash" &&
+            (e.action === "cancel" || e.action === "forget"),
+        ),
+      ).toBe(true);
     });
+    expect(deletes).toContain("agent-crash");
 
     expect((await backend.create("again", 100)).agentId).toBe("agent-fresh");
     expect(creates).toBe(2);
     logSpy.mockRestore();
+    errSpy.mockRestore();
   });
 
   it("R2: submit active_run fail → forget + cancel best-effort", async () => {

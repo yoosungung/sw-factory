@@ -23,7 +23,7 @@ interface RunnerTransport
     /**
      * @param array{timeout_ms?: int}|null $budget
      * @param list<string> $successChecks
-     * @return array{run_id: string, status: string}
+     * @return array{run_id: string, status: string, reason?: string}
      */
     public function prompt(
         string $runnerUrl,

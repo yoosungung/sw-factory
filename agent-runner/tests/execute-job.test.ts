@@ -500,4 +500,97 @@ describe("executeJob", () => {
       }),
     ).toBe(true);
   });
+
+  it("delete: cancelRun non-terminal runs before sdk.delete (zombie unlock)", async () => {
+    const cancelled: string[] = [];
+    const deleted: string[] = [];
+    let deleteAttempts = 0;
+    const sdk: WorkerSdk = {
+      create: async () => {
+        throw new Error("no create");
+      },
+      resume: async () => {
+        throw new Error("no resume");
+      },
+      listRuns: async () => ({
+        items: [
+          { id: "run-done", currentStatus: "finished" },
+          { id: "run-zombie", currentStatus: "running" },
+        ],
+      }),
+      cancelRun: async (runId) => {
+        cancelled.push(runId);
+      },
+      delete: async (agentId) => {
+        deleteAttempts += 1;
+        if (deleteAttempts === 1 && cancelled.length === 0) {
+          throw new Error(
+            `Cannot delete agent ${agentId}: active run run-zombie is not terminal. Call run.cancel() first.`,
+          );
+        }
+        deleted.push(agentId);
+      },
+    };
+
+    const result = await executeJob(
+      {
+        requestId: "req-del",
+        type: "delete",
+        agentId: "agent-z",
+        model: "composer-2.5",
+        workspace: "/tmp/ws",
+      },
+      sdk,
+    );
+
+    expect(cancelled).toEqual(["run-zombie"]);
+    expect(deleted).toEqual(["agent-z"]);
+    expect(result).toEqual({
+      phase: "deleted",
+      requestId: "req-del",
+      agentId: "agent-z",
+    });
+  });
+
+  it("delete: parses active-run id from delete error when listRuns misses it", async () => {
+    const cancelled: string[] = [];
+    let deleteAttempts = 0;
+    const sdk: WorkerSdk = {
+      create: async () => {
+        throw new Error("no create");
+      },
+      resume: async () => {
+        throw new Error("no resume");
+      },
+      listRuns: async () => ({ items: [] }),
+      cancelRun: async (runId) => {
+        cancelled.push(runId);
+      },
+      delete: async (agentId) => {
+        deleteAttempts += 1;
+        if (deleteAttempts === 1) {
+          throw new Error(
+            `Cannot delete agent ${agentId}: active run run-6e736208-c176-4fa8-b81a-b76d5a94e33e is not terminal. Call run.cancel() first.`,
+          );
+        }
+      },
+    };
+
+    const result = await executeJob(
+      {
+        requestId: "req-del2",
+        type: "delete",
+        agentId: "agent-64f92546",
+        model: "composer-2.5",
+        workspace: "/tmp/ws",
+      },
+      sdk,
+    );
+
+    expect(cancelled).toEqual([
+      "run-6e736208-c176-4fa8-b81a-b76d5a94e33e",
+    ]);
+    expect(deleteAttempts).toBe(2);
+    expect(result).toMatchObject({ phase: "deleted", agentId: "agent-64f92546" });
+  });
 });

@@ -53,7 +53,7 @@ final class ResilientRunnerClient
     /**
      * @param array{timeout_ms?: int}|null $budget
      * @param list<string> $successChecks
-     * @return array{run_id: string, status: string}|null
+     * @return array{run_id: string, status: string, reason?: string}|null
      */
     public function prompt(
         string $runnerUrl,

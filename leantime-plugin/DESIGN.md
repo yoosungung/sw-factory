@@ -25,6 +25,10 @@ tests/
 
 지금은 `DeferredDispatch`가 작업을 `register_shutdown_function`에 넣고, `fastcgi_finish_request()`로 클라이언트를 먼저 끊은 뒤 runner를 호출한다. curl 타임아웃은 8s(연결 2s); 실패 시 `ResilientRunnerClient`가 retry 큐 → `flush-retries` CronJob.
 
+### Sticky session rebind
+
+`Router::promptOrRebind`: sticky `agent_id`에 대한 prompt가 **404**(session gone)이거나 409 `skipped_active_run` + `reason=sdk_zombie`이면 SessionStore를 비우고(필요 시 DELETE) **create로 재바인딩**(`status=recreated`). `reason=busy`(또는 reason 없는 legacy 409)는 in-flight이므로 sticky를 유지하고 skip만 반환한다.
+
 ### My Work widget (Created by me)
 
 `register.php`가 `availableWidgets` / `defaultWidgets` 필터로 위젯을 등록하고 **기본 Calendar 슬롯을 대체**한다(카탈로그의 Calendar는 유지 → 설정에서 다시 켤 수 있음). 목록: `userId`=현재 사용자, milestone/subtask 제외, `status≠0` 또는 Done(`0`)이면서 `zp_tickethistory` 종료 시각(없으면 `modified`)이 5일 이내. 정렬: open dual-loop → Done(`0`) → Archived(`-1`), 그다음 `closedAt`/`modified` DESC (`CreatedByMeTickets::STATUS_GROUP_ORDER_SQL`; 보드 `sortKey`와 무관).

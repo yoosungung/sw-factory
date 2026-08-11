@@ -7,6 +7,8 @@ const sdk: WorkerSdk = {
   create: (options) => Agent.create(options),
   resume: (agentId, options) => Agent.resume(agentId, options),
   delete: (agentId, options) => Agent.delete(agentId, options),
+  listRuns: (agentId, options) => Agent.listRuns(agentId, options),
+  cancelRun: (runId, options) => Agent.cancelRun(runId, options),
 };
 
 function send(msg: WorkerMessage): void {

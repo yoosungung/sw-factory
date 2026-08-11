@@ -132,7 +132,7 @@ final class LeantimeEventTest extends TestCase
                     return ['agent_id' => 'agent-new'];
                 }
 
-                return ['run_id' => '', 'status' => 'skipped_active_run'];
+                return ['run_id' => '', 'status' => 'skipped_active_run', 'reason' => 'busy'];
             },
             static function (string $url): void {
             }
@@ -142,8 +142,46 @@ final class LeantimeEventTest extends TestCase
 
         $this->assertCount(1, $results);
         $this->assertSame('skipped_active_run', $results[0]['status']);
+        $this->assertSame('busy', $results[0]['reason'] ?? null);
         $this->assertSame('agent-busy-167', $sessions->getAgentId(167));
         $this->assertSame(0, $createCount);
+    }
+
+    public function testSdkZombieRecreatesSession(): void
+    {
+        $config = BridgeConfig::fromFile(dirname(__DIR__) . '/bridge.json');
+        $sessions = SessionStore::inMemory();
+        $sessions->upsert(167, 'agent-zombie-167', 6);
+        $lookup = new class implements TicketLookup {
+            public function find(int $ticketId): ?array
+            {
+                return LeantimeEventFixtures::ticketLookup167();
+            }
+        };
+        $createCount = 0;
+        $deleted = [];
+        $inner = new RunnerClient(
+            function (string $url, array $body) use (&$createCount): array {
+                if (str_ends_with($url, '/sessions')) {
+                    ++$createCount;
+
+                    return ['agent_id' => 'agent-fresh-167'];
+                }
+
+                return ['run_id' => '', 'status' => 'skipped_active_run', 'reason' => 'sdk_zombie'];
+            },
+            function (string $url) use (&$deleted): void {
+                $deleted[] = $url;
+            }
+        );
+        $router = new Router($config, $sessions, new ResilientRunnerClient($inner, $sessions), $lookup);
+        $results = $router->handle('ticket_updated', LeantimeEventFixtures::ticketUpdated167());
+
+        $this->assertCount(1, $results);
+        $this->assertSame('recreated', $results[0]['status']);
+        $this->assertSame('agent-fresh-167', $sessions->getAgentId(167));
+        $this->assertSame(1, $createCount);
+        $this->assertNotEmpty($deleted);
     }
 
     public function testSessionNotFoundRecreatesOnce(): void

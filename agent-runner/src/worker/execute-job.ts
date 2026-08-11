@@ -31,10 +31,113 @@ import {
   type WriteAttestation,
 } from "../success-verify.js";
 
+export interface WorkerRunSummary {
+  id: string;
+  status?: string;
+  currentStatus?: string;
+}
+
 export interface WorkerSdk {
   create(options: AgentOptions): Promise<SDKAgent>;
   resume(agentId: string, options?: Partial<AgentOptions>): Promise<SDKAgent>;
   delete(agentId: string, options?: Partial<AgentOptions>): Promise<void>;
+  /** Optional: cancel non-terminal runs before delete (zombie unlock). */
+  listRuns?(
+    agentId: string,
+    options?: { apiKey?: string; cwd?: string; runtime?: "local" },
+  ): Promise<{ items: WorkerRunSummary[] }>;
+  cancelRun?(
+    runId: string,
+    options?: { apiKey?: string; cwd?: string; runtime?: "local" },
+  ): Promise<void>;
+}
+
+const TERMINAL_RUN_STATUSES = new Set([
+  "finished",
+  "cancelled",
+  "canceled",
+  "error",
+  "expired",
+]);
+
+const ACTIVE_RUN_DELETE_RE =
+  /active run (run-[a-f0-9-]+) is not terminal/i;
+
+function deleteOptions(
+  apiKey: string | undefined,
+  workspace: string,
+): Partial<AgentOptions> & { apiKey?: string; cwd?: string } {
+  return {
+    apiKey,
+    cwd: workspace,
+    local: { cwd: workspace },
+  };
+}
+
+async function cancelListedNonTerminalRuns(
+  sdk: WorkerSdk,
+  agentId: string,
+  apiKey: string | undefined,
+  workspace: string,
+): Promise<void> {
+  if (!sdk.listRuns || !sdk.cancelRun) {
+    return;
+  }
+  let items: WorkerRunSummary[] = [];
+  try {
+    const listed = await sdk.listRuns(agentId, {
+      apiKey,
+      cwd: workspace,
+      runtime: "local",
+    });
+    items = listed.items ?? [];
+  } catch {
+    return;
+  }
+  for (const run of items) {
+    const status = String(run.currentStatus ?? run.status ?? "");
+    if (TERMINAL_RUN_STATUSES.has(status)) {
+      continue;
+    }
+    try {
+      await sdk.cancelRun(run.id, {
+        apiKey,
+        cwd: workspace,
+        runtime: "local",
+      });
+    } catch {
+      // best-effort; delete retry / error-parse path may still unlock
+    }
+  }
+}
+
+async function deleteAgentForce(
+  sdk: WorkerSdk,
+  agentId: string,
+  workspace: string,
+): Promise<void> {
+  const apiKey = process.env.CURSOR_API_KEY;
+  const opts = deleteOptions(apiKey, workspace);
+  await cancelListedNonTerminalRuns(sdk, agentId, apiKey, workspace);
+  try {
+    await sdk.delete(agentId, opts);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const match = message.match(ACTIVE_RUN_DELETE_RE);
+    if (!match?.[1] || !sdk.cancelRun) {
+      throw error;
+    }
+    try {
+      await sdk.cancelRun(match[1], {
+        apiKey,
+        cwd: workspace,
+        runtime: "local",
+      });
+    } catch {
+      throw error;
+    }
+    await sdk.delete(agentId, opts);
+  }
 }
 
 export type AcceptedHandler = (msg: WorkerAccepted) => void;
@@ -54,10 +157,7 @@ export async function executeJob(
   options?: ExecuteJobOptions,
 ): Promise<WorkerDone | { phase: "deleted"; requestId: string; agentId: string }> {
   if (job.type === "delete") {
-    await sdk.delete(job.agentId, {
-      apiKey: process.env.CURSOR_API_KEY,
-      local: { cwd: job.workspace },
-    });
+    await deleteAgentForce(sdk, job.agentId, job.workspace);
     return {
       phase: "deleted",
       requestId: job.requestId,

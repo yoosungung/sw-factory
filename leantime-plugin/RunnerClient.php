@@ -109,7 +109,7 @@ final class RunnerClient implements RunnerTransport
     /**
      * @param array{timeout_ms?: int}|null $budget
      * @param list<string> $successChecks
-     * @return array{run_id: string, status: string}
+     * @return array{run_id: string, status: string, reason?: string}
      */
     public function prompt(
         string $runnerUrl,
@@ -133,10 +133,15 @@ final class RunnerClient implements RunnerTransport
             $body
         );
 
-        return [
+        $out = [
             'run_id' => (string) ($result['run_id'] ?? ''),
             'status' => (string) ($result['status'] ?? 'unknown'),
         ];
+        if (isset($result['reason']) && is_string($result['reason']) && $result['reason'] !== '') {
+            $out['reason'] = $result['reason'];
+        }
+
+        return $out;
     }
 
     public function deleteSession(string $runnerUrl, string $agentId): void

@@ -89,11 +89,11 @@ runner 일시 장애 시 Leantime 요청은 실패하지 않고, **티켓×계�
 | Method | Path | Body | Response |
 |--------|------|------|----------|
 | POST | `/sessions` | `{prompt, ticket_id?}` | `{agent_id}` — run은 백그라운드 |
-| POST | `/sessions/{agent_id}/prompt` | `{prompt, event?, ticket_id?}` | **202** `{run_id, status: "accepted"}` — run 완료까지 Leantime을 블록하지 않음 |
+| POST | `/sessions/{agent_id}/prompt` | `{prompt, event?, ticket_id?}` | **202** `{run_id, status: "accepted"}` — run 완료까지 Leantime을 블록하지 않음. **409** `{run_id:"", status:"skipped_active_run", reason:"busy"\|"sdk_zombie"}` — `busy`=in-flight, `sdk_zombie`=SDK store에 terminal 아닌 run 잔존 |
 | DELETE | `/sessions/{agent_id}` | — | 204 |
 | GET | `/healthz` | — | 200 |
 
-HTTP 계약은 불변(409 `skipped_active_run` 포함). 프로세스 내부는 **parent(Hono, SDK 미로드) + SDK worker pool**: 잡마다 worker가 `create`/`resume` → `send` → `wait` → handle `close`. Pre-lease로 idle/age/jobs 초과 worker를 교체하고, in-band auth 독성 시 해당 worker만 retire 후 1회 재시도한다. Worker crash·SDK zombie `active_run` 복구(매핑 forget·cancel·새 session·`session.recover` 로그)는 runner 내부이며 HTTP dialect를 바꾸지 않는다 — 정본 [`agent-runner/DESIGN.md`](agent-runner/DESIGN.md) § Recovery.
+HTTP 계약은 불변(409 `skipped_active_run` 포함; `reason`은 additive). 프로세스 내부는 **parent(Hono, SDK 미로드) + SDK worker pool**: 잡마다 worker가 `create`/`resume` → `send` → `wait` → handle `close`. Pre-lease로 idle/age/jobs 초과 worker를 교체하고, in-band auth 독성 시 해당 worker만 retire 후 1회 재시도한다. Worker crash·SDK zombie `active_run` 복구(매핑 forget·cancel·새 session·`session.recover` 로그)는 runner 내부이며, Bridge는 `reason=sdk_zombie`일 때만 sticky를 버리고 create 재바인딩한다 — 정본 [`agent-runner/DESIGN.md`](agent-runner/DESIGN.md) § Recovery · [`leantime-plugin/DESIGN.md`](leantime-plugin/DESIGN.md).
 
 **Run 실패 복구 (계약):** worker crash·`session.create.failed` / `run.background.failed` / SDK `active_run` zombie 후 **같은 ticket에 대한 후속 prompt가 영구 `skipped_active_run`이면 안 된다.** runner는 ticket↔agent 매핑을 끊고(필요 시 session cancel/`local.force`) **새 session으로 재부착**해야 한다. `budget.timeout_ms`는 soft preamble일 뿐 hard kill이 아니다. 내부 AC·로그 이벤트는 [`agent-runner/DESIGN.md`](agent-runner/DESIGN.md) § Recovery.
 
