@@ -57,8 +57,8 @@ def test_should_alert_respects_threshold():
     assert spend.should_alert(99, threshold=100) is False
 
 
-def test_tokens_per_client_default_is_20m():
-    assert spend.DEFAULT_TOKENS_PER_CLIENT == 20_000_000
+def test_tokens_per_client_default_is_100m():
+    assert spend.DEFAULT_TOKENS_PER_CLIENT == 100_000_000
 
 
 def test_count_clients_from_agents_yaml(tmp_path):
@@ -84,7 +84,7 @@ def test_count_clients_from_agents_yaml(tmp_path):
 
 
 def test_threshold_from_client_count():
-    assert spend.threshold_from_client_count(4) == 80_000_000
+    assert spend.threshold_from_client_count(4) == 400_000_000
     assert spend.threshold_from_client_count(0) == spend.DEFAULT_TOKENS_PER_CLIENT
     assert spend.threshold_from_client_count(2, tokens_per_client=10_000_000) == 20_000_000
 
@@ -222,7 +222,7 @@ def test_spend_alert_cronjob_manifest_uses_names():
     assert "kubectl" in cmd and "logs" in cmd
     env = _env_map(CRONJOB)
     assert "SPEND_TOKENS_PER_CLIENT" in env
-    assert env["SPEND_TOKENS_PER_CLIENT"]["value"] == "20000000"
+    assert env["SPEND_TOKENS_PER_CLIENT"]["value"] == "100000000"
     assert "SPEND_TOKEN_THRESHOLD" not in env
     assert "LEANTIME_ACCESS_TOKEN" in env
     assert env["LEANTIME_PROJECT_NAME"]["value"] == "sw-factory"
@@ -237,7 +237,7 @@ def test_spend_alert_cronjob_manifest_uses_names():
 
 def test_overlay_spend_patch_uses_names():
     env = _env_map(OVERLAY)
-    assert env["SPEND_TOKENS_PER_CLIENT"]["value"] == "20000000"
+    assert env["SPEND_TOKENS_PER_CLIENT"]["value"] == "100000000"
     assert "SPEND_TOKEN_THRESHOLD" not in env
     assert env["LEANTIME_PROJECT_NAME"]["value"] == "sw-factory"
     assert env["LEANTIME_AUTHOR_AGENT"]["value"] == "ta"
