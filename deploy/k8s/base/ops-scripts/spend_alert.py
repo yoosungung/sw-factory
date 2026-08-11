@@ -20,8 +20,8 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-DEFAULT_TOKENS_PER_CLIENT = 20_000_000
-DEFAULT_THRESHOLD = DEFAULT_TOKENS_PER_CLIENT  # legacy alias: 1 client × 20M
+DEFAULT_TOKENS_PER_CLIENT = 100_000_000
+DEFAULT_THRESHOLD = DEFAULT_TOKENS_PER_CLIENT  # legacy alias: 1 client × 100M
 DEFAULT_PROJECT_NAME = "sw-factory"
 DEFAULT_AUTHOR_AGENT = "ta"
 DEFAULT_ASSIGNEE_AGENT = "eric"

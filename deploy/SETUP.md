@@ -412,6 +412,6 @@ agent별 PVC 이름: `cursor-home-cursor-agent-{name}-0` (mount `/cursor-home`, 
 | CronJob | schedule (UTC) | 동작 |
 |---------|----------------|------|
 | `cursorbridge-pvc-retention` | `15 3 * * *` | label `app=cursor-agent` Pod에 `find … -mtime +$CHAT_RETENTION_DAYS -delete` (기본 14일) |
-| `cursorbridge-spend-alert` | `0 */6 * * *` | 최근 24h agent-runner 로그의 `run.completed` usage 합산; 임계값=`len(clients)×SPEND_TOKENS_PER_CLIENT`(기본 20M, `AGENTS_YAML` 또는 Leantime Clients API). 초과 시 **이름** resolve 후 티켓 (`LEANTIME_PROJECT_NAME`=`sw-factory`, author=`ta`, assignee=`eric`). 숫자 project/user id·고정 토큰 임계값은 매니페스트에 두지 않는다. |
+| `cursorbridge-spend-alert` | `0 */6 * * *` | 최근 24h agent-runner 로그의 `run.completed` usage 합산; 임계값=`len(clients)×SPEND_TOKENS_PER_CLIENT`(기본 100M, `AGENTS_YAML` 또는 Leantime Clients API). 초과 시 **이름** resolve 후 티켓 (`LEANTIME_PROJECT_NAME`=`sw-factory`, author=`ta`, assignee=`eric`). 숫자 project/user id·고정 토큰 임계값은 매니페스트에 두지 않는다. |
 
 스크립트: ConfigMap `cursorbridge-ops-scripts` ← `deploy/k8s/base/ops-scripts/`. SA `cursorbridge-flush`에 `pods/log` get 포함. 임계값·보관일은 CronJob env로 조정.
