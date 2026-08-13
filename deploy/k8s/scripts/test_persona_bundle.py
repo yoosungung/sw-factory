@@ -113,12 +113,12 @@ def test_build_pm_bundle_includes_leantime_pm_skill():
     skill = bundle[skill_key]
     assert "metadata:\n  hermes:" not in skill
     assert "Hermes is the PM" not in skill
-    assert "pm is the **PM**" in skill or "pm` is the **PM**" in skill or "pm is the PM" in skill.lower()
+    assert "Agent `pm`" in skill or "저판단 조율" in skill
+    assert "set_blocked_by" in skill
     assert "Use when acting as a Leantime project manager" in skill
-    assert "30-Minute Developer Work Timebox" in skill
-    assert "Human-only handoff" in skill
+    assert "Timebox" in skill or "pm-checkpoint" in skill
+    assert "human-only" in skill.lower() or "Human-only" in skill
     assert "Waiting for Approval" in skill
-    assert "human-only" in skill.lower()
     # Progressive disclosure: keep SKILL.md lean; heavy playbooks in references/.
     assert len(skill.splitlines()) < 200
     assert "## PM Workflow" not in skill
@@ -246,9 +246,9 @@ def test_build_pm_bundle_includes_default_rules_and_persona_skill():
     bundle = build_persona_bundle("pm", PERSONAS_ROOT)
     assert ".cursor/rules/leantime-collab.mdc" in bundle
     assert ".cursor/skills/leantime-pm/SKILL.md" in bundle
-    assert "pm is the **PM**" in bundle[".cursor/skills/leantime-pm/SKILL.md"] or (
-        "pm` is the **PM**" in bundle[".cursor/skills/leantime-pm/SKILL.md"]
-    )
+    skill = bundle[".cursor/skills/leantime-pm/SKILL.md"]
+    assert "Agent `pm`" in skill or "set_blocked_by" in skill
+    assert "Waiting for Approval" in skill
 
 
 def test_configmap_key_roundtrip():

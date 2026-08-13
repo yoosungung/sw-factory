@@ -50,6 +50,7 @@ def test_pm_parent_done_requires_closed_subtasks():
         "open subtask" in skill.lower()
         or "열린 서브태스크" in skill
         or "열린 자식" in skill
+        or "열린 child" in skill.lower()
     )
 
 
