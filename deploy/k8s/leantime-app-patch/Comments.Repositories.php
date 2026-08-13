@@ -1,0 +1,265 @@
+<?php
+
+namespace Leantime\Domain\Comments\Repositories;
+
+use Illuminate\Database\ConnectionInterface;
+use Leantime\Core\Db\Db as DbCore;
+
+class Comments
+{
+    private ConnectionInterface $db;
+
+    public function __construct(DbCore $db)
+    {
+        $this->db = $db->getConnection();
+    }
+
+    public function getComments(
+        string $module,
+        int $moduleId,
+        int $parent = 0,
+        int $orderByState = 0,
+        ?int $limit = null,
+        int $offset = 0
+    ): false|array {
+        $orderBy = $orderByState === 1 ? 'asc' : 'desc';
+
+        $query = $this->db->table('zp_comment as comment')
+            ->select(
+                'comment.id',
+                'comment.text',
+                'comment.date',
+                'comment.moduleId',
+                'comment.userId',
+                'comment.commentParent',
+                'comment.status',
+                'user.firstname',
+                'user.lastname',
+                'user.profileId',
+                'user.modified AS userModified'
+            )
+            ->addSelect('comment.date AS rawDate')
+            ->join('zp_user as user', 'comment.userId', '=', 'user.id')
+            ->where('comment.moduleId', $moduleId)
+            ->where('comment.module', $module);
+
+        if ($parent >= 0) {
+            $query->where('comment.commentParent', $parent);
+        }
+
+        $query->orderBy('comment.date', $orderBy);
+
+        // Factory overlay: optional page window for Discussion UI (ticketdetails).
+        if ($limit !== null && $limit > 0) {
+            $query->offset(max(0, $offset))->limit($limit);
+        }
+
+        $results = $query->get();
+
+        return array_map(fn ($item) => (array) $item, $results->toArray());
+    }
+
+    /**
+     * @return int|mixed
+     */
+    public function countComments(?string $module = null, ?int $moduleId = null): mixed
+    {
+        $query = $this->db->table('zp_comment as comment');
+
+        if ($module !== null) {
+            $query->where('module', $module);
+        }
+
+        if ($moduleId !== null) {
+            $query->where('moduleId', $moduleId);
+        }
+
+        return $query->count();
+    }
+
+    public function getReplies(int $id): false|array
+    {
+        $results = $this->db->table('zp_comment as comment')
+            ->select(
+                'comment.id',
+                'comment.text',
+                'comment.date',
+                'comment.moduleId',
+                'comment.userId',
+                'comment.commentParent',
+                'user.firstname',
+                'user.lastname',
+                'user.profileId',
+                'user.modified AS userModified'
+            )
+            ->join('zp_user as user', 'comment.userId', '=', 'user.id')
+            ->where('comment.commentParent', $id)
+            ->get();
+
+        return array_map(fn ($item) => (array) $item, $results->toArray());
+    }
+
+    public function getComment(int $id): array|false
+    {
+        $result = $this->db->table('zp_comment as comment')
+            ->select(
+                'comment.id',
+                'comment.text',
+                'comment.date',
+                'comment.module',
+                'comment.moduleId',
+                'comment.userId',
+                'comment.commentParent',
+                'comment.status',
+                'user.firstname',
+                'user.lastname'
+            )
+            ->join('zp_user as user', 'comment.userId', '=', 'user.id')
+            ->where('comment.id', $id)
+            ->first();
+
+        return $result ? (array) $result : false;
+    }
+
+    /**
+     * Resolve the owning project of a comment target (module + entity id) for authorization.
+     *
+     * Comments are cross-module; each module maps to a project differently:
+     *  - project        -> the moduleId IS the project id
+     *  - ticket         -> zp_tickets.projectId
+     *  - canvas family  -> the moduleId is a zp_canvas_items row; project via its canvas. Only the
+     *    KNOWN canvas comment modules are resolved this way: 'article', 'idea', and every
+     *    "<type>canvasitem" (goalcanvasitem, leancanvasitem, wikicanvasitem, ...).
+     *  - client / anything else -> null (company-scoped or unknown; the caller falls back to a
+     *    session-scoped capability check so behavior is unchanged for those targets). An unknown
+     *    module is NOT run through the canvas lookup, so it can never accidentally resolve a project
+     *    from a colliding zp_canvas_items id.
+     *
+     * Direct table reads are used deliberately (no cross-domain service calls) to keep this a
+     * decoupled, side-effect-free authorization lookup that cannot recurse into other gates.
+     */
+    public function resolveModuleProjectId(string $module, int $moduleId): ?int
+    {
+        if ($moduleId <= 0) {
+            return null;
+        }
+
+        if ($module === 'project') {
+            return $moduleId;
+        }
+
+        if ($module === 'ticket') {
+            $projectId = $this->db->table('zp_tickets')->where('id', $moduleId)->value('projectId');
+
+            return $projectId !== null ? (int) $projectId : null;
+        }
+
+        // Canvas-backed comment targets store the canvas-item id as the moduleId. Restrict to the
+        // known canvas comment modules so an unknown module falls through to null (session-scoped).
+        if ($module === 'article' || $module === 'idea' || str_ends_with($module, 'canvasitem')) {
+            $projectId = $this->db->table('zp_canvas_items')
+                ->leftJoin('zp_canvas', 'zp_canvas.id', '=', 'zp_canvas_items.canvasId')
+                ->where('zp_canvas_items.id', $moduleId)
+                ->value('zp_canvas.projectId');
+
+            return $projectId !== null ? (int) $projectId : null;
+        }
+
+        return null;
+    }
+
+    public function addComment(array $values, string $module): false|string
+    {
+        $id = $this->db->table('zp_comment')->insertGetId([
+            'text' => $values['text'],
+            'userId' => $values['userId'],
+            'date' => $values['date'],
+            'moduleId' => $values['moduleId'],
+            'module' => $module,
+            'commentParent' => $values['commentParent'],
+            'status' => $values['status'] ?? '',
+        ]);
+
+        return $id ? (string) $id : false;
+    }
+
+    public function deleteComment(int $id): bool
+    {
+        return $this->db->table('zp_comment')
+            ->where('id', $id)
+            ->delete() > 0;
+    }
+
+    public function editComment(string $text, int $id): bool
+    {
+        return $this->db->table('zp_comment')
+            ->where('id', $id)
+            ->update(['text' => $text]) >= 0;
+    }
+
+    public function getAllAccountComments(?int $projectId, ?int $moduleId): array|false
+    {
+        $userId = session('userdata.id') ?? -1;
+        $clientId = session('userdata.clientId') ?? -1;
+        $requesterRole = session()->exists('userdata') ? session('userdata.role') : -1;
+
+        $query = $this->db->table('zp_comment as comment')
+            ->select(
+                'comment.id',
+                'comment.module',
+                'comment.text',
+                'comment.date',
+                'comment.moduleId',
+                'comment.userId',
+                'comment.commentParent',
+                'comment.status',
+                'zp_projects.id AS projectId'
+            )
+            ->leftJoin('zp_tickets', 'comment.moduleId', '=', 'zp_tickets.id')
+            ->leftJoin('zp_canvas_items', 'comment.moduleId', '=', 'zp_canvas_items.id')
+            ->leftJoin('zp_canvas', 'zp_canvas.id', '=', 'zp_canvas_items.canvasId')
+            ->leftJoin('zp_projects', function ($join) {
+                $join->on('zp_canvas.projectId', '=', 'zp_projects.id')
+                    ->orOn('zp_tickets.projectId', '=', 'zp_projects.id');
+            })
+            ->where(function ($q) use ($userId, $clientId, $requesterRole) {
+                $q->whereIn('zp_projects.id', function ($subquery) use ($userId) {
+                    $subquery->select('projectId')
+                        ->from('zp_relationuserproject')
+                        ->where('userId', $userId);
+                })
+                    ->orWhere('zp_projects.psettings', 'all')
+                    ->orWhere(function ($q2) use ($clientId) {
+                        $q2->where('zp_projects.psettings', 'clients')
+                            ->where('zp_projects.clientId', $clientId);
+                    })
+                    ->orWhere(function ($q3) use ($requesterRole) {
+                        if (in_array($requesterRole, ['admin', 'manager'])) {
+                            $q3->whereRaw('1=1');
+                        }
+                    });
+            });
+
+        if (isset($projectId) && $projectId > 0) {
+            $query->where('zp_projects.id', $projectId);
+        }
+
+        if (isset($moduleId) && $moduleId > 0) {
+            $query->where('comment.moduleId', $moduleId);
+        }
+
+        $results = $query->groupBy(
+            'comment.id',
+            'comment.module',
+            'comment.text',
+            'comment.date',
+            'comment.moduleId',
+            'comment.userId',
+            'comment.commentParent',
+            'comment.status',
+            'zp_projects.id'
+        )->get();
+
+        return array_map(fn ($item) => (array) $item, $results->toArray());
+    }
+}

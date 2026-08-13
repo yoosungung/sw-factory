@@ -166,7 +166,7 @@ python deploy/k8s/scripts/sync-bridge-json.py
 
 함정: MCP/`getStatusLabels`가 `projectId` 없이 호출되면 seed labels가 `projectsettings..ticketlabels` 캐시를 오염시켜 Kanban 열이 초기값↔dual-loop로 플립할 수 있다 — `getStateLabels`는 projectId를 캐시 조회 **전**에 resolve하고, MCP `get_status_labels`에 `project_id`를 넘긴다 (`deploy/k8s/leantime-app-patch/`).
 
-To-Do/Kanban 기본 필터: status 미지정 시 `not_done`(Done·Archived 숨김). 적용: `CURSORBRIDGE_NS=sw-factory ./deploy/k8s/scripts/apply-tickets-services-not-done.sh` (`Tickets.Services.php` overlay).
+To-Do/Kanban 기본 필터: status 미지정 시 `not_done`(Done·Archived 숨김). 적용: `CURSORBRIDGE_NS=sw-factory ./deploy/k8s/scripts/apply-tickets-services-not-done.sh` (`Tickets.Services.php` overlay). 대량 Discussion(예: #564급): `./deploy/k8s/scripts/apply-discussion-pagination.sh` — 티켓 상세 최근 20 + Load more(스크롤 intersect), reactions `intersect once` (`leantime-app-patch/` README).
 
 ## 2. 렌더 및 bridge 동기화
 

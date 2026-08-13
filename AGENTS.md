@@ -36,7 +36,7 @@ This file provides guidance to AI coding assistants (Claude Code, Codex, Gemini,
 | `examples/tenant-quality/` | 테넌트 품질 discovery(`.factory/quality.yaml`) 샘플 | `examples/tenant-quality/` |
 | `scripts/install-sw-factory.sh` | NS=`sw-factory` 원샷 설치(wipe·직원 시드·render·plugin) | `scripts/` |
 | `deploy/k8s/scripts/status_board.py` | Dual-loop To-Do Status → `projectsettings.*.ticketlabels` | `deploy/k8s/scripts/` |
-| `deploy/k8s/scripts/tickets_services_not_done.py` (+ `apply-tickets-services-not-done.sh`) | To-Do/Kanban 기본 `status=not_done` (Leantime 3.9.7 Services overlay) | `deploy/k8s/scripts/` · `leantime-app-patch/` |
+| `deploy/k8s/scripts/tickets_services_not_done.py` (+ `apply-tickets-services-not-done.sh`) · `apply-discussion-pagination.sh` | To-Do/Kanban `not_done` 기본 · Discussion 최근 N+Load more (Leantime 3.9.7 overlays) | `deploy/k8s/scripts/` · `leantime-app-patch/` |
 | `deploy/k8s/scripts/pull-agent-backup.sh` | PVC `agent-runtime-backup` → `deploy/personas/<agent>/*.pulled` (일일 restart dump 검토) | `deploy/k8s/scripts/` |
 
  
