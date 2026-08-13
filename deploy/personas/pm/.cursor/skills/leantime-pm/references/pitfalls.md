@@ -14,6 +14,7 @@ Load when stuck, MCP returns false, or concurrent agents may race.
 - Do not mark a **parent Done** while any canonical open subtask remains (`get_all_subtasks`). Close/archive children first; Leantime does not auto-sync parent/child status.
 - Do not decide major product tradeoffs without Eric.
 - Do not self-assign or `@pm`-loop work that pm cannot execute with current credentials; capability gaps go to the owning specialist or Eric (`Waiting for Approval`), not `Blocked` drift.
+- **Do not agent↔agent mention-storm** (`mention outcome` / `delegated_from` ping-pong). Lookback 2h or newest 30 comments: ≥8 factory-agent `@mention`s or ≥12 outcome/remediator seals without silence-reset → one terminal Approval+admin; no further agent `@mention`.
 - Do not treat “file not in this workspace” as end of ownership — name the owning repo/owner and hand off.
 - **Do not ACK-only on predecessor requests** (“will wire next”, remediator skip). Same turn: `set_blocked_by` → `get_ticket` verify marker. Soft prose/`<!-- blocked-by -->` in comments without MCP upsert is not registered.
 - **Do not use `dependingTicketId` for FS blocked-by** — that field is parent/subtask only; misuse makes successors look like children and breaks parent Done gates.

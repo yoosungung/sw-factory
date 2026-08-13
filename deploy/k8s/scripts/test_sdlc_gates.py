@@ -54,6 +54,24 @@ def test_pm_parent_done_requires_closed_subtasks():
     )
 
 
+def test_pm_mention_storm_breaker():
+    """Agent mention/comment storms must terminal to Approval+admin (#564 class)."""
+    skill_root = ROOT / "deploy/personas/pm/.cursor/skills/leantime-pm"
+    skill = (skill_root / "SKILL.md").read_text()
+    ticket_ops = (skill_root / "references/ticket-ops.md").read_text()
+    pitfalls = (skill_root / "references/pitfalls.md").read_text()
+    arch = (ROOT / "ARCHITECTURE.md").read_text()
+    for text in (skill, ticket_ops, pitfalls, arch):
+        assert "Mention/comment storm" in text or "mention-storm" in text.lower()
+        assert "8" in text and "12" in text
+        assert "2h" in text or "2시간" in text or "30" in text
+    assert "Waiting for Approval" in skill
+    sample = (ROOT / "deploy/k8s/agents.yaml.sample").read_text()
+    assert "Mention/comment storm" in sample
+    assert "≥8" in sample or ">=8" in sample
+    assert "≥12" in sample or ">=12" in sample
+
+
 def test_incident_tickets_m9():
     path = (
         ROOT

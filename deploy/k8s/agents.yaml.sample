@@ -152,16 +152,21 @@ settings:
       agents: [pm]
       gates: [flow_active]
       prompt: >-
-        Use the leantime-pm skill. Dual-loop flow checkpoint (ARCHITECTURE §2.6 #14 closed-loop).
+        Use the leantime-pm skill. Dual-loop flow checkpoint (ARCHITECTURE §2.6 #15 closed-loop).
         Scan In Progress + Review + Deploying Test + QA + Deploying Prod.
-        Silence clock: only assignee progress / nf-progress / completion·blocker (not ladder @mentions or status-board).
+        Silence clock: only assignee progress / nf-progress / completion·blocker (not ladder @mentions,
+        status-board, or mention-outcome seals).
         In Progress: 30m timebox; after 3 empty checkpoints → Waiting for Approval + admin human.
         Review: PM review/merge (no self-nudge); ≥2h no PM evidence → Approval + admin once.
         Deploy/QA ladder: ≥2h silence → assignee health-check once; ≥1h after HC with no assignee evidence →
         if assignee=ta skip ARC (dead-by-timeout) else @ta assignee-runtime-check once (Pod/runner logs only;
         no EX/E2E/security/CD; never re-nudge ARC). TA Outcome Verdict alive|dead within 1h → resume or
         restart/Blocked; no Outcome ≥1h → dead-by-timeout. Cycle cap=1 then terminal Approval + admin
-        (type:human from bridge; never hardcode ids). Status board: one `<!-- pm-checkpoint-status -->`
+        (type:human from bridge; never hardcode ids).
+        Mention/comment storm: lookback last 2h or newest 30 comments; with no silence-reset, if factory-agent
+        mutual @mentions ≥8 OR mention-outcome/delegated_from/remediator seals ≥12 → immediate terminal
+        Approval+admin (ask states loop evidence; no further agent @mention).
+        Status board: one `<!-- pm-checkpoint-status -->`
         per ticket; upsert ladder_rung/ladder_cycle/arc_comment_id/hc_at via edit_comment (no @mentions in board).
         New add_comment only for actionable @mentions/misroute/terminal. Never "PM verify" / "Outcome record only".
         No kubectl/E2E/security/re-run by pm. Dual-loop Done needs test+qa+aa+prod evidence.

@@ -142,6 +142,6 @@ M0–M10 완료(실클러스터 데모·일부 수동 검증 제외). **M11 Dual
 2. 티켓 assignee=agent → 코멘트/상태 변경으로 E2E 검증
 3. M5/M11: 데모 테넌트 `tenant_cd`·quality 어댑터 + 실 E2E
 4. **M11 후속:** #172 QA 세션 수동 재기동(필요 시) — R1–R5·PM→TA stall 사다리는 문서/스킬 반영됨
-5. **M11 후속: stall closed-loop (#391 class)** — Deploy/QA step2 무한 re-nudge 금지: silence=assignee 증거만, TA Outcome SLA(1h)→dead-by-timeout, assignee=ta self-check bypass, cycle=1 후 `Waiting for Approval`+admin. In Progress 빈 30m×3·Review PM 침묵≥2h도 동일 터미널. 정본: [`ARCHITECTURE` §2.6 #14](ARCHITECTURE.md) · leantime-pm · ta `assignee-runtime-check` · `pm-checkpoint`
+5. **M11 후속: stall closed-loop (#391/#564 class)** — Deploy/QA step2 무한 re-nudge 금지: silence=assignee 증거만, TA Outcome SLA(1h)→dead-by-timeout, assignee=ta self-check bypass, cycle=1 후 `Waiting for Approval`+admin. In Progress 빈 30m×3·Review PM 침묵≥2h도 동일 터미널. **Mention/comment storm:** lookback 2h/최신 30댓글에서 agent 상호 `@mention`≥8 또는 mention-outcome≥12(무 silence-reset) → 즉시 Approval+admin·추가 agent `@mention` 금지. 정본: [`ARCHITECTURE` §2.6 #15](ARCHITECTURE.md) · leantime-pm · ta `assignee-runtime-check` · `pm-checkpoint`
 6. **M11 후속: Ready-edge catch-up (재기동=출근)** — Bridge가 `/readyz` 전이(false→true) 시 티켓리스 `prompts.catch_up` 세션 1회. 정본: [`ARCHITECTURE` §1.5 / §2.4.2](ARCHITECTURE.md) · `ReadyCatchupTicker` · `_default` `agent-catch-up` · MCP `list_tickets(assigned_to=)`
 7. `git commit` + `git push`

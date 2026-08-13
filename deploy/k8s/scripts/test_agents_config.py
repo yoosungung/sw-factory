@@ -206,6 +206,8 @@ def test_agents_yaml_sample_has_org_wiki_and_km():
     # Status-board upsert (no verify spam): marker + edit_comment
     assert "pm-checkpoint-status" in cp
     assert "edit_comment" in cp
+    assert "Mention/comment storm" in cp
+    assert ("≥8" in cp or ">=8" in cp) and ("≥12" in cp or ">=12" in cp)
 
 
 def test_org_wiki_url_resolves_wiki_alias():
