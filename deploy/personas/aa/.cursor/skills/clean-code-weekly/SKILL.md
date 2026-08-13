@@ -39,7 +39,7 @@ For each synced client product repo:
 
 Follow [`references/review-procedure.md`](references/review-procedure.md) and [`references/heuristics.md`](references/heuristics.md).
 
-1. Sample hotspots inside `focus_paths` (minus `exclude_paths`): recent changes → large/opaque modules → prod code without tests → I/O·RPC·DB boundaries.
+1. Sample hotspots inside `focus_paths` (minus `exclude_paths`): **last 7 days** (or since prior weekly sha if older) → large/opaque modules → prod code without tests → I/O·RPC·DB boundaries. Details: `review-procedure.md` Hotspot order.
 2. Apply heuristics only with **impact** (readability, change cost, defect risk). See anti-dogma in heuristics.
 3. Classify severity per [`references/severity.md`](references/severity.md).
 4. Cap High/Med findings at `max_findings` (default 5) per client per run. Low → schedule summary only.

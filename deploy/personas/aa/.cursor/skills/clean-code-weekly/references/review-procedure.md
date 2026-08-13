@@ -8,12 +8,12 @@
 
 ## Hotspot order
 
-1. Files changed recently (git log / PR churn) inside focus paths.
+1. **Recent window (weekly cadence):** files touched in the last **7 days** (`git log --since=7.days` / merged PR churn) inside focus paths — covers changes since the prior `aa-clean-weekly`. If a prior run’s sync sha is known and older than 7d, extend lookback to that sha so nothing between weekly fires is skipped; if younger than 7d, still use the full 7d floor.
 2. Large or frequently edited modules that read opaque.
 3. Production modules with weak or missing tests.
 4. Boundaries: HTTP clients, DB access, queue/filesystem adapters.
 
-Skip pure config, snapshots, and license headers unless they hide real logic.
+Skip pure config, snapshots, and license headers unless they hide real logic. The 7d window only ranks sampling priority — still may sample (2)–(4) outside it within the timebox.
 
 ## Timebox
 
