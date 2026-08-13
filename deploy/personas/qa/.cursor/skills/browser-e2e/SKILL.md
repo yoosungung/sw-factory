@@ -19,3 +19,4 @@ Criteria/scenarios live in the **client repo** (`.factory/quality.yaml` `e2e:` +
    `qa: e2e pass scenario=<id> evidence=<url>`
 4. On **fail**: comment failure + assign developer; status `In Progress` or `Blocked`. Do not allow Deploying Prod.
 5. GitHub issue: reproduce in test env → register/update scenario in tenant repo → create internal ticket on client `project_id` for PM.
+6. **Not QA:** GitHub Actions / workflow failure watch (CD·publish·billing·runner) — **TA** owns; `github-issue-check` is Issue intake only.

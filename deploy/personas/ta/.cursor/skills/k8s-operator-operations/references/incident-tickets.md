@@ -36,5 +36,6 @@ next: <agent-owned step or human-only>
 
 ## Feedback intake (configured channels)
 
-- Keep `github-issue-check` schedule: tenant GH issues → Leantime tickets.
+- Keep `github-issue-check` schedule: tenant GH issues → Leantime tickets (QA; **not** GitHub Actions monitoring).
+- Actions/CD/publish platform failures (billing, missing release assets → Init/ImagePull) that surface as cluster faults: **TA** opens/updates the incident; do not route to QA/AA as Actions owners.
 - Additional product complaint channels are install-time config (labels, extra schedules) — no product support portal in this repo.

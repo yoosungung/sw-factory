@@ -1,0 +1,126 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cursor-agent-restarter
+  namespace: sw-factory
+  labels:
+    app: cursorbridge
+    component: agent-restart
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: cursor-agent-restarter
+  namespace: sw-factory
+  labels:
+    app: cursorbridge
+    component: agent-restart
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+  - apiGroups: [""]
+    resources: ["pods/exec"]
+    verbs: ["create"]
+  - apiGroups: ["apps"]
+    resources: ["statefulsets"]
+    verbs: ["get", "list", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: cursor-agent-restarter
+  namespace: sw-factory
+  labels:
+    app: cursorbridge
+    component: agent-restart
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: cursor-agent-restarter
+subjects:
+  - kind: ServiceAccount
+    name: cursor-agent-restarter
+    namespace: sw-factory
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: agent-runtime-backup
+  namespace: sw-factory
+  labels:
+    app: cursorbridge
+    component: agent-restart
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: cursorbridge-agent-restart
+  namespace: sw-factory
+  labels:
+    app: cursorbridge
+    component: agent-restart
+spec:
+  # 00:00 KST = 15:00 UTC
+  schedule: "0 15 * * *"
+  timeZone: UTC
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 1800
+      template:
+        metadata:
+          labels:
+            app: cursorbridge
+            component: agent-restart
+        spec:
+          serviceAccountName: cursor-agent-restarter
+          restartPolicy: OnFailure
+          imagePullSecrets:
+            - name: ghcr-pull
+          volumes:
+            - name: ops-scripts
+              configMap:
+                name: cursorbridge-ops-scripts
+                defaultMode: 0555
+            - name: backup
+              persistentVolumeClaim:
+                claimName: agent-runtime-backup
+          containers:
+            - name: backup-restart
+              image: ghcr.io/yoosungung/cursor-agent-runner:latest
+              imagePullPolicy: IfNotPresent
+              env:
+                - name: NAMESPACE
+                  value: sw-factory
+                - name: POD_LABEL
+                  value: app=cursor-agent
+                - name: AGENT_CONTAINER
+                  value: agent-runner
+                - name: BACKUP_ROOT
+                  value: /backup
+                - name: BACKUP_RETENTION_DAYS
+                  value: "7"
+              volumeMounts:
+                - name: ops-scripts
+                  mountPath: /ops
+                  readOnly: true
+                - name: backup
+                  mountPath: /backup
+              command:
+                - sh
+                - -c
+                - |
+                  set -eu
+                  python3 /ops/agent_runtime_backup.py
+                  kubectl -n sw-factory rollout restart statefulset -l app=cursor-agent
+                  echo "rollout restart issued"

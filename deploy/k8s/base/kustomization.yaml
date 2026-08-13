@@ -7,13 +7,16 @@ resources:
   # candydate: local-only deploy/k8s/base/cronjob-candydate.yaml (gitignore); install-sw-factory.sh applies if present
   - cronjob-pvc-retention.yaml
   - cronjob-spend-alert.yaml
+  - cronjob-agent-restart.yaml
   - generated/
 
 configMapGenerator:
   - name: cursorbridge-ops-scripts
+    namespace: sw-factory
     files:
       - ops-scripts/pvc_chat_retention.py
       - ops-scripts/spend_alert.py
+      - ops-scripts/agent_runtime_backup.py
     options:
       disableNameSuffixHash: true
 

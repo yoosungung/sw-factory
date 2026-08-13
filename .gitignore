@@ -30,6 +30,8 @@ deploy/personas/**
 !deploy/personas/*/.cursor/
 !deploy/personas/*/.cursor/**
 !deploy/personas/*/MEMORY.md.sample
+# Human-reviewed pulls from cluster backup PVC (never auto-commit)
+deploy/personas/**/*.pulled
 !leantime-plugin/bridge.json.sample
 # Real tenant personas stay local (factory staff only above).
 deploy/personas/sw-factory/

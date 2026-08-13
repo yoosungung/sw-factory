@@ -16,3 +16,4 @@ Standards live in the **client repo** (`.factory/quality.yaml` `security:`).
 1. On status **QA** (parallel with QA E2E): run tenant security command against the change/deploy candidate.
 2. Pass: `aa: security pass` (+ brief evidence link).
 3. Fail: `aa: security fail …` + developer assignee; block Deploying Prod.
+4. **Not AA:** GitHub Actions platform/CD failure watch (billing, runner, publish conclusion) — **TA**; AA owns security *gate content*, not workflow infra.

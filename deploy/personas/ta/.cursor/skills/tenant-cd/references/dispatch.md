@@ -26,3 +26,5 @@ gh run view <run-id> --repo "$REPO" --json url,conclusion,status,headSha
 ```
 
 Require `conclusion=success`. Record `test_workflow_*` or `prod_workflow_*` accordingly.
+
+On failure: read job annotations (`gh api …/check-runs/<job_id>/annotations` or run UI). Platform messages (billing, spending limit, job not started) stay **TA** — escalate `@eric`; do not reassign Actions watch to QA/AA.

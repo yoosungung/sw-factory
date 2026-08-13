@@ -23,7 +23,7 @@ Leantime × Cursor Agent 협업 시스템 계약 및 인터페이스.
 7. **읽기 우선** — 에이전트는 Leantime MCP로 `get_ticket` / `get_comments` 후 행동한다.
 8. **K8s namespace** — `sw-factory` (Leantime과 동일 NS; 레거시 `leantime` NS는 SETUP 참고).
 9. **모델** — `deploy/k8s/agents.yaml` 정본: `settings.model` 기본값, bot마다 `agents[].model`로 override. Pod `AGENT_RUNNER_MODEL`에 주입; 기본 `composer-2.5` (비용 예측 가능); `auto`는 선택 사항.
-10. **Tenant CD ≡ Client** — 테넌트 신원은 Leantime **`client_id`(1:1)**. `repos[].tenant_cd`는 그 client 소속 repo의 CD 블록이다. 배포는 공장(TA/ta `tenant-cd`)이 수행한다. v1 드라이버는 `workflow_dispatch`만. 상세는 §2.8.
+10. **Tenant CD ≡ Client** — 테넌트 신원은 Leantime **`client_id`(1:1)**. `repos[].tenant_cd`는 그 client 소속 repo의 CD 블록이다. 배포는 공장(TA/ta `tenant-cd`)이 수행한다. v1 드라이버는 `workflow_dispatch`만. **GitHub Actions 배송 시스템**(CD/publish dispatch·run watch·runner/billing/platform으로 job이 안 뜨는 경우·release asset 누락으로 롤아웃이 깨지는 경우)의 **Accountable은 TA**. QA/AA는 Actions 상시 감시 역할이 아니다. 상세는 §2.6·§2.8.
 11. **Dual-loop factory** — 공장 직원 5인(PM=`pm`, KM=`km`, TA=`ta`, QA, AA)은 **client에 묶이지 않고** 전 고객사에 접근한다. 개발자는 `human` 또는 `sessions`로 client/repo에 귀속 가능. **기능 루프**(티켓): 구현→test 배포→QA(E2E)∥AA(보안)→prod 배포→Done. **비기능 루프**(주간): TA 부하·AA 클린코드·QA 대량품질 → 해당 client 프로젝트에 티켓. 상세는 §2.6.
 12. **품질 기준은 고객사 repo** — E2E·보안·클린코드·부하·bulk/Opik 본문은 테넌트 `.factory/quality.yaml`(또는 동등)과 repo 산출물. 공장은 스킬·증거 스키마·스케줄·`tenant-repo-sync`(최신 checkout)만.
 
@@ -133,6 +133,8 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
 
 에이전트는 MCP로 배정함·멘션을 훑고 **한 건**을 골라 그 세션에서 착수한다(persona `agent-catch-up`). 실패 디스패치 재전송(`flush-retries`)과 별개다. DB 스키마는 §2.2.2.
 
+**일일 agent restart + 런타임 백업:** CronJob `cursorbridge-agent-restart`(`0 15 * * *` UTC = KST 00:00)가 (1) 각 `app=cursor-agent` Pod에서 `MEMORY.md`·`mcp.json`을 PVC `agent-runtime-backup`(`YYYY-MM-DD/<agent>/`, 7일 보관)에 dump하고 (2) `rollout restart statefulset -l app=cursor-agent`로 Ready-edge 출근을 유발한다. **스킬/rules 배포 대체가 아니다** — persona 변경은 여전히 `render-agents` → apply 후 재시작(또는 이 일일 재시작)이 CM을 다시 시드한다. skills/rules/chats/Secret/`agents.yaml`/`bridge.json`/Leantime DB는 이 PVC에 넣지 않는다. 로컬 검토: `deploy/k8s/scripts/pull-agent-backup.sh` → `deploy/personas/<agent>/*.pulled`(gitignore) → 사람 diff 후 선택 반영(자동 git commit 금지). MEMORY 클러스터 반영: Pod에서 해당 파일 삭제 후 restart(시드) 또는 `kubectl cp`. mcp 의도 변경은 persona 번들에 합친 뒤 render→apply→restart.
+
 ### 2.5 Persona 번들 (`deploy/personas/_default/` + `deploy/personas/{persona}/`)
 
 `render-agents.sh`가 `_default/`와 persona 오버레이를 병합해 ConfigMap `persona-{persona}`를 생성한다.
@@ -148,6 +150,8 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
 ### 2.6 에이전트 협업 프로토콜 (Dual-loop)
 
 **역할 매핑:** PM=`pm` · KM=`km` · TA=`ta` · QA=`qa` · AA=`aa`. 직원 5인은 `agents[].client_id` 없음(전 client 공용).
+
+**GitHub Actions 실패 소유 (업계 DevOps/Platform ≡ 공장 TA):** 파이프라인·배포 자동화·플랫폼(러너/결제·spending limit·job not started) 장애의 **Accountable = TA**. 범위는 (1) `tenant_cd`/publish로 **본인이 dispatch·watch한** run의 `conclusion`·증거, (2) CD/release 실패가 클러스터에 드러난 경우(`ta-k8s-daily` incident). **비범위:** 전 repo Actions 대시보드 일일 스캔 스케줄, PR CI의 테스트/린트 **내용** 실패(개발자 수정 · PM Review 전 green 확인), 제품 E2E(QA), 보안 게이트 본문(AA). QA `github-issue-check`는 GitHub **Issue** intake만 — Actions 감시 금지.
 
 **고객사 Project 상태 보드** (이름 고정; numeric id는 `clients[].status_map` / `settings.status_board`):
 
@@ -255,7 +259,7 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
 | L0 | 각 제품/공장 repo의 `ARCHITECTURE`/`DESIGN` | 해당 repo 전담. wiki에 **복사 금지**(링크만) |
 | L1 | Leantime 티켓·코멘트 | 담당 agent. 문의·보고·위임·지시 |
 | L2 | org-wiki | **읽기:** 전원. **기여:** `inbox/{agent}/`만(비-km). **정본:** km만(`INDEX.md`, `wiki/` canonical). Quartz는 `wiki/`만 배포; `inbox/`·`raw/` 비공개 |
-| L3 | persona `MEMORY.md` | 배포 시드(최초 1회)·운영 힌트. Pod 내 수정은 PVC에 **유지**(재시작·재배포 시 ConfigMap으로 덮어쓰지 않음). 시드 재적용은 dest 삭제 후 Pod restart. 조직 사실을 두지 않음 |
+| L3 | persona `MEMORY.md` | 배포 시드(최초 1회)·운영 힌트. Pod 내 수정은 PVC에 **유지**(재시작·재배포 시 ConfigMap으로 덮어쓰지 않음). 시드 재적용은 dest 삭제 후 Pod restart. 조직 사실을 두지 않음. 일일 dump는 `agent-runtime-backup` PVC(§2.4.2); 로컬 승격은 `pull-agent-backup.sh`→`*.pulled` 사람 게이트 |
 
 규칙:
 
@@ -269,7 +273,7 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
 ## 3. 인증·비용
 
 - 전 runner가 동일 `CURSOR_API_KEY` 공유 (Secret `cursor-api-key`, 사용량 합산).
-- 공장 운영: `cursorbridge-pvc-retention`이 agent PVC의 `/cursor-home/.cursor/chats`를 보관일(`CHAT_RETENTION_DAYS`) 기준으로 삭제한다. `cursorbridge-spend-alert`는 24h `run.completed` usage 합산 후 임계값(`len(clients)×SPEND_TOKENS_PER_CLIENT`, 기본 100M/client) 초과 시 Leantime에서 **프로젝트/에이전트 이름**으로 id를 resolve해 티켓을 만든다(숫자 id·고정 토큰 임계값 하드코딩 금지).
+- 공장 운영: `cursorbridge-pvc-retention`이 agent PVC의 `/cursor-home/.cursor/chats`를 보관일(`CHAT_RETENTION_DAYS`) 기준으로 삭제한다. `cursorbridge-agent-restart`는 일일 MEMORY/mcp dump(`agent-runtime-backup`) 후 agent STS restart(§2.4.2). `cursorbridge-spend-alert`는 24h `run.completed` usage 합산 후 임계값(`len(clients)×SPEND_TOKENS_PER_CLIENT`, 기본 100M/client) 초과 시 Leantime에서 **프로젝트/에이전트 이름**으로 id를 resolve해 티켓을 만든다(숫자 id·고정 토큰 임계값 하드코딩 금지).
 - Leantime MCP는 포크 `leantime-mcp/`(agent-runner 이미지). agent별 **`LEANTIME_ACCESS_TOKEN`**(해당 Leantime 사용자 PAT, Secret `LEANTIME_ACCESS_TOKEN_{name}`)으로 Bearer 인증한다. Leantime 3.9+ PAT는 댓글·쓰기 작성자가 해당 사용자로 표시된다.
 - agent-runner 이미지는 **Python 3.12 + uv**, **kubectl**, **gh**, **git**을 포함한다. K8s: 일반 봇은 ServiceAccount `cursor-agent` + ClusterRole `cursor-agent-observer`(**read-only**). **ta만** SA `cursor-agent-ta` + ClusterRole `cursor-agent-ta-operator`(모니터링·제한적 `patch`/`update`/`delete`, `pods/exec`, Namespace **create**만·delete 없음) 및 공장 test NS(`sw-factory`) Role `cursor-agent-test-ns-write`(CM·Secret·Service·PVC·Ingress·Deploy/STS·Pod write + `batch/jobs` create/get/list/watch/delete). 추가 테넌트 test NS Role은 **로컬 overlay**(실고객 NS 이름은 git에 두지 않음). RBAC 객체 write·Secret 클러스터 전역 list는 미부여. path-graph Argo Role은 당분간 `cursor-agent-ta`에 바인딩(path bot 재도입 시 전용 SA). **봇 runner**는 Secret `cursor-api-key`의 **`GH_TOKEN`(또는 `gh_token_secret_key` / `GH_TOKEN_{name}`)** 필수 — 시작 시 `gh auth setup-git`. ta는 `GH_TOKEN_ta`로 factory `publish-runner.yml`을 `gh workflow run`(Actions write); GHCR **push**는 워크플로 `GITHUB_TOKEN`, **pull**은 `ghcr-pull` Secret.
 - SDK run은 IDE와 동일 usage pool을 사용한다.

@@ -178,6 +178,16 @@ python deploy/k8s/scripts/sync-bridge-json.py
 
 `render-agents.sh`는 `deploy/k8s/base/generated/`에 StatefulSet·Service·ConfigMap·kustomization을 생성합니다. Persona ConfigMap은 `deploy/personas/_default/`와 `deploy/personas/{persona}/`를 병합합니다 (`persona_bundle.py`). Cursor rules·skills·`mcp.json`은 매 기동 시 시드로 덮어쓰고, `.cursor/MEMORY.md`만 **seed-once**(없으면 생성, 있으면 PVC 내용 유지)입니다. 시드를 강제로 다시 쓰려면 Pod에서 해당 파일을 지운 뒤 restart합니다.
 
+**일일 restart / 런타임 백업:** CronJob `cursorbridge-agent-restart`(KST 00:00)가 `MEMORY.md`·`mcp.json`을 PVC `agent-runtime-backup`에 dump(7일)한 뒤 `rollout restart statefulset -l app=cursor-agent`합니다. Ready-edge catch-up(출근)용이며 **persona 스킬 배포 대체가 아닙니다**(변경은 render→apply 선행). 로컬 검토:
+
+```bash
+./deploy/k8s/scripts/pull-agent-backup.sh              # 최신 일자 전 agent → *.pulled
+./deploy/k8s/scripts/pull-agent-backup.sh --agent pm
+./deploy/k8s/scripts/pull-agent-backup.sh --date 2026-08-13
+```
+
+`deploy/personas/<agent>/MEMORY.md.pulled`·`mcp.json.pulled`는 gitignore. diff 후 MEMORY는 로컬 `MEMORY.md`로 승격 → Pod 파일 삭제+restart 또는 `kubectl cp`. mcp는 persona `.cursor/mcp.json`에 합친 뒤 render→apply→restart. 자동 commit 금지. Secret·chats·skills는 백업하지 않습니다.
+
 **Candydate cron skills (`deploy/personas/candidate/.cursor/skills/candydate-cron/scripts/`):** 반드시 thin shim만 시드한다 (`exec bash|python3 …/agent/cron/…`). stale full copy(`nohup` + bare `exec "$@"`)를 넣으면 PVC 0644에서 Permission denied → monitor **exit 99**(ticket 308). 로컬 재생성: candidate.win `agent/cron/install_skill_shims.sh <skill-scripts-dir>`. 회귀 테스트: `deploy/k8s/scripts/test_candydate_cron_persona_shims.py`.
 
 ## 3. Secret

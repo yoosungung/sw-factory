@@ -48,10 +48,11 @@ license: MIT
 
 ### Failure
 
-Blocked or In Progress + developer/`@eric`; do not claim Done.
+`gh run watch`/`conclusion≠success`, job-not-started(billing/spending/runner), missing release assets → **TA owns** the Actions outcome: comment evidence + `Blocked` or `In Progress` + developer/`@eric` (human for billing/RBAC). Do not claim Done. Do not hand “watch Actions” to QA/AA.
 
 ## Non-goals
 
 - Product source into factory repo.
 - Primary driver other than `workflow_dispatch`.
 - Weekly load belongs to sibling `load-weekly` skill, not this path.
+- Fleet-wide daily GitHub Actions dashboard scan (ticket/CD-scoped watch only; QA/AA do not own Actions).
