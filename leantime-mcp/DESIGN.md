@@ -38,14 +38,19 @@ pytest
 
 ## `update_ticket` (partial)
 
-Leantime JSON-RPC `Tickets.updateTicket`은 미전달 필드를 `''`로 덮어쓴다(본문·담당자 소실). MCP `update_ticket`은 **`Tickets.patchTicket`** 으로 넘긴 필드만 갱신한다. 도구 인자 `assignedTo`는 Leantime 컬럼 `editorId`로 매핑한다. `project_id`는 도구 시그니처 호환용이며 patch에 보내지 않는다. 선택 `milestoneid` / `sprint`은 DB 컬럼명(소문자 `milestoneid`)으로 전달한다 — camelCase `milestoneId`는 무시될 수 있음(#3692).
+Leantime JSON-RPC `Tickets.updateTicket`은 미전달 필드를 `''`로 덮어쓴다(본문·담당자 소실). MCP `update_ticket`은 **`Tickets.patchTicket`** 으로 넘긴 필드만 갱신한다. 도구 인자 `assignedTo`는 Leantime 컬럼 `editorId`로 매핑한다. `project_id`는 도구 시그니처 호환용이며 patch에 보내지 않는다. 선택 `milestoneid` / `sprint`은 DB 컬럼명(소문자 `milestoneid`)으로 전달한다 — camelCase `milestoneId`는 무시될 수 있음(#3692). 선택 `dependingTicketId`는 **parent/subtask 계층만** — 티켓 간 FS 선행(blocked-by)에는 쓰지 말고 `set_blocked_by`를 쓴다.
+
+## `set_blocked_by` (FS 선행)
+
+티켓 description에 HTML 마커 `<!-- blocked-by:ID[,ID] -->`를 upsert/clear한다. 본문 HTML은 보존한다. 선택 `status`(예: Blocked id)를 같이 patch할 수 있다. `blocker_ids=[]`면 마커 제거. `dependingTicketId`는 변경하지 않는다.
 
 ## MCP tools (create / update ticket)
 
 | tool | 추가 인자 | 동작 |
 |------|-----------|------|
 | `create_ticket` | `milestoneid?`, `sprint?` | `addTicket` values에 포함 |
-| `update_ticket` | `milestoneid?`, `sprint?` | `patchTicket` values에 포함 |
+| `update_ticket` | `milestoneid?`, `sprint?`, `dependingTicketId?` | `patchTicket` values에 포함 (dependingTicketId=parent only) |
+| `set_blocked_by` | `blocker_ids`, `status?` | description 마커 upsert + optional status |
 
 ## MCP tools (milestones / sprints)
 

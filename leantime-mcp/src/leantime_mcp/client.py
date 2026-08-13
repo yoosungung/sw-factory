@@ -18,6 +18,52 @@ _MENTION_USER_RE = re.compile(
     re.IGNORECASE,
 )
 
+# Ticket-to-ticket FS predecessor SoR (not parent/subtask). See ARCHITECTURE §2.6 #13.
+BLOCKED_BY_MARKER_RE = re.compile(
+    r"<!--\s*blocked-by:([0-9,\s]+)\s*-->",
+    re.IGNORECASE,
+)
+
+
+def parse_blocked_by(description: Optional[str]) -> list[int]:
+    """Parse ``<!-- blocked-by:ID[,ID] -->`` from ticket description HTML."""
+    if not description:
+        return []
+    match = BLOCKED_BY_MARKER_RE.search(description)
+    if not match:
+        return []
+    ids: list[int] = []
+    for part in match.group(1).split(","):
+        part = part.strip()
+        if part.isdigit():
+            ids.append(int(part))
+    return ids
+
+
+def apply_blocked_by_marker(
+    description: Optional[str], blocker_ids: list[int]
+) -> str:
+    """Upsert or remove the blocked-by marker; preserve the rest of the HTML."""
+    body = description or ""
+    body = BLOCKED_BY_MARKER_RE.sub("", body).strip()
+    if not blocker_ids:
+        return body
+    # Dedupe preserving order
+    seen: set[int] = set()
+    ordered: list[int] = []
+    for tid in blocker_ids:
+        tid_int = int(tid)
+        if tid_int <= 0 or tid_int in seen:
+            continue
+        seen.add(tid_int)
+        ordered.append(tid_int)
+    if not ordered:
+        return body
+    marker = f"<!-- blocked-by:{','.join(str(i) for i in ordered)} -->"
+    if body:
+        return f"{marker}\n{body}"
+    return marker
+
 
 def _parse_datetime(value: str) -> datetime:
     """Parse ISO or Leantime ``YYYY-MM-DD[ HH:MM:SS]`` timestamps as naive UTC."""
@@ -226,6 +272,8 @@ class LeantimeClient:
         # Leantime updateTicket is a full replace (omitted description/editorId → "").
         # Use patchTicket so only provided fields change. project_id is kept for MCP
         # tool signature compatibility and is not sent on patch.
+        # dependingTicketId is parent/subtask only — never use for FS blocked-by
+        # (use set_blocked_by instead).
         _ = project_id
         values: dict[str, Any] = {}
         if "assignedTo" in kwargs:
@@ -237,6 +285,38 @@ class LeantimeClient:
             "leantime.rpc.Tickets.Tickets.patchTicket",
             {"id": ticket_id, "values": values},
         )
+
+    async def set_blocked_by(
+        self,
+        ticket_id: int,
+        project_id: int,
+        blocker_ids: list[int],
+        status: Optional[int] = None,
+    ) -> dict[str, Any]:
+        """Upsert FS predecessors via description marker; optional status patch.
+
+        ``blocker_ids`` empty clears the marker. Does not set ``dependingTicketId``
+        (parent/subtask). ``project_id`` is signature-compat only.
+        """
+        _ = project_id
+        ticket = await self.get_ticket(ticket_id)
+        description = ticket.get("description") if isinstance(ticket, dict) else None
+        new_description = apply_blocked_by_marker(description, list(blocker_ids))
+        values: dict[str, Any] = {"description": new_description}
+        if status is not None:
+            values["status"] = status
+        await self.call(
+            "leantime.rpc.Tickets.Tickets.patchTicket",
+            {"id": ticket_id, "values": values},
+        )
+        blocked = parse_blocked_by(new_description)
+        snippet = new_description[:240] if new_description else ""
+        return {
+            "ticket_id": ticket_id,
+            "blocked_by": blocked,
+            "status": status,
+            "description_snippet": snippet,
+        }
 
     async def list_milestones(self, project_id: Optional[int] = None) -> list:
         search: dict[str, Any] = {}

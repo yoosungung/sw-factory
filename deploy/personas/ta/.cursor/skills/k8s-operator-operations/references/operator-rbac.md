@@ -12,7 +12,7 @@ Built-in `view` ClusterRole alone is not enough for PV/PVC operations.
 - **GPU**: capacity/allocatable and pod requests from core API. Utilization needs DCGM/exporter/`nvidia-smi` — do not claim utilization from core API alone. If install authority is unclear, prepare manifests under `manifests/ta/` and ask cluster-admin to apply; do not claim they are on main until `git status`/`git log`/`git ls-remote` confirm.
 - **Storage remediation**: `create/patch/update/delete` on PV/PVC (and often VolumeAttachment/Snapshot).
 - **Workload remediation**: `patch/update/delete` on pods/controllers; `patch/update` on scale.
-- **Test-NS write** (`sw-factory` factory NS; extra tenant NS via local overlay): Role `cursor-agent-test-ns-write` bound to **`cursor-agent-ta`** — ConfigMap/Secret/Service/PVC/Ingress create/update/patch/delete + Deploy/STS/Pod mutate for Deploying Test full stack. Cluster-wide Secret list and RBAC object write remain denied.
+- **Test-NS write** (`sw-factory` factory NS; extra tenant NS via local overlay): Role `cursor-agent-test-ns-write` bound to **`cursor-agent-ta`** — ConfigMap/Secret/Service/PVC/Ingress create/update/patch/delete + Deploy/STS/Pod mutate + `batch/jobs` create/get/list/watch/delete (Kaniko 등) for Deploying Test full stack. Cluster-wide Secret list and RBAC object write remain denied.
 - **Namespace create**: ClusterRole `cursor-agent-ta-operator` — `namespaces` `create` only (provision test NS; no delete).
 - **Debug**: `pods/log` read; `pods/exec` / `pods/portforward` create only when allowed.
 - **Nodes**: `patch/update` for cordon/uncordon, labels, taints.

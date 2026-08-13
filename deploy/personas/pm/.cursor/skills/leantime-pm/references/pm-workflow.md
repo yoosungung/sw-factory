@@ -42,7 +42,7 @@ Create subtasks with:
 - Concrete deliverable
 - Acceptance criteria
 - Test expectations
-- Dependencies/order
+- Dependencies/order — **FS predecessors** via MCP `set_blocked_by` (`<!-- blocked-by:ID[,ID] -->` + `Blocked` while open). Do not encode FS deps as `dependingTicketId` (parent only). Soft prose is not registration.
 
 Typical order:
 
@@ -52,6 +52,8 @@ Typical order:
 4. Tests
 5. Deployment/smoke verification
 6. PM review/merge
+
+When splitting work across tickets that must not race, register blocked-by on successors **before** assigning In Progress/Review.
 
 ### 4. Developer Communication
 

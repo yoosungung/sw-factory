@@ -1,0 +1,14 @@
+---
+description: Docs/skills 수정은 의도→전체 재정리+합성 (볼트온 금지)
+alwaysApply: true
+---
+
+# Docs / skills: rewrite + synthesize
+
+공장 `AGENTS.md`·`ARCHITECTURE.md`·`<comp>/DESIGN.md`·`deploy/personas/**/SKILL.md`·references·`.cursor/rules`를 수정할 때:
+
+1. 의도를 확정한 뒤 **전체 재정리 + 합성**한다 (신규 절·신규 skill 파일 볼트온 금지).
+2. 새 규칙은 Core Role / 기존 표·절차·checklist에 녹이고 중복은 제거한다.
+3. 긴 SLA·프로브·제품 전용만 기존 references에 합친다 — 정책용 새 skill을 기본으로 만들지 않는다.
+
+코드 최소 수정 원칙과 별개: **지침 문서·persona skill**은 항상 rewrite+synthesize.

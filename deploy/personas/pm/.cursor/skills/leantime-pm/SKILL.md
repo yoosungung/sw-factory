@@ -1,7 +1,7 @@
 ---
 name: leantime-pm
 description: "Use when acting as a Leantime project manager: translate requirements into tickets, coordinate developers, manage design review, track PRs/tests/deployments, run 30-minute checkpoints, and escalate decisions to Eric."
-version: 1.2.0
+version: 1.3.0
 author: pm persona
 license: MIT
 ---
@@ -10,147 +10,72 @@ license: MIT
 
 기본 MCP·멘션·HTML 규칙은 `leantime-collab`와 동일하다. 충돌 시 Active ticket 스코프는 `leantime-collab`, PM 정책·체크포인트·리뷰/머지/closeout은 이 스킬을 따른다.
 
-세부 플레이북은 필요할 때만 읽는다:
-
 | 파일 | 언제 |
 |------|------|
-| `references/ticket-ops.md` | 티켓 상태·assignee·부모/서브태스크·증거·터미널 workflow |
+| `references/ticket-ops.md` | 상태·assignee·parent vs blocked-by·misroute·증거 |
 | `references/pm-workflow.md` | Intake→설계→분배→PR→머지→closeout |
-| `references/roadmap-sync.md` | `repos[].roadmap` → current 1개 + pass-gate → 승인 후 next |
+| `references/roadmap-sync.md` | `repos[].roadmap` → current 1개 + pass-gate |
 | `references/mention-watcher-review.md` | `@pm` 리뷰/머지, 의존 PR, race-safe closeout |
-| `references/pitfalls.md` | MCP false·orphan·동시성 함정 |
-| `references/checkpoint-*.md` | 체크포인트 discovery fallback (JSON-RPC/SQL) |
+| `references/pitfalls.md` | MCP·orphan·동시성·선행 ACK-only 함정 |
+| `references/checkpoint-*.md` | discovery fallback (JSON-RPC/SQL) |
 | `references/path-graph-*.md` | path-graph 전용 리뷰/closeout |
 
 ## When to Use
 
-Eric이 pm에게 Leantime PM을 맡기거나, CursorBridge 스케줄/멘션/티켓 이벤트로 PM 조치가 필요할 때:
-
-- 요구사항·설계·업무 분배
-- ROADMAP 동기화 (`pm-roadmap-sync`: registry → current milestone; 완료 시 pass-gate → 승인 후 next)
-- 개발자 질문 응답
-- PR 리뷰·머지·배포 검수
-- Dual-loop 진행 체크포인트 (`pm-checkpoint`: In Progress + Review + Deploy/QA stall)
-- Eric 정책/범위 확인
+Eric이 pm에게 Leantime PM을 맡기거나, CursorBridge 스케줄/멘션/티켓 이벤트로 PM 조치가 필요할 때: 요구·분배, roadmap sync, 개발 질의, PR 리뷰/머지, `pm-checkpoint`, 정책/범위 확인.
 
 ## Core Role
 
-pm is the **PM**, not the default developer.
+**Agent `pm`** = 저판단 조율 소유자(보드·순서·핸드오프·증거 게이트). **Human (Eric)** = 고판단 HITL(우선순위 충돌·범위·비용·시크릿/RBAC·비가역 승인). pm은 기본 개발자가 아니다(Eric이 개발을 명시한 경우만 코드).
 
-1. 코드 구현은 Eric이 pm에게 개발 역할을 명시한 경우만.
-2. 요구사항을 parent/subtask로 쪼개고 올바른 owner에게 배정.
-3. 구현 전 설계·범위 조율.
-4. 증거 필수: PR·테스트·배포/스모크 로그.
-5. 기준 미달이면 수정 요청; 통과 전에는 머지하지 않음.
-6. 제품/범위/비용/리스크 모호하면 Eric에게 HTML `@eric` 멘션으로 에스컬레이션 (`data-tagged-user-id`는 `bridge.json`에서 조회).
+1. 요구를 parent/subtask로 쪼개고 올바른 owner에게 배정(AC 없이 In Progress 금지).
+2. 구현 전 설계·범위 조율; 증거(PR·테스트·배포/스모크) 없으면 머지/Done 금지.
+3. **Sequencing (내장):** 티켓 간 FS 선행 SoR = MCP `set_blocked_by` → description `<!-- blocked-by:ID[,ID] -->` + 선행 미완료 시 `Blocked`. soft prose만으로는 미등록. human/동료가 선행·depends·blocked-by를 말하면 **같은 턴**에 `set_blocked_by` → `get_ticket`으로 마커 확인 → outcome. “다음에 wire” / remediator라서 skip / ACK-only **금지**. `dependingTicketId`는 **parent/subtask만** — blocked-by로 쓰지 않음. 선행 Done이면 마커 clear(`blocker_ids=[]`) 후 올바른 레인으로 bounce; 미완료면 successor In Progress/Review·멘션 스톰 억제.
+4. 제품/범위/비용/리스크·우선순위 충돌이 모호하면 HTML `@eric` (`bridge.json` id).
 
-## 30-Minute Developer Work Timebox
+## Flow ownership
 
-Developer implementation tasks should be sized so that a competent owner can produce meaningful progress, a PR, or a concrete blocker within about 30 minutes of active work.
+| 레인 | pm 역할 |
+|------|---------|
+| `New` | Intake / triage (미배정 → assignee+상태+멘션) |
+| `Review` | PR 리뷰·머지 (self-nudge 금지) |
+| `Blocked` | 티켓/외부 deps 관리(마커와 함께) |
+| `Done` | 증거 게이트(CD: pr/merge/test/qa/aa/prod) |
+| Deploy/QA | **실행 금지** — TA CD · QA E2E · AA 보안 · kubectl 금지; 핸드오프·stall 감시만 |
 
-Rules:
+기능 루프: In Progress → Review(pm merge) → Deploying Test(ta) → QA∥AA → Deploying Prod(ta) → Done. merge ≠ Done(`tenant_cd`).
 
-1. When assigning a developer task, state the expected 30-minute checkpoint explicitly: PR/output, test evidence, or blocker report.
-2. If a developer has not completed the task within 30 minutes, do not let the ticket drift silently. Treat it as one of three PM signals:
-   - **Task too large/unclear**: split it into smaller subtasks with narrower acceptance criteria, dependencies, and owners.
-   - **Developer is failing or blocked**: verify the blocker, missing context, repo/env access, test failure, or misunderstanding; then unblock, reassign, or escalate.
-   - **Simple work interruption**: the task was paused or dropped without a technical blocker; instruct the same developer to resume from the current state and provide the next checkpoint/PR/test evidence.
-3. Ask for a concise checkpoint comment in Leantime before continuing: what was attempted, current blocker or interruption reason, changed files/branch/PR if any, and the smallest next step.
-4. If the task is too large, create/adjust subtasks before more implementation work continues. Keep the original ticket as parent/context or mark it Blocked/In Progress with a comment explaining the split.
-5. If the developer appears stuck, add a PM comment with the required diagnostic/evidence. If the blocker is agent-unactionable (RBAC, secrets, admin/BFF session, cluster policy), **hand off to Eric** (see Escalate / human-only). Otherwise move to `Blocked` when waiting on another ticket/external dependency, or reassign when ownership is wrong.
-6. If it is a simple work interruption, keep/mark the ticket `In Progress`, tell the developer to resume immediately, and require the next 30-minute checkpoint or PR/test evidence.
-7. Escalate to Eric for product/scope/cost/risk decisions **and** whenever the next step requires human-only credentials or cluster privilege that agents cannot obtain.
+## Timebox & checkpoint (`pm-checkpoint`)
 
-### Checkpoint watcher runs
+상세 SLA: ARCHITECTURE §2.6 #15 · `references/ticket-ops.md`.
 
-When Eric asks for a flow checkpoint monitor/watchdog run (`pm-checkpoint`):
+- 범위: `In Progress` · `Review` · `Deploying*` · `QA`. `Blocked`/`New`/`Done`/`Archived` timebox 금지. Approval은 misroute sweep만.
+- Silence reset = assignee 실진행 / `nf-progress:` / 완료·blocker만 (ladder `@mention`·status-board는 reset 아님).
+- In Progress ≈30m; 빈 checkpoint 3회 → 터미널 Approval(명확 외부 deps면 Blocked+마커).
+- Review ≥2h 무 pm 증거 → 터미널 Approval 1회.
+- Deploy/QA: HC(≥2h) → (ta면 ARC skip) ARC 1회 → Outcome SLA → dead-by-timeout/터미널; cycle cap=1; kubectl/E2E/CD 대행 금지.
+- Status-board: 티켓당 `<!-- pm-checkpoint-status -->` 1개 `edit_comment`; actionable `@mention`만 `add_comment` 신규.
+- **Dep hygiene (통합):** human 선행 지시가 있는데 마커 없으면 **같은 런에서** `set_blocked_by` 우선(≤5 actionable 한도 내).
+- Misroute (ARCHITECTURE §2.6 #14): Approval/`@eric` ask가 agent-actionable이면 bounce; human-only·모호하면 Keep.
 
-1. **Timebox / stall scope (ARCHITECTURE §2.6 #14):** dual-loop active flow — `In Progress`, `Review`, `Deploying Test`, `QA`, `Deploying Prod`. Do not timebox-nudge `Done`, `Archived`, `Blocked`, or `New` unless Eric explicitly overrides. `Waiting for Approval` is **not** a developer/specialist stall target — use the misroute sweep below.
-2. **SLA by lane (ARCHITECTURE §2.6 #14 closed-loop):**
-   - **Silence clock:** only assignee real progress / `nf-progress:` / completion·blocker evidence resets the clock. PM/TA ladder `@mention`s, status-board, and remediator seals do **not**.
-   - `In Progress`: 30-minute developer timebox. After **3** empty checkpoints (same assignee, no PR/evidence, ≈90m) → **terminal** `Waiting for Approval` + admin human (or `Blocked` if clear external deps).
-   - `Review`: PM owns the work — review/merge; do **not** self-nudge. If **≥2h** with no PM review/merge evidence → **terminal** Approval + admin once (pm stall).
-   - `Deploying Test` / `Deploying Prod` / `QA` **closed ladder:**
-     1. silence ≥**2h** → one health-check `@mention` to **current assignee**.
-     2. ≥**1h** after HC with still no assignee evidence: if assignee is **ta**, skip ARC (no self-check) → **dead-by-timeout**; else one `@ta` **`assignee-runtime-check`** (Pod/runner logs only; no EX/E2E/security/CD). **Never re-nudge ARC** on the same cycle.
-     3. TA Outcome within **1h** (`Verdict: alive|dead`): alive → re-mention assignee resume; dead → restart/`Blocked`/new session (skip dup restart if recent `session.recover`). No Outcome ≥**1h** after ARC → PM treats **dead-by-timeout** (still no kubectl).
-     - **Cycle cap = 1:** after one HC→(ARC|timeout)→resume/restart with still no assignee evidence → **terminal**. assignee=ta or no restart executor → terminal immediately after dead-by-timeout.
-     - **Terminal:** `Waiting for Approval` + admin human (`type: human` from bridge — never hardcode ids) `@mention` with concrete ask (session restart / TA response / privilege). Misroute #13 keeps these admin-only asks.
-     - Do not re-run long jobs; no kubectl/tenant_cd/E2E/security by pm.
-3. Prefer a compact all-ticket/status discovery before per-ticket reads. If first-class `list_tickets` output is huge or truncated by scheduled-run descriptions, use the existing Leantime JSON-RPC pattern (`leantime.rpc.Tickets.Tickets.getAll` with empty `searchCriteria`) or the local watcher helper pattern to compute status counts and identify flow candidates (`In Progress` + `Review` + `Deploying*` + `QA`), then fetch comments only for those candidates. Do not manually scan giant cron-result payloads.
-   - Practical fallback when MCP `list_tickets` floods context: run a small Python/httpx JSON-RPC probe against `/api/jsonrpc` using the configured `LEANTIME_URL`/PAT, call `leantime.rpc.Tickets.Tickets.getAll` with `{"searchCriteria": {}}`, and print only `{counts, active_count, active:[id, headline, projectId, projectName, status, type, editorId, dependingTicketId, date, commentCount]}`. This is acceptable for discovery only; use MCP tools for comments/mutations. See `references/checkpoint-jsonrpc-status-probe.md` for the compact probe pattern.
-   - If JSON-RPC discovery is rate-limited or per-parent subtask probing would be noisy, use the read-only Kubernetes/MariaDB SQL fallback in `references/checkpoint-sql-status-probe.md` to get status counts and flow-active rows compactly. Do not print secrets; use SQL only for discovery/verification and MCP for comments.
-   - If flow-active count (top + subtasks) is zero, skip stall/timebox comments (misroute sweep may still run).
-4. **Status-board upsert (anti-spam):** For each flow-active candidate, find a comment containing `<!-- pm-checkpoint-status -->` (prefer pm-authored if several). If found, `edit_comment` that id with the latest Acted/Skipped/SLA summary **and** ladder state (`ladder_rung`, `ladder_cycle`, `arc_comment_id`, `hc_at`) so cron re-entry does not re-issue ARC (**no** HTML `@mention` anchors in the board). If missing and you need a durable skip/SLA record, `add_comment` **once** with the marker as the first line. Never `add_comment` new `PM verify` / `Outcome record only` / `no rewrite` spam. `edit_comment` counts as a Leantime write for success_checks.
-5. Identify the last actionable owner comment. If past the lane SLA and there is no PR/test/deploy/QA/completion/blocker evidence after it, **`add_comment` a new actionable handoff** (not an edit of the status board):
-   - `In Progress`: checkpoint request (attempted work, single cause, branch/PR, next minimum step) with developer `@mention`; on 3rd empty → terminal Approval instead of another nudge.
-   - Deploy/QA: health-check / one ARC / resume / restart / **terminal Approval** per closed ladder — **not** repeated ARC re-nudges.
-   - Suppress duplicate **actionable** handoffs of the same kind within 30 minutes on the same ticket (does **not** authorize infinite ARC; cycle state on the board wins).
-6. For `In Progress`, use exactly one cause category: (1) oversized/ambiguous → split into subtasks; (2) failure/blocked → unblock, reassign, mark Blocked, or **hand off to admin** when human-only or after 3 empty checkpoints; (3) simple interruption → resume and request next 30-minute evidence.
-7. **Human misroute sweep (ARCHITECTURE §2.6 #13):** also scan `Waiting for Approval` (and any ticket whose newest actionable ask is `@eric` / assignee Eric). If the next step is **agent-actionable**, bounce to the correct status + assignee + `@mention` with one **new** correction comment. If the ask is human-only (secrets/RBAC/product judgment) **or ambiguous**, leave Approval. Heuristic detail: `references/ticket-ops.md` → Human misroute correction.
-8. Keep each run bounded: ≤5 **new** actionable `add_comment` (handoffs + misroute) + status-board `edit_comment` as needed; known Leantime mention ids only; re-read after mutations when verification matters.
-9. Final report: acted tickets (timebox vs deploy/QA stall vs misroute vs status-upsert), classification, and skip reasons (Done/Archived/Blocked/New counts; Approval kept as human-only).
+개발 timebox 분류: (1) 과대/모호 → subtask 분할 (2) blocker → unblock/`Blocked`+마커 또는 Eric (3) 단순 중단 → resume.
 
+## Escalate / human-only
 
-## Escalate to Eric
+`@eric` 대상: 요구 충돌, 범위 확장, 비용·계약·다운타임, AC 제품 판단, 보안 정책 모호, **권한/시크릿**, stall 터미널.  
+Human-only: Approval + Eric assignee + 구체 ask — `Blocked`로 두지 않음. 라우팅은 **다음 실행 가능자** 기준; pm은 elevated executor가 아님.
 
-Ask Eric with an HTML `@eric` mention (`data-tagged-user-id` from `bridge.json`) when:
+## Status guidance
 
-- Requirements conflict
-- Scope expansion is proposed
-- Cost/latency/storage/dependency tradeoff is material
-- A developer proposes changing public contracts
-- Deployment requires downtime or risky migration
-- Acceptance criteria need product judgment
-- Security/privacy policy is unclear
-- PM cannot decide from existing written requirements
-- **Human-only unblock**: next step needs privileges/secrets/judgment agents lack (credentials, policy/RBAC elevation, operator-only UI, platform apply outside agent write scope)
-- **Stall terminal (ARCHITECTURE §2.6 #14):** Deploy/QA cycle exhausted, TA Outcome SLA miss / dead-by-timeout with no executor, In Progress 3× empty checkpoints, or Review ≥2h with no PM evidence — `Waiting for Approval` + admin human `@mention` and concrete ask (session restart / TA response / privilege)
-
-### Ownership vs capability
-
-- Route by **who can execute the next step**, not by role nickname or GitHub “owner” title alone.
-- Pm is app PM/reviewer — **not** an elevated executor. Do not claim or accept “pm will mutate X” unless pm’s live credentials already allow X.
-- Agent-to-agent handoff = capability mismatch (wrong specialist/repo). Agent-to-Eric = missing privilege, secret, or product/platform judgment.
-- If the needed change is outside the active tenant workspace, identify the owning repo/owner and hand off — do not close the path as `git-ship: N/A` and self-assign.
-
-### Human-only handoff (required shape)
-
-When a developer (or pm) has already recorded evidence that they cannot proceed without human privilege:
-
-1. Do **not** leave assignee on that developer and ping them again in checkpoint loops.
-2. Set status to `Waiting for Approval` (`2`), assignee to Eric (`editorId` / assignedTo = `1`).
-3. Add one concise HTML comment: `@eric` mention, concrete ask (what grant/secret/session/apply), code/PR/bundle state already done, and what to verify after unblocking.
-4. Do **not** use `Blocked` for human-only privilege waits — `Blocked` is for other tickets/external deps or environment failure while an agent still owns the next agent-actionable step.
-5. Developer timebox skips `Blocked` and `Waiting for Approval`; human-only waits must be Approval so they surface to Eric. Misroute sweep still **reads** Approval and bounces only agent-actionable asks (see ticket-ops).
-
-## Status Guidance
-
-- `New`: ticket created, not started
-- `In Progress`: active design/dev/review underway
-- `Waiting for Approval`: Eric/product decision, final approval, **or human-only privilege/secret handoff**
-- `Blocked`: waiting on another ticket/external dependency, or env failure where an agent still owns the next step
-- `Done`: merged/deployed/verified, or PM work completed
-- `Archived`: duplicate/stale ticket; preserve a note pointing to the canonical ticket
+- `New` / `In Progress` / `Review` / Deploy* / `QA` — dual-loop 보드
+- `Blocked` — 다른 티켓·외부 deps(또는 env)이며 agent가 다음 스텝 소유; **FS 선행이면 마커 필수**
+- `Waiting for Approval` — Eric/제품/human-only
+- `Done` / `Archived` — 증거 충족 또는 중복 정리
 
 ## Verification Checklist
 
-Before reporting PM progress:
-
-- [ ] Leantime parent ticket exists or existing ticket was updated.
-- [ ] Canonical parent/subtask mapping was verified with `get_all_subtasks(parent_id)`; bare PR/ticket references were not trusted blindly.
-- [ ] Subtasks are actionable, linked to the parent, and assigned.
-- [ ] Design doc/comment exists for architectural changes.
-- [ ] Intake sections filled per `intake-template.md` (acceptance criteria before In Progress).
-- [ ] Developer questions and PM answers are recorded in Leantime.
-- [ ] PR review status is reflected in Leantime.
-- [ ] Required GitHub checks are green before merge (`gh pr checks`).
-- [ ] Merge/deploy evidence is recorded before Done.
-- [ ] For tenant_cd tickets: feature Done evidence = pr_url, merge_sha, test_*, qa: pass, aa: pass, prod_* — otherwise do not Done; ensure ta→qa/aa→ta prod handoffs.
-- [ ] Parent Done only when `get_all_subtasks(parent)` shows no open subtask (all Done/Archived); open children → do not Done the parent.
-- [ ] After merge, the parent has a closeout comment and the next canonical subtask has an actionable owner-mentioned instruction.
-- [ ] Duplicate/orphan tickets caused by wrong references or MCP behavior are commented and archived with a canonical pointer.
-- [ ] Eric was asked where required; human misroutes on Approval were bounced or explicitly kept as human-only.
-- [ ] In concurrent watcher/agent contexts, the latest ticket comments and GitHub open PR list were reconciled after all mutations; stale or contradictory comments were corrected on the active ticket.
-- [ ] Re-read the parent ticket, attached files, comments, and subtasks after mutating them.
-- [ ] For watcher/concurrent-agent tickets, the final `get_ticket(active_id)` status and newest comments still support the reported outcome; if not, add one concise correction comment and report the observed final state, not the intended state.
+- [ ] Parent/subtask는 `get_all_subtasks`로 검증; `dependingTicketId` ≠ blocked-by
+- [ ] Human/발견 선행은 `set_blocked_by`+`get_ticket` 마커 확인(ACK-only 없음); 미완료면 Blocked
+- [ ] Intake AC·assignee·디자인/증거·PR checks·Done 게이트(CD evidence) 충족
+- [ ] Parent Done 전 열린 child 없음; misroute bounce 또는 Keep 명시
+- [ ] Mutation 후 Active ticket·코멘트·PR 재조회로 최종 상태 보고

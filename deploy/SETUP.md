@@ -274,7 +274,7 @@ kubectl -n sw-factory exec cursor-agent-pm-0 -c agent-runner -- gh auth status
 | SA | 누가 | 권한 |
 |----|------|------|
 | `cursor-agent` | pm, km, qa, aa, dev | ClusterRole `cursor-agent-observer` — **read-only** (`get/list/watch`) |
-| `cursor-agent-ta` | ta만 | ClusterRole `cursor-agent-ta-operator` — mutate·`namespaces` create·`pods/exec`; factory test NS(`sw-factory`) Role `cursor-agent-test-ns-write` (CM/Secret/Svc/PVC/Ingress/Deploy/STS/Pod write); 추가 테넌트 NS Role은 로컬 overlay; path-graph Argo workflows (path bot 재도입 시 전용 SA로 이전 권장) |
+| `cursor-agent-ta` | ta만 | ClusterRole `cursor-agent-ta-operator` — mutate·`namespaces` create·`pods/exec`; factory test NS(`sw-factory`) Role `cursor-agent-test-ns-write` (CM/Secret/Svc/PVC/Ingress/Deploy/STS/Pod write + `batch/jobs` create/get/list/watch/delete); 추가 테넌트 NS Role은 로컬 overlay; path-graph Argo workflows (path bot 재도입 시 전용 SA로 이전 권장) |
 
 RBAC 객체(write)·Secret 클러스터 전역 list는 미부여. `render-agents.sh`가 ta STS에만 `serviceAccountName: cursor-agent-ta`를 넣는다.
 

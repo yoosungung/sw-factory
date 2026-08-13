@@ -157,8 +157,9 @@ async def create_ticket(headline: str, project_id: int, user_id: int, date: str 
 @app.tool()
 async def update_ticket(ticket_id: int, project_id: int, headline: str = None, description: str = None, 
                        status: int = None, priority: str = None, assignedTo: int = None,
-                       milestoneid: int = None, sprint: int = None) -> str:
-    """Update an existing ticket. Optional milestoneid/sprint (lowercase column names)."""
+                       milestoneid: int = None, sprint: int = None,
+                       dependingTicketId: int = None) -> str:
+    """Partial update. dependingTicketId = parent/subtask only (not FS blocked-by)."""
     client = get_client()
     # Build kwargs from non-None parameters
     kwargs = {}
@@ -176,8 +177,29 @@ async def update_ticket(ticket_id: int, project_id: int, headline: str = None, d
         kwargs['milestoneid'] = milestoneid
     if sprint is not None:
         kwargs['sprint'] = sprint
+    if dependingTicketId is not None:
+        kwargs['dependingTicketId'] = dependingTicketId
     
     result = await client.update_ticket(ticket_id, project_id, **kwargs)
+    return json.dumps(result, indent=2)
+
+
+@app.tool()
+async def set_blocked_by(
+    ticket_id: int,
+    project_id: int,
+    blocker_ids: list[int],
+    status: int = None,
+) -> str:
+    """Upsert FS predecessors: description ``<!-- blocked-by:ID[,ID] -->``.
+
+    Empty ``blocker_ids`` clears the marker. Optional ``status`` (e.g. Blocked id)
+    is patched with the description. Do not use ``dependingTicketId`` for this.
+    """
+    client = get_client()
+    result = await client.set_blocked_by(
+        ticket_id, project_id, blocker_ids=blocker_ids, status=status
+    )
     return json.dumps(result, indent=2)
 
 

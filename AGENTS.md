@@ -63,6 +63,7 @@ This file provides guidance to AI coding assistants (Claude Code, Codex, Gemini,
  
 
 - 계획·설계·구현 변경은 해당 문서를 먼저(또는 함께) 고친다: 계획 변경 → `ROADMAP.md`, 설계·규칙 변경 → `ARCHITECTURE.md`(또는 해당 컴포넌트의 `DESIGN.md`), 워크플로 변경 → 이 파일.
+- **문서·persona skill 수정**은 절/파일 볼트온 금지: 의도 확정 → **전체 재정리+합성**(Core/기존 절에 녹이고 중복 제거). 규칙 정본: `.cursor/rules/docs-skills-rewrite-synthesize.mdc`.
 
 - 코드가 처음 들어오는 컴포넌트는 그 폴더의 `DESIGN.md`를 함께 만들고, 이 파일의 §1 표 또는 `ARCHITECTURE.md` §1 계약사항을 필요 시 갱신한다.
 

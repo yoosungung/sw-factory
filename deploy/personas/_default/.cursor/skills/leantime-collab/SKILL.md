@@ -2,8 +2,9 @@
 name: leantime-collab
 description: >-
   Leantime MCP로 티켓·코멘트·첨부파일을 읽고 업데이트한다. 티켓 작업, Leantime 협업,
-  get_ticket, get_comments, add_comment, update_ticket, list_ticket_files,
-  upload_ticket_file, download_ticket_file, delete_ticket_file 사용 시 적용한다.
+  get_ticket, get_comments, add_comment, update_ticket, set_blocked_by,
+  list_ticket_files, upload_ticket_file, download_ticket_file, delete_ticket_file
+  사용 시 적용한다.
 ---
 
 # Leantime MCP 협업
@@ -31,6 +32,7 @@ Leantime MCP 서버(`leantime`) 도구를 사용한다. 작업 전 읽기, 작�
 
 - 진행 상황·결정 사항은 `add_comment`를 우선한다.
 - 티켓 본문·담당자·상태 변경은 꼭 필요할 때만 `update_ticket`을 쓴다.
+- **FS 선행(blocked-by):** `set_blocked_by`로 description 마커 upsert — `dependingTicketId`는 parent/subtask 전용(선행에 쓰지 않음). 정책은 pm `leantime-pm`.
 - 산출물·스크린샷·로그 등은 `upload_ticket_file`(`ticket_id`, `file_path`)로 첨부한다. 로컬 파일 경로를 넘긴다.
 - 잘못 올린 첨부는 `delete_ticket_file`(`file_id`)로 삭제한다. `file_id`는 `list_ticket_files`의 `id`다.
 

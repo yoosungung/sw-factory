@@ -54,7 +54,7 @@ Dual-loop board (configure on each client Leantime project; ids from `settings.s
 - `QA`: QA E2E ∥ AA security
 - `Deploying Prod`: TA production CD
 - `Done`: only when feature evidence complete — `pr_url`, `merge_sha`, `test_*`, `qa:` pass, `aa:` pass, `prod_*` (ARCHITECTURE §2.8). Merge alone is never Done for CD tickets.
-- `Blocked` / `Waiting for Approval`: same escalation rules as before
+- `Blocked` / `Waiting for Approval`: same escalation rules as before (`Blocked` for ticket/external deps with FS marker when applicable; Approval for human-only)
 
 Rules:
 
@@ -64,7 +64,7 @@ Rules:
 4. If PM requests developer action, keep/mark `In Progress`.
 5. If Eric confirmation **or human-only unblock** is required, mark `Waiting for Approval`, assignee Eric, and `@eric` with a concrete ask — do not leave assignee on a developer who already proved they lack the required privilege (RBAC, admin/BFF session, secrets, cluster policy).
 6. Never ping-pong `Blocked` + developer assignee when the developer's latest evidence is "cannot proceed without human privilege"; convert to Eric handoff immediately so developer timebox (which skips Blocked/Approval) does not create silent drift. Misroute sweep still reviews Approval for agent-actionable asks.
-7. **Flow stall (ARCHITECTURE §2.6 #14 closed-loop):** `pm-checkpoint` watches `Review` / `Deploying Test` / `QA` / `Deploying Prod`. **Silence clock reset** = assignee real progress / `nf-progress:` / completion·blocker only — **not** PM/TA ladder `@mention`s or status-board/seal. PM does not execute TA/QA/AA work and does not kubectl.
+7. **Flow stall (ARCHITECTURE §2.6 #15 closed-loop):** `pm-checkpoint` watches `Review` / `Deploying Test` / `QA` / `Deploying Prod`. **Silence clock reset** = assignee real progress / `nf-progress:` / completion·blocker only — **not** PM/TA ladder `@mention`s or status-board/seal. PM does not execute TA/QA/AA work and does not kubectl.
    - **≥2h** silence → one re-`@mention` to the **current assignee** (health-check only). Record `hc_at` / `ladder_rung=hc` on the status board.
    - **≥1h** after HC, still no assignee evidence:
      - If assignee is **ta**: **skip** ARC (no self-check) → **dead-by-timeout**.
@@ -72,9 +72,10 @@ Rules:
    - **TA Outcome SLA:** Outcome with `Verdict: alive|dead` within **1h** of ARC → (3). No Outcome ≥**1h** → PM **dead-by-timeout** (no kubectl).
    - After verdict/timeout: **alive** → re-mention original assignee resume; **dead** / dead-by-timeout → restart/`Blocked`/new session (skip dup restart if recent `session.recover` — R1–R5). If assignee=ta or no restart executor → go straight to terminal.
    - **Cycle cap = 1:** after one HC→(ARC|timeout)→resume/restart with still no assignee evidence → **terminal**.
-   - **Terminal:** `Waiting for Approval` + admin human (`type: human` from bridge.json — never hardcode ids) `@mention` + concrete ask. Keep under #13 misroute when ask is admin-only.
+   - **Terminal:** `Waiting for Approval` + admin human (`type: human` from bridge.json — never hardcode ids) `@mention` + concrete ask. Keep under #14 misroute when ask is admin-only.
    - Soft `budget.timeout_ms` expiry is not recovery. Ladder complements R1–R5; does not replace it.
 8. **Checkpoint status board (upsert):** Marker `<!-- pm-checkpoint-status -->` (first line of HTML body). Per ticket: find comment with marker (prefer pm) → `edit_comment`; else create once. Use for no-op / within-SLA / skipped summaries **and** `ladder_rung` / `ladder_cycle` / `arc_comment_id` / `hc_at`. **No** `@mention` HTML in the board. Actionable handoffs (`@qa`/`@ta`/admin, misroute, terminal) always use **new** `add_comment`. Ban new comments titled `PM verify`, `Outcome record only`, or “prior run had no Leantime write” remediation spam — use `edit_comment` on the status board instead.
+9. **Dep hygiene:** If newest human comments ask to set predecessors / blocked-by / “선행” and description lacks `<!-- blocked-by:... -->`, call `set_blocked_by` in the **same run**, re-read `get_ticket`, then outcome. Do not ACK-only.
 - After merge on tenant_cd: status `Deploying Test`, assign/mention **ta** with `merge_sha`. After test evidence: ensure `@qa` `@aa`. After qa+aa pass: ensure ta `Deploying Prod`. Do not `Done` until feature evidence is complete.
 - In active watcher/agent environments, re-read the active ticket comments immediately before git-ship or review handoff, and again after opening a PR. If another agent already opened or merged the same scope, do not keep a duplicate PR alive just to satisfy a handoff shape; close the duplicate with a GitHub comment, add a Leantime correction/outcome on the active ticket, and base status on the canonical merged/open PR.
 
@@ -86,7 +87,7 @@ Handoff comment must include: concrete grant/session/apply needed, already-compl
 
 ### Human misroute correction
 
-PM checkpoint / queue hygiene (ARCHITECTURE §2.6 #13): fix tickets wrongly parked on a human when a factory agent owns the next step.
+PM checkpoint / queue hygiene (ARCHITECTURE §2.6 #14): fix tickets wrongly parked on a human when a factory agent owns the next step.
 
 **Candidates (per run):**
 - Status `Waiting for Approval`, or
@@ -133,6 +134,17 @@ A ticket previously marked `Done` can be explicitly reactivated by a newer comme
 - Avoid unassigned tickets entirely unless the next step is explicitly triage-only; if so, document that in the ticket and assign it as soon as the owner is known.
 - When creating subtasks, include owner, scope, expected PR/output, and acceptance criteria.
 - After creating or updating tickets, re-read them and verify `assignedTo`/`userId` reflects the intended owner.
+
+### Parent / Subtask vs FS blocked-by
+
+| Relation | SoR | MCP |
+|----------|-----|-----|
+| Parent → child (hierarchy) | `dependingTicketId` / `get_all_subtasks` | `update_ticket(..., dependingTicketId=parent)` or create subtask |
+| Ticket A blocked until B Done (FS) | description `<!-- blocked-by:B[,...] -->` + usually `Blocked` | **`set_blocked_by(ticket_id, project_id, blocker_ids, status?)`** |
+
+- Never set `dependingTicketId` to mean blocked-by (pollutes parent Done gate).
+- Wire procedure: `set_blocked_by` → `get_ticket` confirms marker → outcome comment. Clear with `blocker_ids=[]` then bounce lane when predecessors are Done.
+- Soft HTML comments like `<!-- blocked-by:562,563 -->` in prose without MCP upsert are **not** registered until `set_blocked_by` runs.
 
 ### Parent / Subtask Hygiene
 

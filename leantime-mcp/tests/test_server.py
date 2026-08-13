@@ -231,6 +231,45 @@ async def test_update_ticket_tool_passes_milestoneid_and_sprint(monkeypatch):
 
 
 @pytest.mark.asyncio
+async def test_update_ticket_tool_passes_depending_ticket_id(monkeypatch):
+    monkeypatch.setenv("LEANTIME_URL", "https://leantime.example.com")
+    monkeypatch.setenv("LEANTIME_ACCESS_TOKEN", "pat")
+
+    mock_client = AsyncMock()
+    mock_client.update_ticket.return_value = True
+    monkeypatch.setattr(server, "get_client", lambda: mock_client)
+
+    result = await server.update_ticket.fn(564, 6, dependingTicketId=100)
+
+    mock_client.update_ticket.assert_awaited_once_with(
+        564, 6, dependingTicketId=100
+    )
+    assert json.loads(result) is True
+
+
+@pytest.mark.asyncio
+async def test_set_blocked_by_tool_delegates(monkeypatch):
+    monkeypatch.setenv("LEANTIME_URL", "https://leantime.example.com")
+    monkeypatch.setenv("LEANTIME_ACCESS_TOKEN", "pat")
+
+    mock_client = AsyncMock()
+    mock_client.set_blocked_by.return_value = {
+        "ticket_id": 590,
+        "blocked_by": [563],
+        "status": 1,
+        "description_snippet": "<!-- blocked-by:563 -->",
+    }
+    monkeypatch.setattr(server, "get_client", lambda: mock_client)
+
+    result = await server.set_blocked_by.fn(590, 6, [563], status=1)
+
+    mock_client.set_blocked_by.assert_awaited_once_with(
+        590, 6, blocker_ids=[563], status=1
+    )
+    assert json.loads(result)["blocked_by"] == [563]
+
+
+@pytest.mark.asyncio
 async def test_list_milestones_tool_delegates(monkeypatch):
     monkeypatch.setenv("LEANTIME_URL", "https://leantime.example.com")
     monkeypatch.setenv("LEANTIME_ACCESS_TOKEN", "pat")
