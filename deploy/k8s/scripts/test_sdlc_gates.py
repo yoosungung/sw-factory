@@ -33,6 +33,29 @@ def test_intake_template_m8():
     assert "Architecture notes" in text
 
 
+def test_pm_intent_pass_gate():
+    """Ticket intent (intake) is Review SoR; project docs derive intake, not PR claims."""
+    skill_root = ROOT / "deploy/personas/pm/.cursor/skills/leantime-pm"
+    intake = (skill_root / "references/intake-template.md").read_text()
+    workflow = (skill_root / "references/pm-workflow.md").read_text()
+    skill = (skill_root / "SKILL.md").read_text()
+    pitfalls = (skill_root / "references/pitfalls.md").read_text()
+    arch = (ROOT / "ARCHITECTURE.md").read_text()
+    quality = (ROOT / "examples/tenant-quality/quality.yaml").read_text()
+    quality_readme = (ROOT / "examples/tenant-quality/README.md").read_text()
+
+    assert "Derived from" in intake
+    assert "ROADMAP" in intake or "ARCHITECTURE" in intake
+    assert "Intent Pass" in workflow or "intent:" in workflow
+    assert "intent: pass" in workflow or "intent:pass" in workflow.replace(" ", "")
+    assert "diff-first" in workflow.lower() or "Diff-first" in workflow
+    assert "intent:" in skill.lower() or "Intent Pass" in skill
+    assert "ticket intent" in pitfalls.lower() or "티켓 intent" in pitfalls.lower()
+    assert "Intent SoR" in arch or "티켓 intent" in arch
+    assert "review:" in quality or "intent:" in quality
+    assert "review.intent" in quality_readme or "`review`" in quality_readme
+
+
 def test_pm_parent_done_requires_closed_subtasks():
     """Parent Done is forbidden while any canonical subtask is still open (#50)."""
     skill_root = ROOT / "deploy/personas/pm/.cursor/skills/leantime-pm"

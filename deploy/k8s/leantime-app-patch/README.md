@@ -54,7 +54,7 @@ CURSORBRIDGE_NS=sw-factory ./deploy/k8s/scripts/apply-discussion-pagination.sh
 
 ### Apply (needs ConfigMap write)
 
-Prefer the apply scripts above (merge keys + mount + rollout). Manual merge must not wipe unrelated CM keys; drop `kubectl.kubernetes.io/last-applied-configuration` when replacing large PHP overlays (256KiB annotation limit).
+Prefer the apply scripts above (merge keys + mount + rollout). Each overlay key is mounted into the Leantime container via a Deployment `volumeMount` with `subPath` (see `apply-*.sh`). Manual merge must not wipe unrelated CM keys; drop `kubectl.kubernetes.io/last-applied-configuration` when replacing large PHP overlays (256KiB annotation limit).
 
 ```bash
 NS=sw-factory

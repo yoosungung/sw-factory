@@ -25,7 +25,8 @@ Leantime × Cursor Agent 협업 시스템 계약 및 인터페이스.
 9. **모델** — `deploy/k8s/agents.yaml` 정본: `settings.model` 기본값, bot마다 `agents[].model`로 override. Pod `AGENT_RUNNER_MODEL`에 주입; 기본 `composer-2.5` (비용 예측 가능); `auto`는 선택 사항.
 10. **Tenant CD ≡ Client** — 테넌트 신원은 Leantime **`client_id`(1:1)**. `repos[].tenant_cd`는 그 client 소속 repo의 CD 블록이다. 배포는 공장(TA/ta `tenant-cd`)이 수행한다. v1 드라이버는 `workflow_dispatch`만. **GitHub Actions 배송 시스템**(CD/publish dispatch·run watch·runner/billing/platform으로 job이 안 뜨는 경우·release asset 누락으로 롤아웃이 깨지는 경우)의 **Accountable은 TA**. QA/AA는 Actions 상시 감시 역할이 아니다. 상세는 §2.6·§2.8.
 11. **Dual-loop factory** — 공장 직원 5인(PM=`pm`, KM=`km`, TA=`ta`, QA, AA)은 **client에 묶이지 않고** 전 고객사에 접근한다. 개발자는 `human` 또는 `sessions`로 client/repo에 귀속 가능. **기능 루프**(티켓): 구현→test 배포→QA(E2E)∥AA(보안)→prod 배포→Done. **비기능 루프**(주간): TA 부하·AA 클린코드·QA 대량품질 → 해당 client 프로젝트에 티켓. 상세는 §2.6.
-12. **품질 기준은 고객사 repo** — E2E·보안·클린코드·부하·bulk/Opik 본문은 테넌트 `.factory/quality.yaml`(또는 동등)과 repo 산출물. 공장은 스킬·증거 스키마·스케줄·`tenant-repo-sync`(최신 checkout)만.
+12. **품질 기준은 고객사 repo** — E2E·보안·클린코드·부하·bulk/Opik 본문은 테넌트 `.factory/quality.yaml`(또는 동등)과 repo 산출물. 공장은 스킬·증거 스키마·스케줄·`tenant-repo-sync`(최신 checkout)만. 선택 `review.intent`(focus/high_risk globs)는 PM Intent Pass 힌트이며 머지 자동화 점수가 아니다.
+13. **Intent SoR (기능 루프)** — Project = 테넌트 L0(`ARCHITECTURE`/`DESIGN`) + 선택 `ROADMAP` current. Ticket = intake Goal/Non-goals/AC(`Derived from`으로 project에서 유도; 별도 project-goals 파일 금지). **PM `Review` Intent Pass의 정본은 티켓** — Diff-first 후 `intent: pass|drift|escalate`; CI green ≠ merge. Correctness(린트/SAST/시크릿/E2E)는 CI·AA·QA.
 
 ## 2. 컴포넌트 간 인터페이스
 
@@ -159,7 +160,7 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
 |------|------|------|
 | `New` | Intake | PM |
 | `In Progress` | 로컬 구현 | 개발자 |
-| `Review` | PR 리뷰·머지 | PM |
+| `Review` | PR Intent Pass·머지 (`intent:`; 티켓 intake SoR) | PM |
 | `Deploying Test` | test env CD | TA |
 | `QA` | E2E ∥ AA 보안 | QA / AA |
 | `Deploying Prod` | 운영 CD | TA |
@@ -169,7 +170,7 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
 
 1. MCP 읽기 우선 — **이벤트** 프롬프트의 `Active ticket_id`만 범위. **예외:** Ready catch-up·`schedules[]` 티켓리스 세션에는 Active-ticket 스코프가 없다. catch-up은 배정/멘션 triage 후 **한 건**을 골라 그 세션에서 MCP로 읽고 쓰며, 이후 해당 티켓 이벤트는 기존 티켓 바인딩 세션으로 라우팅한다.
 2. 쓰기는 `add_comment` 우선 — 이벤트 세션의 `module_id`는 Active ticket_id. catch-up·스케줄 세션은 선정한 티켓 id.
-3. **기능 루프 (CD 대상):** `In Progress` → `Review`(PM merge) → `Deploying Test`(TA) → `QA`(QA E2E ∥ AA 보안) → 둘 다 통과 후 `Deploying Prod`(TA) → 증거 충족 시 `Done`. 실패 시 개발자·`In Progress`/`Blocked`. `tenant_cd` 없으면 Review → Done(기존).
+3. **기능 루프 (CD 대상):** `In Progress` → `Review`(PM Intent Pass + merge) → `Deploying Test`(TA) → `QA`(QA E2E ∥ AA 보안) → 둘 다 통과 후 `Deploying Prod`(TA) → 증거 충족 시 `Done`. 실패 시 개발자·`In Progress`/`Blocked`. `tenant_cd` 없으면 Review → Done(기존). Intent·Correctness 분리: §1.13.
 4. **리뷰 핸드오프 전 배송(ship) 필수** — 봇 runner는 `git-ship`으로 push·PR 후 Review·`@pm`. 사람에게 로컬 push를 요청하지 않는다.
 5. 핸드오프: assignee + 같은 티켓 코멘트. merge 후 CD면 TA에 `merge_sha`; test 성공 후 `@qa` `@aa`; 게이트 통과 후 TA에 prod.
 6. `@mention` 시 해당 runner 알림 (M3). **티켓 생성 시 담당자(editor)가 비어 있으면** CursorBridge가 `@pm` triage 멘션 코멘트를 1회 남기고 기존 mention 라우팅으로 pm 세션을 연다(pm에 직접 createSession하지 않음; `ticket_updated`는 대상 아님).
@@ -188,7 +189,7 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
     - **터미널:** `Waiting for Approval` + admin human(`agents[]` `type: human`, bridge `leantime_user_id` — 이름 하드코딩 금지) `@mention`과 구체 ask(세션 재기동·TA 응답·권한·**멘션 스톰 차단**). #14: 이 ask가 admin 전용이면 Approval Keep.
     - **Mention/comment storm (#564 class):** lookback = 최근 **2h** 또는 최신 **30**댓글(둘 중 먼저 충족). silence-reset 증거 없이 (a) 공장 에이전트(pm/km/ta/qa/aa) 상호 `@mention`·핸드오프 ≥**8**, 또는 (b) `mention outcome`/`delegated_from`/remediator seal 패턴 ≥**12** → **즉시 터미널** Approval+admin(루프·결측 증거·중단할 agent re-mention을 ask에 명시). 추가 에이전트 `@mention` 금지(터미널/`Blocked`+FS 마커만). 이벤트·mention 세션에서도 동일 — checkpoint 전용 아님.
     - **In Progress:** 동일 assignee·무 PR/증거로 빈 30m checkpoint **3회** ≈90m → 터미널 Approval(명확한 외부 deps면 `Blocked`).
-    - **Review:** PM 소유(self-nudge 금지). Review에서 **≥2h** PM 실작업/머지 증거 없으면 터미널 Approval 1회(pm 자체 stall).
+    - **Review:** PM 소유(self-nudge 금지). 머지 전 티켓 intake 대비 Intent Pass(`intent: pass|drift|escalate`) 필수. Review에서 **≥2h** PM 실작업/머지 증거 없으면 터미널 Approval 1회(pm 자체 stall).
     - **체크포인트 코멘트:** 티켓당 `<!-- pm-checkpoint-status -->` 상태판 1개; no-op/SLA/skip와 `ladder_rung`/`ladder_cycle`/`arc_comment_id`/`hc_at`는 `edit_comment`로 갱신. `@mention` 핸드오프·misroute·터미널만 `add_comment` 신규. `PM verify`/`Outcome record only` 신규 금지. KM 주간/스케줄은 별도 `schedules[]`; KM이 맡은 flow 티켓은 동일 stall 규칙.
 
 ### 2.7 Goose A안 실행 정책 (부가)

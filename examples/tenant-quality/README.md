@@ -2,7 +2,7 @@
 
 Not product business code. Place at repo root as `.factory/quality.yaml` (and linked scenario/scripts).
 
-See [ARCHITECTURE.md](../../ARCHITECTURE.md) §1.12 · §2.8.
+See [ARCHITECTURE.md](../../ARCHITECTURE.md) §1.12–§1.13 · §2.8.
 
 ## Example `.factory/quality.yaml`
 
@@ -29,6 +29,12 @@ clean_code:
   exclude_paths: ["vendor/", "generated/"]
   max_findings: 5
   # AA clean-code-weekly: mechanical command + heuristic review → New NF tickets
+review:
+  # Optional. PM Intent Pass hints only (ARCHITECTURE §1.13); not auto-merge, not AA/QA.
+  intent:
+    focus_paths: ["src/", "app/"]
+    high_risk_globs: ["**/auth/**", "**/billing/**", "**/migrations/**"]
+    max_intent_bullets: 3
 load:
   command: "k6 run load/smoke.js"
   # TA load-weekly
@@ -45,6 +51,10 @@ deploy:
 | **Skills** | Factory AA (`clean-code-weekly`) | Heuristic review procedure, ticket schema, severity |
 
 `command` is the mechanical gate (lint/format/tests). AA still performs Clean Code heuristic review on hotspots; findings become `New` tickets on the client project (not a feature Done / security gate).
+
+### `review.intent` (optional)
+
+PM owns Intent Pass against **ticket intake** (Goal/AC). This block only narrows attention (focus / high-risk globs / comment budget). Missing `review:` → PM still runs Intent Pass from the ticket alone.
 
 Factory agents discover this file in the client git workspace after **`tenant-repo-sync`** (ephemeral checkout from `clients-repos-registry.json`); criteria bodies stay in the tenant repo. Do not rely on a stale Pod primary clone alone.
 

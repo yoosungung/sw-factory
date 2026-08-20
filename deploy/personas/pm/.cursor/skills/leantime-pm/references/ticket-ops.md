@@ -49,7 +49,7 @@ Dual-loop board (configure on each client Leantime project; ids from `settings.s
 
 - `New`: intake
 - `In Progress`: developer local implementation
-- `Review`: PM PR review/merge
+- `Review`: PM Intent Pass (`intent:`) + PR merge
 - `Deploying Test`: TA test env CD
 - `QA`: QA E2E ∥ AA security
 - `Deploying Prod`: TA production CD
