@@ -24,6 +24,13 @@ clean_code:
   exclude_paths: ["vendor/", "generated/"]
   max_findings: 5
 
+# Optional hints for PM Review Intent Pass (not a merge score; not AA/QA).
+review:
+  intent:
+    focus_paths: ["src/", "app/"]
+    high_risk_globs: ["**/auth/**", "**/billing/**", "**/migrations/**"]
+    max_intent_bullets: 3
+
 load:
   command: "echo 'load stub — replace with k6/vegeta' && exit 0"
   # long_run: true

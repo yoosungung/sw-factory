@@ -10,10 +10,12 @@ Load for intake → design → breakdown → PR review → merge → closeout.
 - Identify the target Leantime project.
 - Check existing tickets to avoid duplicates.
 - If the request is broad, create one parent ticket and smaller subtasks.
-- Use `references/intake-template.md` (M8): Goal / Non-goals / Acceptance criteria / Risks / Required test·deploy evidence / Architecture notes.
+- **Project → ticket intent:** before writing Goal/AC, read tenant L0 (`ARCHITECTURE`/`DESIGN`) and (if enabled) `ROADMAP` current `##`. Derive ticket scope from those docs; do not invent a parallel goals file.
+- Use `references/intake-template.md` (M8): Derived from / Goal / Non-goals / Acceptance criteria / Risks / Required test·deploy evidence / Architecture notes.
 
 Parent ticket should include:
 
+- Derived from (project SoR links or N/A)
 - Goal
 - Scope
 - Non-goals
@@ -75,28 +77,26 @@ When developers ask questions:
 
 ### 5. PR Review
 
+**Correctness** (CI/lint/tests) ≠ **Intent**. Style/SAST/E2E belong to CI·AA·QA. PM Review owns **Intent Pass** against **ticket intake** (not PR prose, not a fresh reinterpretation of project docs). Optional tenant hints: `.factory/quality.yaml` `review.intent` (focus/high_risk globs) — see `examples/tenant-quality/`.
+
 For every PR:
 
-- Read the PR/diff.
-- Check that it maps to the canonical Leantime parent/subtask, not merely to a number in the PR title or body.
-- If the PR title/body references multiple ticket IDs, verify each against `get_all_subtasks(parent)` and choose the visible linked child as canonical. Treat unlinked IDs as duplicates/orphans until reconciled.
-- Read the parent ticket comments as well as the subtask comments; developers may post the actionable PR URL on the parent while the review belongs to a child subtask.
-- Verify tests were run.
-- If needed, run local checks or inspect CI.
-- Compare local verification with GitHub checks. If local tests pass but GitHub checks are failing, record the content verdict and the CI blocker separately, keep the ticket In Progress/Waiting for Approval as appropriate, and do not mark Done or merge until the check is rerun or explained.
-- Comment with:
-  - Approved / changes requested
-  - Missing tests
-  - Scope drift
-  - Deployment risk
-  - Required follow-up
+- **Intent brief (ticket SoR):** from Active + parent intake — `Derived from`, Goal, Non-goals, AC, open Eric decisions. Compress; do not dump the whole thread into the merge decision.
+- **Diff-first, claim-second:** summarize what the diff actually changes *before* trusting PR title/body/ticket claims (reduce anchoring bias).
+- Check canonical Leantime parent/subtask mapping (`get_all_subtasks`); unlinked IDs in PR text are orphans until reconciled.
+- Read parent and subtask comments (PR URL may sit on the parent).
+- Verify tests + GitHub checks; local pass + remote fail → content vs CI blocker separately; do not merge on local alone.
+- **Intent Pass (required before approve/merge):** answer only — (1) every AC is met by the diff, (2) Non-goals / out-of-scope paths untouched (or explained), (3) contract/public behavior/auth changes appear in Architecture notes / Derived from. Optional: respect `review.intent.high_risk_globs` with stricter scrutiny.
+- Post one Leantime line: `intent: pass|drift|escalate` plus short AC mapping (≤3 intent bullets; no style nits). Then Approved / changes requested / missing tests / deploy risk / follow-up as needed.
+- Large PR (many files / huge LoC): prefer cluster-by-path short passes or request subtask split — do not invent intent from the PR description alone.
 
 Do not approve if:
 
-- Acceptance criteria are missing.
+- Acceptance criteria are missing or Intent Pass is not recorded.
+- `intent: drift` without developer fix, or `intent: escalate` without Eric resolution.
 - Tests are absent or not credible.
 - GitHub CI/checks are failing without an explicit acceptable explanation, even if local tests pass.
-- PR changes unrelated areas without explanation.
+- PR changes unrelated areas without explanation (scope drift).
 - Deployment or migration risk is unresolved.
 - Eric decision is pending.
 
@@ -115,8 +115,8 @@ Before merge:
 - Confirm no unresolved review comments.
 - Confirm deployment plan.
 - Confirm Review handoff comments include test evidence or explicit `test:`/`browser:` N/A (M7).
-- For `@pm` / wiki review mention watcher PRs, **pm merges by default** when the PR satisfies requirements, tests/CI pass, and no unresolved blocker remains.
-- If merge authority, requirements interpretation, CI status, deployment risk, or release timing is unclear, **do not merge; ask Eric** with the Leantime mention format.
+- For `@pm` / wiki review mention watcher PRs, **pm merges by default** when **Intent Pass = pass**, requirements/tests/CI are green, and no unresolved blocker remains. CI green alone is not enough.
+- If merge authority, intent/requirements interpretation, CI status, deployment risk, or release timing is unclear, **do not merge; ask Eric** with the Leantime mention format.
 - Respect explicit human-only approval, merge-freeze, or separate release-gate instructions when present.
 
 After merge:

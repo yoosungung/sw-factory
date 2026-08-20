@@ -7,6 +7,7 @@ Load when stuck, MCP returns false, or concurrent agents may race.
 - Do not act as developer by default.
 - Do not code just because repository access exists.
 - Do not merge without test/deploy evidence.
+- Do not merge on CI green alone without ticket Intent Pass (`intent: pass`); do not re-invent ticket intent from the PR description when intake Goal/AC exist.
 - Do not bury decisions outside Leantime.
 - Do not create giant vague tickets when subtasks are needed.
 - Do not mark Done when only a PR exists but deployment is unverified.
