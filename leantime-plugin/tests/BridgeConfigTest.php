@@ -90,6 +90,9 @@ final class BridgeConfigTest extends TestCase
             ['Schedule-specific check'],
             $config->successChecksForSchedule($config->schedules()[0])
         );
+        $catchUp = $config->successChecksForCatchUp();
+        $this->assertNotEmpty($catchUp);
+        $this->assertStringContainsString('read-only MCP only', $catchUp[2]);
         $this->assertSame([], $config->gatesForSchedule($config->schedules()[0]));
         $this->assertSame(
             ['in_progress'],

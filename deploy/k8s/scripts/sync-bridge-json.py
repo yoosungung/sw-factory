@@ -74,6 +74,13 @@ STATUS_PROMPT_BY_NAME = {
 }
 
 
+CATCH_UP_SUCCESS_CHECKS = [
+    "Scan assigned open work and @mentions since lookback.",
+    "If actionable: pick ONE ticket; finish with add_comment or update_ticket on that ticket.",
+    "If nothing actionable: finish with read-only MCP only — no create_ticket, no Outcome comment.",
+]
+
+
 def build_status_prompts(settings: dict) -> dict[str, str]:
     """Map dual-loop status names → numeric ids from settings.status_board."""
     board = settings.get("status_board")
@@ -282,6 +289,12 @@ def main() -> None:
         bridge["success_checks"] = normalize_success_checks(
             settings.get("success_checks"), "settings.success_checks"
         )
+    if "catch_up_success_checks" in settings:
+        bridge["catch_up_success_checks"] = normalize_success_checks(
+            settings.get("catch_up_success_checks"), "settings.catch_up_success_checks"
+        )
+    elif "catch_up_success_checks" not in bridge:
+        bridge["catch_up_success_checks"] = list(CATCH_UP_SUCCESS_CHECKS)
     budget = normalize_budget(settings.get("budget"))
     if budget is not None:
         bridge["budget"] = budget

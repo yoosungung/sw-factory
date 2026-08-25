@@ -62,6 +62,7 @@ export function createApp(
     const body = await c.req.json<{
       prompt: string;
       ticket_id?: number;
+      event?: string;
       budget?: { max_turns?: number; timeout_ms?: number };
       policy?: { tool_classes?: string[]; deny?: string[] };
       context_summary?: string;
@@ -72,12 +73,18 @@ export function createApp(
     log("session.create", {
       requestId,
       ticket_id: body.ticket_id,
+      ...(body.event ? { trigger_event: body.event } : {}),
       ...(control?.budget?.max_turns !== undefined
         ? { budget_max_turns: control.budget.max_turns }
         : {}),
     });
     try {
-      const session = await backend.create(body.prompt, body.ticket_id, control);
+      const session = await backend.create(
+        body.prompt,
+        body.ticket_id,
+        control,
+        body.event,
+      );
       return c.json({ agent_id: session.agentId }, 201);
     } catch (error) {
       if (error instanceof CreateThrottledError) {

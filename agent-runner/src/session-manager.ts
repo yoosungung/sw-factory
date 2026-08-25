@@ -28,6 +28,7 @@ export interface AgentBackend {
     prompt: string,
     ticketId?: number,
     control?: RunControl,
+    event?: string,
   ): Promise<AgentSession>;
   prompt(
     agentId: string,
@@ -67,6 +68,7 @@ export class MockBackend implements AgentBackend {
     prompt: string,
     ticketId?: number,
     control?: RunControl,
+    event?: string,
   ): Promise<AgentSession> {
     if (ticketId !== undefined) {
       const existingId = this.ticketAgents.get(ticketId);
@@ -303,6 +305,7 @@ export class SdkBackend implements AgentBackend {
     prompt: string,
     ticketId?: number,
     control?: RunControl,
+    event?: string,
   ): Promise<AgentSession> {
     await this.ensureStarted();
     if (ticketId !== undefined) {
@@ -350,6 +353,7 @@ export class SdkBackend implements AgentBackend {
         type: "create",
         prompt,
         ticketId,
+        event,
         model: this.settings.model,
         workspace: this.settings.workspace,
         control,

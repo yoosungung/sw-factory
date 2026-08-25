@@ -219,6 +219,48 @@ export function isInfraFailure(reason: string, tools: ToolRecord[] = []): boolea
   return false;
 }
 
+function isCatchUpEvent(event?: string): boolean {
+  return event === "catch_up";
+}
+
+/** Ready-edge catch-up: ticket-less; no-op = read-only finish; writes only on a picked ticket. */
+function evaluateCatchUpSuccess(
+  runStatus: string,
+  last: ToolRecord | undefined,
+): SuccessVerdict {
+  if (runStatus !== "finished") {
+    return { ok: false, reason: `run_status:${runStatus}` };
+  }
+  if (!last) {
+    return { ok: false, reason: "no_tool_call" };
+  }
+  if (last.status === "error") {
+    return { ok: false, reason: `tool_error:${last.name}` };
+  }
+  const resolved = resolveToolCall(last);
+  const mutation = matchLeantimeMutation(resolved.name);
+  if (mutation === "create_ticket") {
+    return { ok: false, reason: "catchup_no_create_ticket" };
+  }
+  if (!mutation) {
+    return { ok: true, reason: "ok_catchup_noop" };
+  }
+  if (resultLooksFailed(last.result)) {
+    return { ok: false, reason: `tool_result_failed:${mutation}` };
+  }
+  if (mutation === "add_comment") {
+    const module = String(resolved.args.module ?? "").toLowerCase();
+    if (module === "ticket" || module === "tickets") {
+      return { ok: true, reason: "ok_catchup_write" };
+    }
+    return { ok: false, reason: `add_comment_target:${resolved.args.module_id ?? "?"}` };
+  }
+  if (mutation === "update_ticket") {
+    return { ok: true, reason: "ok_catchup_write" };
+  }
+  return { ok: false, reason: `catchup_unexpected_mutation:${mutation}` };
+}
+
 /**
  * Verdict = run finished AND the last completed tool call is a successful
  * Leantime mutation on the active ticket (or create_ticket for ticket-less runs).
@@ -228,7 +270,11 @@ export function evaluateSuccess(
   last: ToolRecord | undefined,
   ticketId: number | undefined,
   _checks: string[],
+  event?: string,
 ): SuccessVerdict {
+  if (isCatchUpEvent(event) && ticketId === undefined) {
+    return evaluateCatchUpSuccess(runStatus, last);
+  }
   if (runStatus !== "finished") {
     return { ok: false, reason: `run_status:${runStatus}` };
   }
@@ -300,14 +346,29 @@ export function maxVerifyAttempts(control?: RunControl | null): number {
   return typeof configured === "number" && configured >= 0 ? configured : 1;
 }
 
-export function composeRetryPrompt(checks: string[], reason: string): string {
+export function composeRetryPrompt(
+  checks: string[],
+  reason: string,
+  event?: string,
+): string {
   const lines = [
     `Your previous run did not satisfy the success checks (reason: ${reason}).`,
-    "If a Leantime write (add_comment / update_ticket / create_ticket) already landed on the Active ticket, do NOT rewrite the same Outcome.",
-    "Call get_comments (or get_ticket) to confirm, then finish with one Leantime mutation as the LAST tool only if nothing was recorded yet.",
-    "Do not spam duplicate Outcome comments.",
+  ];
+  if (isCatchUpEvent(event)) {
+    lines.push(
+      "Catch-up: if nothing actionable, finish with read-only MCP only — do NOT create_ticket or add Outcome comments.",
+      "If you picked work, finish with add_comment or update_ticket on that ticket only.",
+    );
+  } else {
+    lines.push(
+      "If a Leantime write (add_comment / update_ticket / create_ticket) already landed on the Active ticket, do NOT rewrite the same Outcome.",
+      "Call get_comments (or get_ticket) to confirm, then finish with one Leantime mutation as the LAST tool only if nothing was recorded yet.",
+      "Do not spam duplicate Outcome comments.",
+    );
+  }
+  lines.push(
     "Success checks:",
     ...checks.map((check, index) => `${index + 1}. ${check}`),
-  ];
+  );
   return lines.join("\n");
 }

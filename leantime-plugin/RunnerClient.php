@@ -89,11 +89,15 @@ final class RunnerClient implements RunnerTransport
         ?int $ticketId = null,
         ?array $budget = null,
         array $successChecks = [],
-        ?int $successMaxAttempts = null
+        ?int $successMaxAttempts = null,
+        ?string $event = null
     ): array {
         $body = ['prompt' => $prompt];
         if ($ticketId !== null) {
             $body['ticket_id'] = $ticketId;
+        }
+        if ($event !== null && $event !== '') {
+            $body['event'] = $event;
         }
         $body = self::withControl($body, $budget, $successChecks, $successMaxAttempts);
 

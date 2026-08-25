@@ -131,8 +131,9 @@ K8s CronJob `cursorbridge-schedule-tick`(* * * * *, UTC)이 Leantime Pod에서 `
 | 전이 | **false→true** 또는 **unknown→true**일 때만 catch-up. 연속 Ready는 no-op. Ready가 false로 떨어진 뒤 다시 true면 새 출근. |
 | 발사 | `prompts.catch_up`으로 **티켓 없는** `POST /sessions` 1회. `cursorbridge_sessions` 미등록. 동일 Ready epoch당 1회(SQLite `cursorbridge_catch_up_fires` claim). |
 | lookback | 프롬프트 `{lookback_since}` = 직전 `last_catch_up_at`, 없으면 지금−48h(ISO). |
+| 검증 | `POST /sessions`에 `event=catch_up`·`catch_up_success_checks`(전역 `success_checks`와 분리). actionable 없으면 read-only 종료가 성공; `create_ticket`은 실패. |
 
-에이전트는 MCP로 배정함·멘션을 훑고 **한 건**을 골라 그 세션에서 착수한다(persona `agent-catch-up`). 실패 디스패치 재전송(`flush-retries`)과 별개다. DB 스키마는 §2.2.2.
+에이전트는 MCP로 배정함·멘션을 훑고 **한 건**을 골라 그 세션에서 착수한다(persona `agent-catch-up`). **할 일 없으면 티켓·코멘트 없이 종료**한다. 실패 디스패치 재전송(`flush-retries`)과 별개다. DB 스키마는 §2.2.2.
 
 **일일 agent restart + 런타임 백업:** CronJob `cursorbridge-agent-restart`(`0 15 * * *` UTC = KST 00:00)가 (1) 각 `app=cursor-agent` Pod에서 `MEMORY.md`·`mcp.json`을 PVC `agent-runtime-backup`(`YYYY-MM-DD/<agent>/`, 7일 보관)에 dump하고 (2) `rollout restart statefulset -l app=cursor-agent`로 Ready-edge 출근을 유발한다. **스킬/rules 배포 대체가 아니다** — persona 변경은 여전히 `render-agents` → apply 후 재시작(또는 이 일일 재시작)이 CM을 다시 시드한다. skills/rules/chats/Secret/`agents.yaml`/`bridge.json`/Leantime DB는 이 PVC에 넣지 않는다. 로컬 검토: `deploy/k8s/scripts/pull-agent-backup.sh` → `deploy/personas/<agent>/*.pulled`(gitignore) → 사람 diff 후 선택 반영(자동 git commit 금지). MEMORY 클러스터 반영: Pod에서 해당 파일 삭제 후 restart(시드) 또는 `kubectl cp`. mcp 의도 변경은 persona 번들에 합친 뒤 render→apply→restart.
 

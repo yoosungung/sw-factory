@@ -70,6 +70,7 @@ HTTP 계약(`POST /sessions`, `202` prompt, ticket↔session)은 유지한다. o
 1. SDK `RunResult.status === "finished"` (agent가 출력하는 `exit=0` 텍스트는 신뢰하지 않는다).
 2. run의 **마지막 완료 tool_call**이 성공한 Leantime mutation이다.
    - 허용 목록: `add_comment`(module=ticket, module_id=active), `update_ticket`(ticket_id=active), ticket 없는 schedule의 `create_ticket`.
+   - **예외 — `event=catch_up`·ticket_id 없음:** actionable 없으면 read-only MCP 마지막 tool이면 `ok_catchup_noop`; 선정 티켓에 `add_comment`/`update_ticket`이면 `ok_catchup_write`; `create_ticket`은 `catchup_no_create_ticket`으로 거부.
    - tool 이름은 접미사 매칭으로 정규화(`*_add_comment` 등)한다. `status=error`나 명백한 실패 결과(`false`)는 거부한다.
    - SDK/`CallMcpTool` 래퍼(`name`이 `mcp` 또는 `CallMcpTool`)는 `args.toolName`과 nested `args`/`arguments`로 풀어 mutation·대상을 판정한다.
    - 조회 tool, 대상 ticket을 증명 못 하는 comment 수정/삭제는 성공 증거로 쓰지 않는다.

@@ -24,7 +24,7 @@ description: >-
 2. **멘션:** `list_tickets(updated_since=lookback_since)`로 후보를 좁힌 뒤, 각 티켓에 `get_comments(module=ticket, module_id=…, mentioned_user_id=me, since=lookback_since)`. 멘션 **이후**에 내가 이미 응답 코멘트를 남긴 스레드는 스킵.
 3. **선별:** actionable 한 건만. `Waiting for Approval`·사람 전용(@eric 시크릿/범위 판단)은 스킵(PM 레인과 충돌 시 PM에 맡김).
 4. **착수:** 선정 티켓을 이 세션에서 `get_ticket` / `get_comments` 후 역할 스킬대로 진행. 진행·결정은 `add_comment`(HTML 줄바꿈·멘션 규칙은 `leantime-collab`).
-5. **무업무:** 티켓에 스팸 코멘트 없이 종료.
+5. **무업무:** read-only MCP로 종료한다. `create_ticket`·Outcome 코멘트·빈 기록 티켓 금지( runner `event=catch_up` 검증과 동일).
 
 ## 하지 말 것
 

@@ -193,6 +193,11 @@
       ]
     }
   ],
+  "catch_up_success_checks": [
+    "Scan assigned open work and @mentions since lookback.",
+    "If actionable: pick ONE ticket; finish with add_comment or update_ticket on that ticket.",
+    "If nothing actionable: finish with read-only MCP only — no create_ticket, no Outcome comment."
+  ],
   "success_checks": [
     "Read Active ticket via Leantime MCP before writing.",
     "Leave an add_comment outcome on the Active ticket.",

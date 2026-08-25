@@ -228,6 +228,7 @@ export async function executeJob(
         evidence?.lastCompleted(),
         ticketId,
         checks,
+        job.event,
       );
       if (!verdict.ok) {
         const attested = await confirmWriteViaApi(ticketId, attester);
@@ -268,9 +269,12 @@ export async function executeJob(
         const retryEvidence = createToolEvidence();
         let retryRun: Run;
         try {
-          retryRun = await agent.send(composeRetryPrompt(checks, verdict.reason), {
+          retryRun = await agent.send(
+            composeRetryPrompt(checks, verdict.reason, job.event),
+            {
             model: { id: job.model },
-          });
+          },
+          );
         } catch (error) {
           throw toWorkerError(job.requestId, error);
         }
@@ -293,6 +297,7 @@ export async function executeJob(
           retryEvidence.lastCompleted(),
           ticketId,
           checks,
+          job.event,
         );
         if (!verdict.ok) {
           const attested = await confirmWriteViaApi(ticketId, attester);

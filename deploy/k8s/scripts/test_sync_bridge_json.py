@@ -29,6 +29,11 @@ def test_catch_up_prompt_is_ticketless_commute():
     assert "{lookback_since}" in text
     assert "No Active ticket_id" in text
     assert "ONE" in text or "one" in text.lower()
+    assert "ticket spam" in text.lower() or "without ticket spam" in text.lower()
+
+
+def test_catch_up_success_checks_default():
+    assert "read-only MCP only" in mod.CATCH_UP_SUCCESS_CHECKS[2]
 
 
 def test_review_status_prompt_requires_push():

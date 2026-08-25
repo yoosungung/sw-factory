@@ -93,7 +93,8 @@ final class OpenAIRunnerClient implements RunnerTransport
         ?int $ticketId = null,
         ?array $budget = null,
         array $successChecks = [],
-        ?int $successMaxAttempts = null
+        ?int $successMaxAttempts = null,
+        ?string $event = null
     ): array {
         $conversation = $ticketId !== null
             ? self::conversationForTicket($ticketId)

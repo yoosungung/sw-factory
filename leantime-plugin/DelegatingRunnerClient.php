@@ -27,7 +27,8 @@ final class DelegatingRunnerClient implements RunnerTransport
         ?int $ticketId = null,
         ?array $budget = null,
         array $successChecks = [],
-        ?int $successMaxAttempts = null
+        ?int $successMaxAttempts = null,
+        ?string $event = null
     ): array {
         return $this->transport($runnerUrl)->createSession(
             $runnerUrl,
@@ -35,7 +36,8 @@ final class DelegatingRunnerClient implements RunnerTransport
             $ticketId,
             $budget,
             $successChecks,
-            $successMaxAttempts
+            $successMaxAttempts,
+            $event
         );
     }
 

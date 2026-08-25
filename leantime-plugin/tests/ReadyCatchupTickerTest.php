@@ -89,6 +89,8 @@ final class ReadyCatchupTickerTest extends TestCase
         $this->assertStringNotContainsString('Active ticket_id', $prompt);
         // first commute: lookback = now - 48h
         $this->assertStringContainsString('2026-08-04T01:01:00+00:00', $prompt);
+        $this->assertSame('catch_up', $calls[0]['body']['event'] ?? null);
+        $this->assertStringContainsString('read-only MCP only', $prompt);
 
         $this->assertSame(0, $ticker->tick($t1));
         $this->assertCount(1, $calls);

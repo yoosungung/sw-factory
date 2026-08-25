@@ -26,11 +26,15 @@ final class ResilientRunnerClient
         ?int $ticketId = null,
         ?array $budget = null,
         array $successChecks = [],
-        ?int $successMaxAttempts = null
+        ?int $successMaxAttempts = null,
+        ?string $event = null
     ): ?array {
         $meta = ['prompt' => $prompt];
         if ($ticketId !== null) {
             $meta['ticket_id'] = $ticketId;
+        }
+        if ($event !== null && $event !== '') {
+            $meta['event'] = $event;
         }
         $meta = $this->controlMeta($meta, $budget, $successChecks, $successMaxAttempts);
 
@@ -45,7 +49,8 @@ final class ResilientRunnerClient
                 $ticketId,
                 $budget,
                 $successChecks,
-                $successMaxAttempts
+                $successMaxAttempts,
+                $event
             )
         );
     }
@@ -123,7 +128,10 @@ final class ResilientRunnerClient
                         $ticketId,
                         $this->budgetFromBody($item['body']),
                         $this->checksFromBody($item['body']),
-                        $this->maxAttemptsFromBody($item['body'])
+                        $this->maxAttemptsFromBody($item['body']),
+                        isset($item['body']['event']) && is_string($item['body']['event'])
+                            ? $item['body']['event']
+                            : null
                     );
                 } elseif ($item['method'] === 'prompt') {
                     $this->inner->prompt(

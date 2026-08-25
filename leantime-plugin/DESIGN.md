@@ -75,7 +75,7 @@ Leantime 이미지 메이저/마이너 올리면 패치 파일을 재검토한�
 
 주기 프롬프트: `bin/tick-schedules.php` (`Plugin::tickSchedules()` + `Plugin::tickReadyCatchup()`). CLI는 `bin/leantime`과 같이 `LEAN_CLI` + `bootstrap/app.php` + ConsoleKernel boot 후 게이트를 평가한다(미부트 시 `Tickets`/`DB` DI 실패 → fail-closed). 설정은 `bridge.json` `schedules[]`. 선택 `gates[]`(AND; 생략 가능) — `in_progress`는 `zp_tickets.status=4`, `flow_active`는 status∈{4,10,11,12,13}(공장 기본 dual-loop 보드) 존재 여부(DB; 세션 ACL 우회)를 본 뒤 세션을 만든다.
 
-**Ready-edge catch-up (재기동=출근):** 같은 틱에서 각 bot `runner_url`에 `/readyz`(실패 시 `/healthz`)를 프로브한다. SQLite `cursorbridge_runner_ready` 스냅샷 기준 **false→true**면 `prompts.catch_up` 티켓리스 세션 1회(`ReadyCatchupTicker`). 연속 Ready는 no-op. `flush-retries`와 별개.
+**Ready-edge catch-up (재기동=출근):** 같은 틱에서 각 bot `runner_url`에 `/readyz`(실패 시 `/healthz`)를 프로브한다. SQLite `cursorbridge_runner_ready` 스냅샷 기준 **false→true**면 `prompts.catch_up` 티켓리스 세션 1회(`ReadyCatchupTicker`). `POST /sessions`에 `event=catch_up`·`catch_up_success_checks`(전역 `success_checks`와 분리). actionable 없으면 read-only 종료가 성공; `create_ticket`은 runner 검증에서 거부. 연속 Ready는 no-op. `flush-retries`와 별개.
 
 `type=openai` runner는 env `CURSORBRIDGE_OPENAI_API_KEY` 필요.
 

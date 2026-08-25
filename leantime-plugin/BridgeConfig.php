@@ -182,6 +182,20 @@ final class BridgeConfig
         return $this->normalizeChecks($schedule['gates'] ?? []);
     }
 
+    public function successChecksForCatchUp(): array
+    {
+        $checks = $this->normalizeChecks($this->data['catch_up_success_checks'] ?? []);
+        if ($checks !== []) {
+            return $checks;
+        }
+
+        return [
+            'Scan assigned open work and @mentions since lookback.',
+            'If actionable: pick ONE ticket; finish with add_comment or update_ticket on that ticket.',
+            'If nothing actionable: finish with read-only MCP only — no create_ticket, no Outcome comment.',
+        ];
+    }
+
     /**
      * @param list<string> $checks
      */

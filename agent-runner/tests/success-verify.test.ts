@@ -158,6 +158,49 @@ describe("evaluateSuccess", () => {
   });
 });
 
+describe("evaluateSuccess catch_up", () => {
+  const checks = ["If nothing actionable: read-only only."];
+
+  it("passes read-only finish as no-op", () => {
+    const last = {
+      name: "mcp",
+      status: "completed" as const,
+      args: { toolName: "list_tickets", args: { assigned_to: 3 } },
+      result: "[]",
+    };
+    expect(evaluateSuccess("finished", last, undefined, checks, "catch_up")).toEqual({
+      ok: true,
+      reason: "ok_catchup_noop",
+    });
+  });
+
+  it("passes add_comment on a picked ticket", () => {
+    const last = {
+      name: "add_comment",
+      status: "completed" as const,
+      args: { module: "ticket", module_id: 99, comment: "starting" },
+      result: "true",
+    };
+    expect(evaluateSuccess("finished", last, undefined, checks, "catch_up")).toEqual({
+      ok: true,
+      reason: "ok_catchup_write",
+    });
+  });
+
+  it("rejects create_ticket on catch-up", () => {
+    const last = { name: "create_ticket", status: "completed" as const, args: {}, result: "123" };
+    expect(evaluateSuccess("finished", last, undefined, checks, "catch_up")).toEqual({
+      ok: false,
+      reason: "catchup_no_create_ticket",
+    });
+  });
+
+  it("still accepts create_ticket for non-catch-up ticket-less runs", () => {
+    const last = { name: "create_ticket", status: "completed" as const, args: {}, result: "123" };
+    expect(evaluateSuccess("finished", last, undefined, checks).ok).toBe(true);
+  });
+});
+
 describe("verificationEnabled / maxVerifyAttempts", () => {
   it("enabled only when success_checks present", () => {
     expect(verificationEnabled(undefined)).toBe(false);
@@ -218,5 +261,11 @@ describe("composeRetryPrompt", () => {
     expect(out.toLowerCase()).toContain("add_comment");
     expect(out).toContain("Do not spam duplicate Outcome");
     expect(out).toContain("already landed");
+  });
+
+  it("uses catch-up guidance when event is catch_up", () => {
+    const out = composeRetryPrompt(["read-only only"], "catchup_no_create_ticket", "catch_up");
+    expect(out).toContain("read-only MCP only");
+    expect(out).not.toContain("already landed");
   });
 });

@@ -66,7 +66,7 @@ final class ReadyCatchupTicker
             $prompt = $this->config->promptFor('catch_up', [
                 'lookback_since' => $lookback,
             ]);
-            $checks = $this->config->successChecks();
+            $checks = $this->config->successChecksForCatchUp();
             $checksPrompt = $this->config->formatSuccessChecksPrompt($checks);
             if ($checksPrompt !== '') {
                 $prompt .= "\n" . $checksPrompt;
@@ -78,7 +78,8 @@ final class ReadyCatchupTicker
                 null,
                 $this->config->budget(),
                 $checks,
-                $this->config->successRetryMaxAttempts()
+                $this->config->successRetryMaxAttempts(),
+                'catch_up'
             );
             $catchUpAt = $now->format(DATE_ATOM);
             $this->sessions->setRunnerReady($runnerUrl, true, $epoch, $catchUpAt);
