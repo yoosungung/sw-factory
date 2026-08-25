@@ -19,6 +19,7 @@ from pathlib import Path
 import yaml
 
 sys.path.insert(0, sys.argv[5])
+from agent_statefulset import container_resources_yaml, runner_pool_env
 from clients import CLIENTS_REPOS_CURSOR_PATH, clients_repos_registry_json
 from persona_bundle import build_persona_bundle, bundle_for_configmap
 from repos import index_repos, resolve_agent_repo
@@ -106,6 +107,8 @@ for agent in deploy_agents:
         .replace("{{ORG_WIKI_URL}}", org_wiki_url)
         .replace("{{NAMESPACE}}", k8s_ns)
         .replace("{{LEANTIME_URL}}", leantime_url)
+        .replace("{{RUNNER_POOL_ENV}}", runner_pool_env(agent))
+        .replace("{{CONTAINER_RESOURCES}}", container_resources_yaml(agent))
     )
     ss_path = out / f"statefulset-{name}.yaml"
     ss_path.write_text(ss)

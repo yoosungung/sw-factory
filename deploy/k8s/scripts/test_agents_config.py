@@ -130,6 +130,8 @@ def test_statefulset_template_honors_gh_token_secret_key():
     assert "{{GH_TOKEN_SECRET_KEY}}" in ss_tpl
     assert "{{SERVICE_ACCOUNT}}" in ss_tpl
     assert "{{ORG_WIKI_URL}}" in ss_tpl
+    assert "{{RUNNER_POOL_ENV}}" in ss_tpl
+    assert "{{CONTAINER_RESOURCES}}" in ss_tpl
 
     def render(name: str, gh_key: str, sa: str = "cursor-agent", org_wiki: str = "") -> str:
         return (
@@ -145,6 +147,8 @@ def test_statefulset_template_honors_gh_token_secret_key():
             .replace("{{NAMESPACE}}", "sw-factory")
             .replace("{{LEANTIME_URL}}", "http://leantime.sw-factory.svc")
             .replace("{{SEED_PERSONA_SCRIPT}}", "              echo seed")
+            .replace("{{RUNNER_POOL_ENV}}", "")
+            .replace("{{CONTAINER_RESOURCES}}", "")
         )
 
     pm = render("pm", "GH_TOKEN_pm", "cursor-agent", "https://github.com/demo-org/org-wiki.git")

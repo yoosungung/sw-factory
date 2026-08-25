@@ -79,6 +79,13 @@ agents:
     persona: asky
     primary_repo: landing-web
     type: sessions
+    # Optional per-agent runner tuning (local agents.yaml):
+    # pool_size: 4
+    # resources:
+    #   requests:
+    #     memory: 4Gi
+    #   limits:
+    #     memory: 16Gi
 
   - name: path
     leantime_user_id: 102

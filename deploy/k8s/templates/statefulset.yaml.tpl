@@ -118,6 +118,7 @@ spec:
               value: /workspace/repo
             - name: ORG_WIKI_URL
               value: "{{ORG_WIKI_URL}}"
+{{RUNNER_POOL_ENV}}
           ports:
             - containerPort: 8080
               name: http
@@ -132,6 +133,7 @@ spec:
               mountPath: /cursor-home
             - name: workspace
               mountPath: /workspace
+{{CONTAINER_RESOURCES}}
       volumes:
         - name: persona
           configMap:
