@@ -9,7 +9,7 @@ description: >-
 
 # Leantime MCP 협업
 
-Leantime MCP 서버(`leantime`) 도구를 사용한다. 작업 전 읽기, 작업 후 코멘트·상태 갱신이 필수다.
+Leantime MCP 서버(`leantime`) 도구를 사용한다. 작업 전 읽기, 작업 후 코멘트·상태 갱신(해당 시)이 필수다.
 
 ## 티켓 스코프 (필수)
 
@@ -54,16 +54,25 @@ Leantime 멘션은 **HTML `data-tagged-user-id`** 로 저장해야 알림·봇 �
 <a class="tiptap-mention" data-tagged-user-id="{bridge.agents[<name>].leantime_user_id}">@<name></a>
 ```
 
-리뷰 핸드오프의 기본 멘션·assignee는 **메인 리뷰어 pm**. 플랫폼/`GH_TOKEN` 등 인프라 blocker만 eric. 둘 다 `bridge.json`에서 id를 읽는다.
+**언제 멘션하는가 (필수):** HTML `@mention`은 **지금 실행할 액션이 있는 상대**에게만 쓴다. 대기·관측·ack만인 턴에는 멘션하지 않는다.
+
+| 상황 | 쓰기 |
+|------|------|
+| Review 핸드오프·재작업·머지 직후 bounce 등 **지금** 상대가 할 일 | `add_comment` + HTML `@mention` + (필요 시) assignee |
+| CI pending / PR OPEN·unstable / merge deferred / standby / “나중에 ~하면 @x” | **침묵** 또는 무멘션 status-board/`edit_comment`(pm). `Next @x`·`mention-outcome`·되멘션 **금지** |
+| 같은 대기 사실을 이미 기록했고 새 증거(머지·fail·코드) 없음 | 코멘트·멘션 없이 종료 |
+
+리뷰 핸드오프의 기본 멘션·assignee는 **메인 리뷰어 pm**(PR·증거와 함께 **지금** 리뷰 가능). 플랫폼/`GH_TOKEN` 등 인프라 blocker만 eric. 둘 다 `bridge.json`에서 id를 읽는다.
 
 `MEMORY.md` 팀 표의 Leantime 이메일과 `bridge.json`의 `leantime_user_id`를 대응시킨다.
 
-## 작업 후 (필수)
+## 작업 후
 
-1. **반드시** Active ticket_id에 `add_comment`로 요약·핸드오프 코멘트를 남긴다 (무엇을 했는지, 다음 담당자가 할 일).
-2. 구현 완료 → Review → Done 순으로 상태를 올릴 때 `update_ticket`을 **같은 ticket_id**로 사용한다 (`get_status_labels`로 ID 확인).
-3. 핸드오프 시 assignee 변경과 함께 **같은 티켓** 코멘트로 맥락을 전달한다.
-4. 첨부가 있으면 코멘트에 파일명을 함께 적는다.
+1. **진전·핸드오프가 있을 때** Active ticket_id에 `add_comment`로 요약한다 (무엇을 했는지, **지금** 다음 담당자가 할 일). actionable이면 HTML `@mention` + assignee.
+2. **대기만**이면 추가 `add_comment`/`@mention`하지 않는다(위 표). 이미 Review·assignee=pm·PR OPEN이면 IC는 침묵.
+3. 구현 완료 → Review → Done 순으로 상태를 올릴 때 `update_ticket`을 **같은 ticket_id**로 사용한다 (`get_status_labels`로 ID 확인).
+4. 핸드오프 시 assignee 변경과 함께 **같은 티켓** 코멘트로 맥락을 전달한다(대기 예약 멘션 금지).
+5. 첨부가 있으면 코멘트에 파일명을 함께 적는다.
 
 ## 도구 요약
 

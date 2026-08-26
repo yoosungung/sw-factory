@@ -111,7 +111,7 @@ Reference: `references/path-graph-graphrag-closeout.md` captures the shorter men
 Before merge:
 
 - Confirm target branch.
-- Confirm CI/test status — **required GitHub checks must be green** (`gh pr checks`); fail/pending → do not merge (M6).
+- Confirm CI/test status — **required GitHub checks must be green** (`gh pr checks`); fail/pending → do not merge (M6). Pending/queued: update status-board `ci-wait` only — **no** `@IC` / “CI then mention” / wait-ack ping-pong. Re-check on the next `pm-checkpoint` or review event.
 - Confirm no unresolved review comments.
 - Confirm deployment plan.
 - Confirm Review handoff comments include test evidence or explicit `test:`/`browser:` N/A (M7).
@@ -124,6 +124,7 @@ After merge:
 - If the product repo has `tenant_cd.enabled`: set **Deploying Test**, hand off to **ta** (`pr_url` + `merge_sha`). After test evidence, ensure **QA** + `@qa` `@aa`. After both pass, **Deploying Prod** via ta. **Done** only with feature evidence (test+qa+aa+prod).
 - Evidence: ARCHITECTURE §2.8 / ta `evidence-comment.md` (`test_*`, `qa:`, `aa:`, `prod_*`).
 - If `tenant_cd` does not apply (docs/wiki-only): merge + test evidence may suffice for Done; say so explicitly in the closeout comment.
+- Partial-scope remaining AC: bounce `In Progress` + **one** developer `@mention` **after** merge (not while CI was pending).
 
 ### 7. Closeout
 
@@ -162,4 +163,4 @@ When a parent ticket is in Review and the latest developer comment says implemen
 3. Update only the closeout/status documentation named in the ticket/comment (for example ROADMAP and AGENTS Status wording).
 4. Commit, push, and open a focused PR before handoff; do not ask anyone to push locally.
 5. Add the PR link, changed files, commit, evidence basis, and CI state to the active parent ticket.
-6. If CI finishes after the first handoff comment, add a short CI update comment on the same active parent ticket.
+6. If CI is still pending after Intent Pass, upsert the status board (`ci-wait`) with no agent `@mention`. When CI finishes and merge proceeds, then add the merge/closeout comment (and post-merge owner mention if needed).

@@ -1,7 +1,7 @@
 ---
 name: leantime-pm
 description: "Use when acting as a Leantime project manager: translate requirements into tickets, coordinate developers, manage design review, track PRs/tests/deployments, run 30-minute checkpoints, and escalate decisions to Eric."
-version: 1.5.0
+version: 1.5.1
 author: pm persona
 license: MIT
 ---
@@ -30,7 +30,7 @@ Eric이 pm에게 Leantime PM을 맡기거나, CursorBridge 스케줄/멘션/티�
 
 1. 요구를 parent/subtask로 쪼개고 올바른 owner에게 배정(AC 없이 In Progress 금지). Intake Goal/Non-goals/AC는 테넌트 L0·`ROADMAP` current에서 **유도**(`Derived from`); 별도 project-goals 파일 금지.
 2. 구현 전 설계·범위 조율; 증거(PR·테스트·배포/스모크) 없으면 머지/Done 금지.
-3. **Review = Intent Pass + merge 게이트:** 티켓 intake가 SoR. Diff-first 후 `intent: pass|drift|escalate` 코멘트 없이 머지 금지(CI green ≠ merge). Correctness(린트/SAST/E2E)는 CI·AA·QA.
+3. **Review = Intent Pass + merge 게이트:** 티켓 intake가 SoR. Diff-first 후 `intent: pass|drift|escalate` 코멘트 없이 머지 금지(CI green ≠ merge). Correctness(린트/SAST/E2E)는 CI·AA·QA. **CI pending/OPEN** → status-board(`ci-wait`, 무멘션)만; “CI 끝나면 `@IC`” 예약 멘션·대기 ack 핑퐁 금지. IC `@mention`은 **머지 직후** bounce할 때만.
 4. **Sequencing (내장):** 티켓 간 FS 선행 SoR = MCP `set_blocked_by` → description `<!-- blocked-by:ID[,ID] -->` + 선행 미완료 시 `Blocked`. soft prose만으로는 미등록. human/동료가 선행·depends·blocked-by를 말하면 **같은 턴**에 `set_blocked_by` → `get_ticket`으로 마커 확인 → outcome. “다음에 wire” / remediator라서 skip / ACK-only **금지**. `dependingTicketId`는 **parent/subtask만** — blocked-by로 쓰지 않음. 선행 Done이면 마커 clear(`blocker_ids=[]`) 후 올바른 레인으로 bounce; 미완료면 successor In Progress/Review·멘션 스톰 억제.
 5. 제품/범위/비용/리스크·우선순위 충돌이 모호하면 HTML `@eric` (`bridge.json` id).
 
@@ -55,8 +55,8 @@ Eric이 pm에게 Leantime PM을 맡기거나, CursorBridge 스케줄/멘션/티�
 - In Progress ≈30m; 빈 checkpoint 3회 → 터미널 Approval(명확 외부 deps면 Blocked+마커).
 - Review ≥2h 무 pm 증거 → 터미널 Approval 1회.
 - Deploy/QA: HC(≥2h) → (ta면 ARC skip) ARC 1회 → Outcome SLA → dead-by-timeout/터미널; cycle cap=1; kubectl/E2E/CD 대행 금지.
-- **Mention/comment storm:** lookback 최근 2h 또는 최신 30댓글. silence-reset 없이 에이전트 상호 `@mention`≥**8** 또는 `mention outcome`/`delegated_from`/remediator≥**12** → 즉시 Approval+admin; 추가 에이전트 `@mention` 금지. 이벤트/멘션 세션에서도 동일.
-- Status-board: 티켓당 `<!-- pm-checkpoint-status -->` 1개 `edit_comment`; actionable `@mention`만 `add_comment` 신규.
+- **Mention/comment storm:** lookback 최근 2h 또는 최신 30댓글. silence-reset 없이 에이전트 상호 `@mention`≥**8** 또는 `mention outcome`/`delegated_from`/remediator≥**12** → 즉시 Approval+admin; 추가 에이전트 `@mention` 금지. 이벤트/멘션 세션에서도 동일. 전형 원인: CI-wait를 `@멘션`으로만 알림 → 예방은 대기=침묵(board).
+- Status-board: 티켓당 `<!-- pm-checkpoint-status -->` 1개 `edit_comment`; `class=ci-wait|review-ci-wait` 등 대기 기록도 board만(무멘션). actionable `@mention`만 `add_comment` 신규.
 - **Dep hygiene (통합):** human 선행 지시가 있는데 마커 없으면 **같은 런에서** `set_blocked_by` 우선(≤5 actionable 한도 내).
 - Misroute (ARCHITECTURE §2.6 #14): Approval/`@eric` ask가 agent-actionable이면 bounce; human-only·모호·**storm 터미널**이면 Keep.
 
@@ -81,4 +81,5 @@ Human-only: Approval + admin assignee + 구체 ask — `Blocked`로 두지 않�
 - [ ] Intake에 Derived from·AC·assignee; Review에 `intent: pass|drift|escalate` + PR checks·Done 게이트(CD evidence)
 - [ ] Parent Done 전 열린 child 없음; misroute bounce 또는 Keep 명시
 - [ ] Mention/comment storm 임계(≥8 agent 멘션 또는 ≥12 outcome 패턴, lookback 2h/30)면 Approval+admin·추가 agent `@mention` 없음
+- [ ] CI/OPEN 대기면 board만·예약 `@IC` 없음; 머지 후에만 IC `@mention`
 - [ ] Mutation 후 Active ticket·코멘트·PR 재조회로 최종 상태 보고

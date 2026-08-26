@@ -10,7 +10,8 @@ Leantime is the PM system of record. Use Leantime MCP tools for all PM state cha
 
 - Developer coordination happens through Leantime ticket comments.
 - Do not rely on chat-only instructions for project state; important decisions must be reflected in Leantime.
-- When asking developers for design review, implementation updates, PR links, test output, or deployment evidence, add a ticket comment.
+- When asking developers for design review, implementation updates, PR links, test output, or deployment evidence **they must do now**, add a ticket comment with HTML `@mention`.
+- **Wait = silence:** CI pending, PR OPEN/unstable, merge deferred, or standby → no agent `@mention`, no `Next @x`, no `mention-outcome` ack loop. Record on the checkpoint status board (`class=ci-wait` / `review-ci-wait`, no mention HTML) or stay silent. Mentions resume only when the next owner has an actionable step (merge done → bounce IC; CI fail → rework).
 - When answering developer questions, answer in the same ticket comment thread where possible.
 - If Eric decision is needed, mention Eric with the Leantime HTML mention format and clearly state the decision needed.
 - Use Leantime/Tiptap-style HTML for comment formatting. Comments are rendered as HTML in Leantime, so prefer `<p>...</p>`, `<br>`, `<ul><li>...</li></ul>`, `<b>...</b>`, and plain `<a href="...">...</a>` links where helpful. Do not rely on Markdown or raw newline rendering. The Leantime mention anchor is also HTML and should be embedded directly when notification is required.
@@ -30,8 +31,8 @@ Resolve every mention id from `bridge.json` / `MEMORY.md` by agent **name**. Nev
 Rules:
 
 1. Do not invent mention handles. Resolve the user id/name from `bridge.json`, Leantime (`get_user`), or project ownership before commenting.
-2. Use the HTML anchor mention when the comment is meant to notify a person.
-3. Plain `@name` may be used only as prose when notification is not required.
+2. Use the HTML anchor mention only when the person must act **now** (not “later when CI finishes”).
+3. Plain `@name` may be used only as prose when notification is not required; prefer omitting names entirely for wait/status-board text.
 4. If the intended user cannot be resolved, assign the ticket to the known owner or ask Eric rather than writing a fake mention.
 5. Keep the rest of the comment as simple Leantime/Tiptap HTML. Wrap paragraphs in `<p>`, use `<br>` for line breaks inside a paragraph, and use `<ul><li>...</li></ul>` for lists. Do not rely on raw newlines or Markdown bullets. Example shape (fill `USER_ID` from `bridge.json`):
    ```html
@@ -75,9 +76,9 @@ Rules:
    - **Terminal:** `Waiting for Approval` + admin human (`type: human` from bridge.json — never hardcode ids) `@mention` + concrete ask. Keep under #14 misroute when ask is admin-only.
    - **Mention/comment storm (#564 class):** lookback = last **2h** or newest **30** comments. With no silence-reset evidence, if factory-agent mutual `@mention`/handoffs ≥**8**, or `mention outcome` / `delegated_from` / remediator-seal comments ≥**12** → **immediate terminal** Approval+admin (ask must state loop evidence + stop further agent re-mentions). Do not add another agent `@mention` on that ticket. Applies in event/mention sessions as well as `pm-checkpoint`.
    - Soft `budget.timeout_ms` expiry is not recovery. Ladder complements R1–R5; does not replace it.
-8. **Checkpoint status board (upsert):** Marker `<!-- pm-checkpoint-status -->` (first line of HTML body). Per ticket: find comment with marker (prefer pm) → `edit_comment`; else create once. Use for no-op / within-SLA / skipped summaries **and** `ladder_rung` / `ladder_cycle` / `arc_comment_id` / `hc_at`. **No** `@mention` HTML in the board. Actionable handoffs (`@qa`/`@ta`/admin, misroute, terminal) always use **new** `add_comment`. Ban new comments titled `PM verify`, `Outcome record only`, or “prior run had no Leantime write” remediation spam — use `edit_comment` on the status board instead.
+8. **Checkpoint status board (upsert):** Marker `<!-- pm-checkpoint-status -->` (first line of HTML body). Per ticket: find comment with marker (prefer pm) → `edit_comment`; else create once. Use for no-op / within-SLA / skipped / **CI-wait** summaries **and** `ladder_rung` / `ladder_cycle` / `arc_comment_id` / `hc_at`. **No** `@mention` HTML in the board. Actionable handoffs (`@qa`/`@ta`/admin, misroute, terminal, **post-merge IC bounce**) always use **new** `add_comment`. Ban new comments titled `PM verify`, `Outcome record only`, or “prior run had no Leantime write” remediation spam — use `edit_comment` on the status board instead. Review with checks pending: `class=ci-wait` (or `review-ci-wait`); do not `@mention` IC “for after CI”.
 9. **Dep hygiene:** If newest human comments ask to set predecessors / blocked-by / “선행” and description lacks `<!-- blocked-by:... -->`, call `set_blocked_by` in the **same run**, re-read `get_ticket`, then outcome. Do not ACK-only.
-- After merge on tenant_cd: status `Deploying Test`, assign/mention **ta** with `merge_sha`. After test evidence: ensure `@qa` `@aa`. After qa+aa pass: ensure ta `Deploying Prod`. Do not `Done` until feature evidence is complete.
+- After merge on tenant_cd: status `Deploying Test`, assign/mention **ta** with `merge_sha`. After test evidence: ensure `@qa` `@aa`. After qa+aa pass: ensure ta `Deploying Prod`. Do not `Done` until feature evidence is complete. Partial-scope / post-merge IC work: mention IC **only after** merge (or explicit In Progress bounce), never while CI is still the gate.
 - In active watcher/agent environments, re-read the active ticket comments immediately before git-ship or review handoff, and again after opening a PR. If another agent already opened or merged the same scope, do not keep a duplicate PR alive just to satisfy a handoff shape; close the duplicate with a GitHub comment, add a Leantime correction/outcome on the active ticket, and base status on the canonical merged/open PR.
 
 ### Human-only privilege handoff
