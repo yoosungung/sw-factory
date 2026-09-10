@@ -43,6 +43,9 @@ import { touchRecentProject, touchRecentTicket } from "./lib/recent";
 
 type ViewMode = "board" | "backlog" | "timeline" | "list";
 
+const EMPTY_CLIENTS: Client[] = [];
+const EMPTY_PROJECTS: Project[] = [];
+
 function BrandMark({ size = 24 }: { size?: number }) {
   return (
     <svg className="brand-mark" width={size} height={size} viewBox="0 0 32 32" aria-hidden>
@@ -123,7 +126,7 @@ function useClients(enabled = true) {
   const reload = () => client.clients().then((r) => setClients(r.clients));
   useEffect(() => {
     if (!enabled) {
-      setClients([]);
+      setClients((prev) => (prev.length === 0 ? prev : EMPTY_CLIENTS));
       return;
     }
     void reload();
@@ -132,12 +135,21 @@ function useClients(enabled = true) {
 }
 
 function useAllProjects(clients: Client[]) {
-  const [projects, setProjects] = useState<Project[]>([]);
+  const [projects, setProjects] = useState<Project[]>(EMPTY_PROJECTS);
   useEffect(() => {
+    let cancelled = false;
     void (async () => {
       const lists = await Promise.all(clients.map((c) => client.clientProjects(c.id)));
-      setProjects(lists.flatMap((l) => l.projects));
+      if (cancelled) return;
+      const next = lists.flatMap((l) => l.projects);
+      setProjects((prev) => {
+        if (prev.length === next.length && prev.every((p, i) => p.id === next[i]?.id)) return prev;
+        return next.length === 0 ? EMPTY_PROJECTS : next;
+      });
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [clients]);
   return projects;
 }
@@ -1606,7 +1618,7 @@ export function App() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
   const { clients } = useClients(!!user);
-  const projects = useAllProjects(user ? clients : []);
+  const projects = useAllProjects(user ? clients : EMPTY_CLIENTS);
 
   if (user === undefined) return <div className="empty">Loading…</div>;
 
