@@ -14,14 +14,15 @@
 ## 2. 공통 크롬
 
 ```
-┌─ Top nav (전역) ─────────────────────────────────────────────┐
-│ Logo │ Your work ▾ │ Projects ▾ │ Filters ▾ │ Dashboards ▾ │ Teams ▾ │
-│                              [Search] [Create] [Avatar ▾]     │
-├─ (프로젝트 진입 시) Side ─┬─ Main ────────────────────────────┤
-│ Back · Project · Planning │ view / settings / issue panel    │
-│ Timeline Backlog Board…   │                                  │
-└───────────────────────────┴──────────────────────────────────┘
+┌─ Top nav (전역, 직접 링크) ─────────────────────────────────┐
+│ Logo │ Spaces │ Projects │ Your work │ [Create] [Search] [Avatar ▾] │
+├─ (Space/Project 진입 시에만 Side) ─┬─ Main ──────────────────┤
+│ Back · Project · Planning          │ view / settings / issue │
+│ Timeline Backlog Board List        │                           │
+└────────────────────────────────────┴───────────────────────────┘
 ```
+
+전역 화면(`/`, `/spaces`, `/your-work`, `/search`, `/account`)에는 사이드바를 두지 않는다.
 
 세부 메뉴: [menus.md](menus.md). 화면: [pages.md](pages.md). 관리: [admin.md](admin.md).
 
@@ -32,6 +33,7 @@ flowchart TB
   Auth["/login · /register"]
   YW["/your-work"]
   Home["/  Projects"]
+  Spaces["/spaces"]
   Space["/clients/:id"]
   SpaceSet["/clients/:id/settings/*"]
   Proj["/projects/:id"]
@@ -45,24 +47,27 @@ flowchart TB
   Issue["?issue= 또는 /browse/:ticketId"]
 
   Auth --> Home
-  Home --> Space
+  Top[Top nav] --> Spaces
+  Top --> Home
+  Top --> YW
+  Top --> Search
+  Top --> Account
+  Spaces --> Space
+  Home --> Proj
   Space --> Proj
   Proj --> Views
   Views --> Issue
   Space --> SpaceSet
   Proj --> PSet
-  Top[Top nav] --> YW
-  Top --> Filters
-  Top --> Dash
-  Top --> Teams
-  Top --> Account
-  Top --> Search
+  Search --> Filters
+  YW --> Dash
 ```
 
 | 경로 | 역할 | 문서 |
 | --- | --- | --- |
 | `/login`, `/register` | 인증 | pages F1 |
-| `/` | Projects = Space(Client) 목록 | F2 |
+| `/` | Projects 목록 (`GET /api/projects`) | F2 |
+| `/spaces` | Spaces 목록 (`GET /api/clients`) | F2b |
 | `/your-work` | 내 이슈·최근 프로젝트 | F3 |
 | `/clients/:id` | Space hub | F4 |
 | `/clients/:id/settings/*` | Space 관리 | admin |

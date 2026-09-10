@@ -16,10 +16,19 @@
 
 ## F2. Projects — `/`
 
-**Layout:** Top nav + 제목 Projects + Create project + Space(Client) 그리드/테이블 (Name, Description, Project count, Role).  
-**Behavior:** 행 → `/clients/:id`; Create → Client 생성 모달. 검색/정렬.  
+**Layout:** Top nav(사이드바 없음) + 제목 Projects + Create space · Create project + 테이블 (Name, Space, Role).  
+**Behavior:** 행 → `/projects/:id?view=board` (Space hub 생략). Create space → `POST /api/clients` 후 hub; Create project → space 선택 후 `POST /api/projects`.  
+**API:** `GET /api/projects`, `GET /api/clients`.  
+**Connections:** → Project board. Top nav **Projects**.
+
+---
+
+## F2b. Spaces — `/spaces`
+
+**Layout:** Top nav + 제목 Spaces + Create space + Client 테이블 (Name, Role).  
+**Behavior:** 행 → `/clients/:id`.  
 **API:** `GET/POST /api/clients`.  
-**Connections:** → Space hub.
+**Connections:** → Space hub. Top nav **Spaces**.
 
 ---
 
@@ -28,16 +37,16 @@
 **Layout:** 탭 또는 섹션 — Assigned to me | Recently viewed | Recent projects.  
 **Behavior:** 이슈 행 → `/browse/:id` 또는 프로젝트 보드+`?issue=`; 프로젝트 카드 → Board.  
 **API:** `GET /api/projects`; tickets by `assignee_id=me` (ARCHITECTURE §4); recent은 클라이언트 저장.  
-**Connections:** → Issue · Project board.
+**Connections:** → Issue · Project board. Top nav **Your work**. Dashboard는 이 화면에서 연결.
 
 ---
 
 ## F4. Space hub — `/clients/:id`
 
-**Layout:** Breadcrumb, Space 헤더(이름·설명·⚙️), Create project, 프로젝트 테이블 (Name, updated, role).  
-**Behavior:** 행 → `/projects/:id?view=board`; ⚙️ → settings.  
+**Layout:** Breadcrumb, Space 헤더(이름·설명·⚙️), Create project, People, 프로젝트 테이블 (Name, role).  
+**Behavior:** 행 → `/projects/:id?view=board`; ⚙️ → settings; People → `.../settings/people`.  
 **API:** `GET /api/clients/:id`, `GET …/projects`, `POST /api/projects`.  
-**Connections:** → Project views.
+**Connections:** → Project views · Space People.
 
 ---
 
@@ -100,7 +109,7 @@
 **Behavior:** 저장·복제·삭제·star; 결과 행 → issue.  
 **Data:** Prod — localStorage (`lt_saved_filters`)로 저장·실행; 서버 `saved_filters` 승격은 후속.  
 **API:** 실행은 `GET …/tickets` query (+ 클라이언트 text 필터).  
-**Connections:** → Issue.
+**Connections:** → Issue. Top nav에는 없음 — Search에서 **Saved filters**로 진입.
 
 ---
 
@@ -109,7 +118,7 @@
 **Layout:** 위젯 그리드 (리사이즈·배치 Prod). 위젯 예: My open issues, Projects I own, Issues by status(선택한 project).  
 **Behavior:** 위젯 추가/제거; 클릭 → Your work / Board / List.  
 **Data:** 사용자당 대시보드 메타 localStorage (`lt_saved_dashboards`) + 위젯은 tickets/projects API.  
-**Connections:** → Your work · Board · List.
+**Connections:** → Your work · Board · List. Top nav에는 없음 — Your work에서 **Dashboard**로 진입.
 
 ---
 
@@ -118,7 +127,7 @@
 **Layout:** People 테이블 (name, email, Spaces/Projects 소속 요약). 검색.  
 **Behavior:** 행 → 해당 사용자가 속한 Space/Project 목록 패널; Add to project(owner 컨텍스트).  
 **API:** members 목록 API 보강(설계: `GET /api/people` = 내가 볼 수 있는 멤버 합집합).  
-**Connections:** → Space/Project People.
+**Connections:** → Space/Project People. Top nav에는 없음 — Space hub **People**이 members API 화면.
 
 ---
 
@@ -127,7 +136,7 @@
 **Layout:** 통합 결과 섹션: Issues / Projects / Spaces.  
 **Behavior:** Top nav 검색·⌘K → `/search?q=`; 디바운스 재조회; 행 → issue/project/space.  
 **API:** `GET /api/search?q=` (ARCHITECTURE §4).  
-**Connections:** → Issue · Project · Space.
+**Connections:** → Issue · Project · Space. Saved filters → F10. Top nav Search.
 
 ---
 
@@ -157,13 +166,16 @@ expand / dock(선택) / Esc. 성공 → 뷰 갱신 ± issue 오픈.
 
 ```mermaid
 flowchart LR
-  F2 --> F4 --> F5
+  F2b[F2b Spaces] --> F4 --> F5
+  F2[F2 Projects] --> F5
   F5 --- F6
   F5 --- F7
   F5 --- F8
   F5 --> F9
   F3 --> F9
+  F13 --> F10
   F10 --> F9
+  F3 --> F11
   F13 --> F9
   F4 --> AdminS[Space settings]
   F5 --> AdminP[Project settings]

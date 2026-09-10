@@ -10,6 +10,7 @@ macOS + Chromium 조합에서 Playwright 기본 `fill`/`click`이 hang 되는 �
 | --- | --- |
 | `smoke.spec.ts` | health · 로그인 가드 · register/login |
 | `happy-path.spec.ts` | Space → Project → Board 이슈 생성 · Issue 패널 · settings |
+| `nav.spec.ts` | Top nav 직접 링크 (Spaces · Projects · Your work) · 프로젝트 목록→보드 |
 | `fe3-fe5.spec.ts` | Your work · Search · Account · Filters · Dashboards · History |
 
 API 단위 테스트는 `npm test`(Vitest). E2E는 브라우저 플로우만.

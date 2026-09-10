@@ -29,12 +29,12 @@
 
 | ID | 내용 (pages/menus/admin) | 완료 기준 | 의존 | 상태 |
 | --- | --- | --- | --- | --- |
-| **FE0** | **크롬·Auth**: Top nav / Project sidebar 골격, F1 Auth (`/login`·`/register`) | 세션 쿠키로 로그인·로그아웃·가드 라우트 | M1 | done |
+| **FE0** | **크롬·Auth**: Top nav(Spaces·Projects·Your work 직접 링크) / Project sidebar, F1 Auth | 세션 쿠키로 로그인·로그아웃·가드 라우트 | M1 | done |
 | **FE1** | **Space·작업 뷰 코어**: F2 Projects, F4 Space hub, F5–F8 Board/Backlog/Timeline/List, F14 Quick Create, F15 Create Space·Project | `/` · `/clients/:id` · `/projects/:id?view=` + Create 모달 동작 | M3–M5 | done |
 | **FE2** | **Issue 협업**: F9 Issue (`?issue=` / `/browse/:ticketId`) — assignee·due·priority, Comments·Files, 삭제 가드 UI | 협업 필드 인라인 저장·첨부·삭제 권한 반영 (History 탭은 FE6) | M6 | done |
 | **FE3** | **개인·검색·계정**: F3 Your work, F13 Search, Account (`/account`) — 메뉴 stub 제거 | `/your-work` · `/search` · `/account` 실데이터 | M6 | done |
 | **FE4** | **관리**: Space/Project settings (Details · People · Danger · Board 고정 컬럼 안내) | owner 가드·멤버 초대/역할/제거 UI; 빈 stub 없음 | M6 | done |
-| **FE5** | **디렉터리·저장 뷰**: F10 Filters, F11 Dashboards, F12 Teams (+ Top nav 드롭다운) | 실데이터 또는 local→서버 경로 명시·동작 (설계 승격 전 local 허용) | overview §5 승격 항목 | done |
+| **FE5** | **디렉터리·저장 뷰**: F10 Filters, F11 Dashboards, F12 Teams (Search/Your work/Space People에서 연결) | 실데이터 또는 local→서버 경로 명시·동작 (설계 승격 전 local 허용) | overview §5 승격 항목 | done |
 | **FE6** | **규모·동시성 UX**: List/Board 커서 페이징·Done 기간 필터, Presigned 업로드, `version` 409 처리, Issue History 탭 | M7/M8 API에 맞춘 UI 검증 | M7, M8 | done |
 
 권장 순서: **FE0 → FE1 → FE2 → FE4 → FE3 → FE5**, FE6은 M7/M8과 병행.

@@ -22,14 +22,11 @@ function useClients() {
   return clients;
 }
 
-function useAllProjects(clients: Client[]) {
+function useAllProjects() {
   const [projects, setProjects] = useState<Project[]>([]);
   useEffect(() => {
-    void (async () => {
-      const lists = await Promise.all(clients.map((c) => client.clientProjects(c.id)));
-      setProjects(lists.flatMap((l) => l.projects));
-    })();
-  }, [clients]);
+    void client.projects().then((r) => setProjects(r.projects));
+  }, []);
   return projects;
 }
 
@@ -49,7 +46,7 @@ export function FiltersPage({
   const { id } = useParams();
   const navigate = useNavigate();
   const clients = useClients();
-  const projects = useAllProjects(clients);
+  const projects = useAllProjects();
   const [filters, setFilters] = useState(listFilters);
   const [results, setResults] = useState<Array<Ticket & { project?: Project }>>([]);
 
@@ -259,7 +256,7 @@ export function DashboardsPage({
   const { id } = useParams();
   const navigate = useNavigate();
   const clients = useClients();
-  const projects = useAllProjects(clients);
+  const projects = useAllProjects();
   const [dashes, setDashes] = useState(listDashboards);
   const active = dashes.find((d) => d.id === (id ?? "default")) ?? dashes[0] ?? null;
   const [myOpen, setMyOpen] = useState<Ticket[]>([]);

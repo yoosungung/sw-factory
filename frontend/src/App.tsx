@@ -33,12 +33,7 @@ import {
   SearchPage,
   YourWorkPage,
 } from "./pages/Personal";
-import {
-  DashboardsPage,
-  FiltersPage,
-  dashboardSummaries,
-  starredFilters,
-} from "./pages/Directory";
+import { DashboardsPage, FiltersPage } from "./pages/Directory";
 import { touchRecentProject, touchRecentTicket } from "./lib/recent";
 
 type ViewMode = "board" | "backlog" | "timeline" | "list";
@@ -134,23 +129,26 @@ function useClients(enabled = true) {
   return { clients, reload };
 }
 
-function useAllProjects(clients: Client[]) {
+function useAllProjects(enabled = true) {
   const [projects, setProjects] = useState<Project[]>(EMPTY_PROJECTS);
   useEffect(() => {
+    if (!enabled) {
+      setProjects(EMPTY_PROJECTS);
+      return;
+    }
     let cancelled = false;
-    void (async () => {
-      const lists = await Promise.all(clients.map((c) => client.clientProjects(c.id)));
+    void client.projects().then((r) => {
       if (cancelled) return;
-      const next = lists.flatMap((l) => l.projects);
+      const next = r.projects;
       setProjects((prev) => {
         if (prev.length === next.length && prev.every((p, i) => p.id === next[i]?.id)) return prev;
         return next.length === 0 ? EMPTY_PROJECTS : next;
       });
-    })();
+    });
     return () => {
       cancelled = true;
     };
-  }, [clients]);
+  }, [enabled]);
   return projects;
 }
 
@@ -508,21 +506,26 @@ function CreateSpaceDialog({
 
 function CreateProjectUnderClientDialog({
   clientId,
+  clients,
   onClose,
   onCreated,
 }: {
-  clientId: string;
+  clientId?: string;
+  clients?: Client[];
   onClose: () => void;
   onCreated: (projectId: string) => void;
 }) {
   const [name, setName] = useState("");
+  const [spaceId, setSpaceId] = useState(clientId ?? clients?.[0]?.id ?? "");
   const [busy, setBusy] = useState(false);
   useEscape(onClose, true);
+  const pickSpace = !clientId && (clients?.length ?? 0) > 0;
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (!spaceId) return;
     setBusy(true);
-    const r = await client.createProject({ name, client_id: clientId });
+    const r = await client.createProject({ name, client_id: spaceId });
     onCreated(r.project.id);
   }
 
@@ -536,6 +539,18 @@ function CreateProjectUnderClientDialog({
           </button>
         </div>
         <div className="create-dialog-body">
+          {pickSpace && (
+            <label className="span-2">
+              Space <span className="req">*</span>
+              <select value={spaceId} onChange={(e) => setSpaceId(e.target.value)} required>
+                {clients!.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
           <label className="span-2">
             Name <span className="req">*</span>
             <input value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
@@ -545,7 +560,7 @@ function CreateProjectUnderClientDialog({
           <button type="button" className="btn-subtle" onClick={onClose}>
             Cancel
           </button>
-          <button className="btn-primary" disabled={busy}>
+          <button className="btn-primary" disabled={busy || !spaceId}>
             Create
           </button>
         </div>
@@ -554,27 +569,28 @@ function CreateProjectUnderClientDialog({
   );
 }
 
+function navItemClass(active: boolean) {
+  return `nav-item ${active ? "open" : ""}`;
+}
+
 function TopNav({
   user,
-  clients,
-  projects,
   onLogout,
   onCreateIssue,
-  onCreateSpace,
 }: {
   user: User;
-  clients: Client[];
-  projects: Project[];
   onLogout: () => void;
   onCreateIssue: () => void;
-  onCreateSpace: () => void;
 }) {
   const [menu, setMenu] = useState<string | null>(null);
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchQ, setSearchQ] = useState("");
   const close = () => setMenu(null);
-  const starred = starredFilters();
-  const dashes = dashboardSummaries();
+  const path = location.pathname;
+  const spacesActive = path === "/spaces" || path.startsWith("/clients/");
+  const projectsActive = path === "/" || path.startsWith("/projects/");
+  const workActive = path === "/your-work";
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -594,112 +610,15 @@ function TopNav({
         <span>{APP_NAME}</span>
       </Link>
 
-      <MenuDropdown
-        label="Your work"
-        open={menu === "work"}
-        onToggle={() => setMenu(menu === "work" ? null : "work")}
-        onClose={close}
-      >
-        <div className="menu-title">Recent projects</div>
-        {projects.slice(0, 5).map((p) => (
-          <Link key={p.id} className="menu-item" to={`/projects/${p.id}`} onClick={close}>
-            <span className="project-icon sm">{initials(p.name)}</span>
-            <span>
-              <div>{p.name}</div>
-              <div className="muted">Project</div>
-            </span>
-          </Link>
-        ))}
-        {projects.length === 0 && <div className="menu-empty">No recent work</div>}
-        <div className="menu-sep" />
-        <Link className="menu-item" to="/your-work" onClick={close}>
-          Go to Your work
-        </Link>
-      </MenuDropdown>
-
-      <MenuDropdown
-        label="Projects"
-        open={menu === "projects"}
-        onToggle={() => setMenu(menu === "projects" ? null : "projects")}
-        onClose={close}
-      >
-        <div className="menu-title">Recent</div>
-        {projects.slice(0, 6).map((p) => (
-          <Link key={p.id} className="menu-item" to={`/projects/${p.id}`} onClick={close}>
-            <span className="project-icon sm">{initials(p.name)}</span>
-            {p.name}
-          </Link>
-        ))}
-        <div className="menu-sep" />
-        <Link className="menu-item" to="/" onClick={close}>
-          View all projects
-        </Link>
-        <button
-          type="button"
-          className="menu-item btn-as-item"
-          onClick={() => {
-            close();
-            onCreateSpace();
-          }}
-        >
-          Create space
-        </button>
-      </MenuDropdown>
-
-      <MenuDropdown
-        label="Filters"
-        open={menu === "filters"}
-        onToggle={() => setMenu(menu === "filters" ? null : "filters")}
-        onClose={close}
-      >
-        <div className="menu-title">Starred</div>
-        {starred.map((f) => (
-          <Link key={f.id} className="menu-item" to={`/filters/${f.id}`} onClick={close}>
-            ★ {f.name}
-          </Link>
-        ))}
-        {starred.length === 0 && <div className="menu-empty">Star a filter to see it here</div>}
-        <div className="menu-sep" />
-        <Link className="menu-item" to="/filters" onClick={close}>
-          View all filters
-        </Link>
-        <Link className="menu-item" to="/search" onClick={close}>
-          Advanced issue search
-        </Link>
-      </MenuDropdown>
-
-      <MenuDropdown
-        label="Dashboards"
-        open={menu === "dash"}
-        onToggle={() => setMenu(menu === "dash" ? null : "dash")}
-        onClose={close}
-      >
-        {dashes.map((d) => (
-          <Link key={d.id} className="menu-item" to={`/dashboards/${d.id}`} onClick={close}>
-            {d.name}
-          </Link>
-        ))}
-        <div className="menu-sep" />
-        <Link className="menu-item" to="/dashboards" onClick={close}>
-          View all dashboards
-        </Link>
-        <Link className="menu-item" to="/dashboards" onClick={close}>
-          Create dashboard
-        </Link>
-      </MenuDropdown>
-
-      <MenuDropdown
-        label="Teams"
-        open={menu === "teams"}
-        onToggle={() => setMenu(menu === "teams" ? null : "teams")}
-        onClose={close}
-      >
-        <div className="menu-empty">{clients.length} spaces available</div>
-        <div className="menu-sep" />
-        <Link className="menu-item" to="/teams" onClick={close}>
-          People directory
-        </Link>
-      </MenuDropdown>
+      <Link to="/spaces" className={navItemClass(spacesActive)}>
+        Spaces
+      </Link>
+      <Link to="/" className={navItemClass(projectsActive)}>
+        Projects
+      </Link>
+      <Link to="/your-work" className={navItemClass(workActive)}>
+        Your work
+      </Link>
 
       <button type="button" className="btn-create" onClick={onCreateIssue}>
         Create
@@ -736,10 +655,7 @@ function TopNav({
         </div>
         <div className="menu-sep" />
         <Link className="menu-item" to="/account" onClick={close}>
-          Profile
-        </Link>
-        <Link className="menu-item" to="/account" onClick={close}>
-          Account settings
+          Account
         </Link>
         <div className="menu-sep" />
         <button
@@ -887,29 +803,24 @@ function AppChrome({
 }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [createIssue, setCreateIssue] = useState(false);
-  const [createSpace, setCreateSpace] = useState(false);
   const [docked, setDocked] = useState(false);
   const navigate = useNavigate();
+  const showSidebar = Boolean(activeClient || activeProject);
 
   return (
     <div className="app-shell">
-      <TopNav
-        user={user}
-        clients={clients}
-        projects={projects}
-        onLogout={onLogout}
-        onCreateIssue={() => setCreateIssue(true)}
-        onCreateSpace={() => setCreateSpace(true)}
-      />
-      <div className="shell-body">
-        <Sidebar
-          clients={clients}
-          activeClient={activeClient}
-          activeProject={activeProject}
-          view={view}
-          collapsed={sidebarCollapsed}
-          onToggle={() => setSidebarCollapsed((v) => !v)}
-        />
+      <TopNav user={user} onLogout={onLogout} onCreateIssue={() => setCreateIssue(true)} />
+      <div className={`shell-body ${showSidebar ? "" : "no-sidebar"}`.trim()}>
+        {showSidebar && (
+          <Sidebar
+            clients={clients}
+            activeClient={activeClient}
+            activeProject={activeProject}
+            view={view}
+            collapsed={sidebarCollapsed}
+            onToggle={() => setSidebarCollapsed((v) => !v)}
+          />
+        )}
         <main className="main">{children}</main>
       </div>
 
@@ -929,15 +840,6 @@ function AppChrome({
           }}
         />
       )}
-      {createSpace && (
-        <CreateSpaceDialog
-          onClose={() => setCreateSpace(false)}
-          onCreated={(id) => {
-            setCreateSpace(false);
-            navigate(`/clients/${id}`);
-          }}
-        />
-      )}
     </div>
   );
 }
@@ -946,9 +848,15 @@ function AppChrome({
 
 function ProjectsHome({ user, onLogout }: { user: User; onLogout: () => void }) {
   const { clients, reload } = useClients();
-  const projects = useAllProjects(clients);
+  const projects = useAllProjects();
   const [createSpace, setCreateSpace] = useState(false);
+  const [createProject, setCreateProject] = useState(false);
+  const [filter, setFilter] = useState("");
   const navigate = useNavigate();
+
+  const q = filter.trim().toLowerCase();
+  const shown = q ? projects.filter((p) => p.name.toLowerCase().includes(q)) : projects;
+  const spaceName = (clientId: string) => clients.find((c) => c.id === clientId)?.name ?? "—";
 
   return (
     <AppChrome user={user} onLogout={onLogout} clients={clients} projects={projects} view="list">
@@ -958,39 +866,117 @@ function ProjectsHome({ user, onLogout }: { user: User; onLogout: () => void }) 
         </div>
         <div className="page-title-row">
           <h1>Projects</h1>
+          <div className="row-gap">
+            <button type="button" className="btn-subtle" onClick={() => setCreateSpace(true)}>
+              Create space
+            </button>
+            <button
+              type="button"
+              className="btn-primary"
+              disabled={clients.length === 0}
+              onClick={() => setCreateProject(true)}
+            >
+              Create project
+            </button>
+          </div>
+        </div>
+      </div>
+      <div className="toolbar">
+        <input
+          className="quick-filter"
+          placeholder="Search projects"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+        />
+      </div>
+      <div className="content-panel tableish cols-3">
+        <div className="list-row head">
+          <span>Name</span>
+          <span>Space</span>
+          <span>Role</span>
+        </div>
+        {shown.map((p) => (
+          <Link key={p.id} to={`/projects/${p.id}?view=board`} className="list-row linkish">
+            <span className="name-cell">
+              <span className="project-icon sm">{initials(p.name)}</span>
+              {p.name}
+            </span>
+            <span className="muted">{spaceName(p.client_id)}</span>
+            <span className="muted">{p.role ?? "member"}</span>
+          </Link>
+        ))}
+        {shown.length === 0 && (
+          <div className="empty">
+            {clients.length === 0 ? "Create a space to get started." : "No projects yet."}
+          </div>
+        )}
+      </div>
+      {createSpace && (
+        <CreateSpaceDialog
+          onClose={() => setCreateSpace(false)}
+          onCreated={async (id) => {
+            setCreateSpace(false);
+            await reload();
+            navigate(`/clients/${id}`);
+          }}
+        />
+      )}
+      {createProject && (
+        <CreateProjectUnderClientDialog
+          clients={clients}
+          onClose={() => setCreateProject(false)}
+          onCreated={(pid) => navigate(`/projects/${pid}`)}
+        />
+      )}
+    </AppChrome>
+  );
+}
+
+function SpacesPage({ user, onLogout }: { user: User; onLogout: () => void }) {
+  const { clients, reload } = useClients();
+  const projects = useAllProjects();
+  const [createSpace, setCreateSpace] = useState(false);
+  const [filter, setFilter] = useState("");
+  const navigate = useNavigate();
+  const q = filter.trim().toLowerCase();
+  const shown = q ? clients.filter((c) => c.name.toLowerCase().includes(q)) : clients;
+
+  return (
+    <AppChrome user={user} onLogout={onLogout} clients={clients} projects={projects} view="list">
+      <div className="page-header">
+        <div className="breadcrumb">
+          <span>{APP_NAME}</span>
+        </div>
+        <div className="page-title-row">
+          <h1>Spaces</h1>
           <button type="button" className="btn-primary" onClick={() => setCreateSpace(true)}>
             Create space
           </button>
         </div>
       </div>
       <div className="toolbar">
-        <input className="quick-filter" placeholder="Search projects" />
-        <button type="button" className="chip active">
-          All
-        </button>
-        <button type="button" className="chip">
-          Recent
-        </button>
+        <input
+          className="quick-filter"
+          placeholder="Search spaces"
+          value={filter}
+          onChange={(e) => setFilter(e.target.value)}
+        />
       </div>
-      <div className="content-panel tableish">
+      <div className="content-panel tableish cols-2">
         <div className="list-row head">
           <span>Name</span>
-          <span>Key</span>
-          <span>Type</span>
-          <span>Lead</span>
+          <span>Role</span>
         </div>
-        {clients.map((c) => (
+        {shown.map((c) => (
           <Link key={c.id} to={`/clients/${c.id}`} className="list-row linkish">
             <span className="name-cell">
               <span className="project-icon client sm">{initials(c.name)}</span>
               {c.name}
             </span>
-            <span className="muted">{c.name.slice(0, 3).toUpperCase()}</span>
-            <span className="muted">Space</span>
             <span className="muted">{c.role}</span>
           </Link>
         ))}
-        {clients.length === 0 && <div className="empty">Create a project to get started.</div>}
+        {shown.length === 0 && <div className="empty">Create a space to get started.</div>}
       </div>
       {createSpace && (
         <CreateSpaceDialog
@@ -1009,7 +995,7 @@ function ProjectsHome({ user, onLogout }: { user: User; onLogout: () => void }) 
 function ClientPage({ user, onLogout }: { user: User; onLogout: () => void }) {
   const { id = "" } = useParams();
   const { clients } = useClients();
-  const allProjects = useAllProjects(clients);
+  const allProjects = useAllProjects();
   const [org, setOrg] = useState<Client | null>(null);
   const [projects, setProjects] = useState<Project[]>([]);
   const [createOpen, setCreateOpen] = useState(false);
@@ -1049,6 +1035,9 @@ function ClientPage({ user, onLogout }: { user: User; onLogout: () => void }) {
         <div className="page-title-row">
           <h1>{org.name}</h1>
           <div className="row-gap">
+            <Link className="btn-subtle" to={`/clients/${id}/settings/people`}>
+              People
+            </Link>
             <Link className="btn-subtle" to={`/clients/${id}/settings/details`} title="Space settings">
               ⚙️ Settings
             </Link>
@@ -1096,7 +1085,7 @@ function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () => void
   const issueId = qs.get("issue");
 
   const { clients } = useClients();
-  const allProjects = useAllProjects(clients);
+  const allProjects = useAllProjects();
   const [project, setProject] = useState<Project | null>(null);
   const [org, setOrg] = useState<Client | null>(null);
   const [columns, setColumns] = useState<Record<Ticket["status"], Ticket[]>>({
@@ -1618,7 +1607,7 @@ export function App() {
   const { user, setUser } = useAuth();
   const navigate = useNavigate();
   const { clients } = useClients(!!user);
-  const projects = useAllProjects(user ? clients : EMPTY_CLIENTS);
+  const projects = useAllProjects(!!user);
 
   if (user === undefined) return <div className="empty">Loading…</div>;
 
@@ -1692,6 +1681,7 @@ export function App() {
       <Route path="/login" element={<Navigate to="/" replace />} />
       <Route path="/register" element={<Navigate to="/" replace />} />
       <Route path="/" element={<ProjectsHome user={user} onLogout={onLogout} />} />
+      <Route path="/spaces" element={<SpacesPage user={user} onLogout={onLogout} />} />
       <Route
         path="/your-work"
         element={<YourWorkPage user={user} onLogout={onLogout} chrome={pageChrome} />}
@@ -1746,7 +1736,7 @@ export function App() {
 
 function TeamsPage({ user, onLogout }: { user: User; onLogout: () => void }) {
   const { clients } = useClients();
-  const projects = useAllProjects(clients);
+  const projects = useAllProjects();
   const [people, setPeople] = useState<
     Array<Member & { spaces: string[] }>
   >([]);
@@ -1800,7 +1790,7 @@ function BrowseIssuePage({ user, onLogout }: { user: User; onLogout: () => void 
   const { ticketId = "" } = useParams();
   const navigate = useNavigate();
   const { clients } = useClients();
-  const allProjects = useAllProjects(clients);
+  const allProjects = useAllProjects();
   const [ticket, setTicket] = useState<Ticket | null>(null);
   const [project, setProject] = useState<Project | null>(null);
   const [members, setMembers] = useState<Member[]>([]);

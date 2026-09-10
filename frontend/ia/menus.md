@@ -8,89 +8,66 @@
 
 ## 1. Top navigation
 
+백엔드 REST 표면에 1:1. 드롭다운 없이 **직접 링크**(Avatar만 예외). 활성 항목은 라우트 prefix 매칭.
+
 ```
 [ Logo → / ]
-[ Your work ▾ ] [ Projects ▾ ] [ Filters ▾ ] [ Dashboards ▾ ] [ Teams ▾ ]
-[ Search ] [ Create ] [ Avatar ▾ ]
+[ Spaces ] [ Projects ] [ Your work ]
+[ Create ] [ Search ] [ Avatar ▾ ]
 ```
 
-### 1.1 Your work ▾
+| 메뉴 | 경로 | API |
+| --- | --- | --- |
+| Spaces | `/spaces` | `GET /api/clients` |
+| Projects | `/` | `GET /api/projects` |
+| Your work | `/your-work` | `GET /api/projects` + `…/tickets?assignee_id=me` |
+| Search | `/search?q=` | `GET /api/search` |
+| Create | Quick Create 모달 | `POST /api/projects/:id/tickets` |
+| Avatar | `/account` · logout | `GET/PATCH /api/users/me`, `POST /api/auth/logout` |
 
-| 항목 | 동작 |
-| --- | --- |
-| 최근 프로젝트 (N) | → `/projects/:id?view=board` |
-| Worked on / Assigned to me (요약) | → `/your-work` |
-| View all your work | → `/your-work` |
+**Top nav에 두지 않음:** Filters · Dashboards(서버 리소스 없음, [pages F10·F11](pages.md)에서 Search/Your work로 연결) · Teams(전용 API 없음 — People은 Space/Project settings).
 
-데이터: local recent + `GET /api/projects` + assignee 필터 티켓 (`GET /api/projects/:id/tickets?assignee_id=me`, ARCHITECTURE §4 승격).
+### 1.1 Spaces
 
-### 1.2 Projects ▾
+→ `/spaces`. 행 → Space hub `/clients/:id`. Create space → `POST /api/clients`.
 
-| 항목 | 동작 |
-| --- | --- |
-| 최근 프로젝트 | → `/projects/:id` |
-| View all projects | → `/` |
-| **Create project** | Space(Client) 생성 다이얼로그 → `/clients/:id` |
+### 1.2 Projects
 
-### 1.3 Filters ▾
+→ `/`. 내가 멤버인 프로젝트 목록. 행 → `/projects/:id?view=board` (Space hub 경유 생략). Create space / Create project.
 
-| 항목 | 동작 |
-| --- | --- |
-| Starred / 최근 필터 | → `/filters/:id` |
-| View all filters | → `/filters` |
-| **Create filter** | → `/filters/new` |
+### 1.3 Your work
 
-실데이터(저장 필터). stub 문구만 두지 않는다. 스키마 승격 전엔 브라우저 로컬 + 마이그레이션 경로를 설계에 명시([pages F10](pages.md)).
+→ `/your-work`. Assigned / Recently viewed / Recent projects.
 
-### 1.4 Dashboards ▾
-
-| 항목 | 동작 |
-| --- | --- |
-| 기본 / 최근 대시보드 | → `/dashboards/:id` |
-| View all dashboards | → `/dashboards` |
-| Create dashboard | → `/dashboards/new` |
-
-위젯: My open issues, Recent projects, Done this week(status 이력 없을 때 `updated_at`+done 근사).
-
-### 1.5 Teams ▾
-
-| 항목 | 동작 |
-| --- | --- |
-| People directory | → `/teams` |
-| (컨텍스트) 현재 Space/Project 멤버 바로가기 | → 해당 settings/people |
-
-전역 RBAC 없음.
-
-### 1.6 Search
+### 1.4 Search
 
 | 동작 | |
 | --- | --- |
 | 클릭/⌘K | Search 팝오버 또는 `/search?q=` |
 | 범위 | Projects, Clients(Spaces), Tickets(title) |
 
-### 1.7 Create
+### 1.5 Create
 
 전역 **Quick Create** 모달 — [pages F14](pages.md).  
 기본 Project = 현재 `/projects/:id` 또는 최근.
 
-### 1.8 Avatar ▾
+### 1.6 Avatar ▾
 
 | 항목 | 동작 |
 | --- | --- |
-| Profile | → `/account` |
-| Account settings | → `/account` (프로필·비밀번호) |
+| Account | → `/account` |
 | Log out | `POST /api/auth/logout` |
 
 **넣지 않음:** Notifications, API tokens, Plugins, Admin 플러그인 설정 (Exclude).
 
 ---
 
-## 2. Projects home 컨텍스트 (`/`)
+## 2. Projects home (`/`) · Spaces (`/spaces`)
 
 페이지 툴바(메뉴가 아님):
 
-- Create project (Space)
-- 검색/필터: name
+- Projects: Create space · Create project · name 검색
+- Spaces: Create space · name 검색
 
 ---
 
@@ -164,10 +141,12 @@ Space hub 컨텍스트.
 
 | 메뉴 표면 | Backend | Prod |
 | --- | --- | --- |
-| Auth / Avatar | auth | Adopt |
-| Projects / Space | clients, projects | Adopt |
+| Auth / Avatar | auth, users | Adopt |
+| Spaces | clients | Adopt |
+| Projects | projects | Adopt |
 | Planning views / Issue | tickets, comments, files | Adopt |
-| Your work / Search / Filters | tickets (+ assignee 승격) | Prod |
-| Teams / People settings | client_members, project_members | Prod·API 보강 |
-| Dashboards | 집계·list 조합 | Prod |
+| Your work | tickets `assignee_id=me` | Adopt |
+| Search | `GET /api/search` | Adopt |
+| People (settings) | client_members, project_members | Adopt |
+| Filters / Dashboards | local + tickets 조합 (Top nav 없음) | FE5 local |
 | Calendar, Ideas, Timesheets, Notifications, Plugins, Tokens | — | Exclude |

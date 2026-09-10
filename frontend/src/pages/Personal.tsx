@@ -12,14 +12,11 @@ function useClients() {
   return clients;
 }
 
-function useAllProjects(clients: Client[]) {
+function useAllProjects() {
   const [projects, setProjects] = useState<Project[]>([]);
   useEffect(() => {
-    void (async () => {
-      const lists = await Promise.all(clients.map((c) => client.clientProjects(c.id)));
-      setProjects(lists.flatMap((l) => l.projects));
-    })();
-  }, [clients]);
+    void client.projects().then((r) => setProjects(r.projects));
+  }, []);
   return projects;
 }
 
@@ -44,7 +41,7 @@ export function YourWorkPage({
   chrome: ChromeFn;
 }) {
   const clients = useClients();
-  const projects = useAllProjects(clients);
+  const projects = useAllProjects();
   const [tab, setTab] = useState<"assigned" | "viewed" | "projects">("assigned");
   const [assigned, setAssigned] = useState<Array<Ticket & { project?: Project }>>([]);
   const [viewed, setViewed] = useState<Array<Ticket & { project?: Project }>>([]);
@@ -99,6 +96,11 @@ export function YourWorkPage({
       <>
         <div className="page-header">
           <h1>Your work</h1>
+          <div className="row-gap">
+            <Link className="btn-subtle" to="/dashboards">
+              Dashboard
+            </Link>
+          </div>
           <div className="activity-tabs">
             {(
               [
@@ -179,7 +181,7 @@ export function AccountPage({
   chrome: ChromeFn;
 }) {
   const clients = useClients();
-  const projects = useAllProjects(clients);
+  const projects = useAllProjects();
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -299,7 +301,7 @@ export function SearchPage({
   chrome: ChromeFn;
 }) {
   const clients = useClients();
-  const projects = useAllProjects(clients);
+  const projects = useAllProjects();
   const [params, setParams] = useSearchParams();
   const qParam = params.get("q") ?? "";
   const [q, setQ] = useState(qParam);
@@ -339,6 +341,9 @@ export function SearchPage({
       <>
         <div className="page-header">
           <h1>Search</h1>
+          <p className="muted pad">
+            <Link to="/filters">Saved filters</Link>
+          </p>
           <form
             className="search-form"
             onSubmit={(e) => {
