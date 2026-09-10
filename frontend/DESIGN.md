@@ -1,6 +1,6 @@
 # Frontend Design
 
-Jira Software와 **같은 사용 방식**을 프론트에서 모사한다. API는 기존 `/api/*`만 사용.  
+SW Factory SPA. API는 `/api/*`만 사용.  
 **Prod IA:** [ia/](ia/) ([overview](ia/overview.md) · [menus](ia/menus.md) · [pages](ia/pages.md) · [admin](ia/admin.md)).  
 API 설계: [backend/DESIGN.md](../backend/DESIGN.md) · 계약: [ARCHITECTURE.md](../ARCHITECTURE.md).
 

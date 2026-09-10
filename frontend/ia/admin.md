@@ -1,6 +1,6 @@
 # Frontend — Admin / 관리 (Prod)
 
-Jira Project/Space settings·People을 **멤버십 모델**(`owner`\|`member`)로 구현한다.  
+Space/Project settings·People을 **멤버십 모델**(`owner`\|`member`)로 구현한다.  
 전역 RBAC·플러그인·전역 settings·PAT는 Exclude — [backend §2](../../backend/DESIGN.md#2-도메인-범위).
 
 관리 UI는 **빈 stub 금지**. owner가 아니면 읽기 전용 또는 메뉴 숨김.
@@ -24,7 +24,7 @@ Jira Project/Space settings·People을 **멤버십 모델**(`owner`\|`member`)�
 
 ## 2. Space settings — `/clients/:id/settings/*`
 
-Jira Space/사이트 관리 축소.
+Space/사이트 관리 축소.
 
 ### 2.1 Details — `.../details`
 
@@ -55,7 +55,7 @@ owner만 멤버 추가/제거 가능. 마지막 owner는 제거할 수 없음.
 
 ## 3. Project settings — `/projects/:id/settings/*`
 
-Jira Project settings (Details / People).
+Project settings (Details / People).
 
 ### 3.1 Details — `.../details`
 
@@ -88,7 +88,7 @@ Space People와 동일 UX.
 
 ## 4. Account — `/account`
 
-Jira Profile에 대응.
+계정 프로필.
 
 | 섹션 | 필드 | API |
 | --- | --- | --- |

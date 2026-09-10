@@ -5,7 +5,7 @@
 | 축 | 선택 |
 | --- | --- |
 | 무엇을 | Space(Client)·Project·Board/Backlog/Timeline/List·Issue·관리 |
-| 어떻게 | Jira Software식 내비·Create·보드·이슈 열기·Project settings |
+| 어떻게 | Top nav·Create·보드·이슈 패널·Project settings 중심 SPA |
 | 데이터 | backend REST + 세션 쿠키만 |
 | 권한 UI | `owner` \| `member` (전역 RBAC·플러그인 설정 없음) |
 

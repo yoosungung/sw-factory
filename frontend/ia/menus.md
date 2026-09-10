@@ -1,6 +1,6 @@
 # Frontend — Menus (Prod)
 
-Jira식 드롭다운·사이드바. Exclude 도메인은 메뉴에 넣지 않는다.
+드롭다운·사이드바 크롬. Exclude 도메인은 메뉴에 넣지 않는다.
 
 공통: Esc / 바깥 클릭으로 닫기. 활성 항목은 라우트 매칭.
 
@@ -98,8 +98,8 @@ Jira식 드롭다운·사이드바. Exclude 도메인은 메뉴에 넣지 않는
 
 ```
 Breadcrumb: Projects / {Space}
-[ Space name ] [ Create software project ] [ ⚙️ Space settings ]
-테이블: software projects
+[ Space name ] [ Create project ] [ ⚙️ Space settings ]
+테이블: projects
 ```
 
 | 메뉴 | 경로 |
@@ -109,7 +109,7 @@ Breadcrumb: Projects / {Space}
 | → People | `.../settings/people` |
 | → Delete | `.../settings/danger` (owner) |
 
-Jira Space hub에 해당하는 Space 컨텍스트.
+Space hub 컨텍스트.
 
 ---
 
@@ -130,7 +130,7 @@ Jira Space hub에 해당하는 Space 컨텍스트.
 
 | 구역 | 항목 | 비고 |
 | --- | --- | --- |
-| Planning | Timeline, Backlog, Board, List | Jira Planning에 대응 |
+| Planning | Timeline, Backlog, Board, List | 작업 뷰 전환 |
 | Development | — | 비표시 |
 | Think | Ideas/Wiki/Goals | **Exclude** |
 | Time | Timesheets/Calendar | **Exclude** |

@@ -54,8 +54,8 @@ export async function login(page: Page, email: string, password: string) {
 }
 
 export async function createSpace(page: Page, name: string) {
-  await clickEl(page.getByRole("button", { name: "Create project" }).first());
-  const dialog = page.locator(".create-dialog").filter({ hasText: "Create project" });
+  await clickEl(page.getByRole("button", { name: "Create space" }).first());
+  const dialog = page.locator(".create-dialog").filter({ hasText: "Create space" });
   await fillField(dialog.getByLabel(/Name/), name);
   await submitForm(dialog);
   await expect(page.getByRole("heading", { name })).toBeVisible();
@@ -63,7 +63,7 @@ export async function createSpace(page: Page, name: string) {
 
 export async function createSoftwareProject(page: Page, name: string) {
   await clickEl(page.getByRole("button", { name: "Create project" }));
-  const dialog = page.locator(".create-dialog").filter({ hasText: "Create software project" });
+  const dialog = page.locator(".create-dialog").filter({ hasText: "Create project" });
   await fillField(dialog.getByLabel(/Name/), name);
   await submitForm(dialog);
   await expect(page).toHaveURL(/\/projects\//);

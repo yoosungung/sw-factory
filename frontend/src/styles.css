@@ -63,7 +63,7 @@ select {
   font: inherit;
 }
 
-/* —— Auth (Jira login-ish) —— */
+/* —— Auth —— */
 .auth-page {
   min-height: 100%;
   display: grid;
@@ -139,7 +139,7 @@ select {
 }
 
 /* —— Shell —— */
-.jira-shell {
+.app-shell {
   height: 100%;
   display: grid;
   grid-template-rows: var(--top-h) 1fr;
@@ -177,10 +177,9 @@ select {
   text-decoration: none;
 }
 
-.jira-mark {
-  width: 24px;
-  height: 24px;
+.brand-mark {
   display: block;
+  flex-shrink: 0;
 }
 
 .nav-item {

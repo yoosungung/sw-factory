@@ -43,26 +43,19 @@ import { touchRecentProject, touchRecentTicket } from "./lib/recent";
 
 type ViewMode = "board" | "backlog" | "timeline" | "list";
 
-function JiraMark({ size = 24 }: { size?: number }) {
+function BrandMark({ size = 24 }: { size?: number }) {
   return (
-    <svg className="jira-mark" width={size} height={size} viewBox="0 0 32 32" aria-hidden>
+    <svg className="brand-mark" width={size} height={size} viewBox="0 0 32 32" aria-hidden>
+      <rect x="4" y="4" width="24" height="24" rx="6" fill="#0B6E4F" />
       <path
-        fill="#2684FF"
-        d="M26.8 5H15.2c0 2.9 2.4 5.2 5.2 5.2h1.2v1.1c0 2.9 2.4 5.2 5.2 5.2V7.2A2.2 2.2 0 0 0 26.8 5z"
-      />
-      <path
-        fill="#2684FF"
-        d="M21.1 10.7H9.5c0 2.9 2.4 5.2 5.2 5.2h1.2v1.1c0 2.9 2.4 5.2 5.2 5.2v-9.3a2.2 2.2 0 0 0-2.2-2.2z"
-        opacity=".8"
-      />
-      <path
-        fill="#2684FF"
-        d="M15.4 16.4H3.8c0 2.9 2.4 5.2 5.2 5.2h1.2v1.1c0 2.9 2.4 5.2 5.2 5.2v-9.3a2.2 2.2 0 0 0-2.2-2.2z"
-        opacity=".6"
+        fill="#F4FBF7"
+        d="M10 21.5V10.5h3.1c2.4 0 3.9 1.2 3.9 3.2 0 1.3-.7 2.3-1.9 2.8l2.4 5h-2.5l-2.1-4.5h-.8V21.5H10zm2.1-6.3h.9c1.1 0 1.7-.5 1.7-1.4s-.6-1.3-1.7-1.3h-.9v2.7zM19.2 21.5l2.6-11h2.4l2.6 11h-2.3l-.4-2h-2.2l-.4 2h-2.3zm3.4-3.8h1.4l-.7-3.3-.7 3.3z"
       />
     </svg>
   );
 }
+
+const APP_NAME = "SW Factory";
 
 function useClickOutside(onClose: () => void) {
   const ref = useRef<HTMLDivElement>(null);
@@ -183,9 +176,9 @@ function AuthForm({
     <div className="auth-page">
       <form className="auth-card" onSubmit={submit}>
         <div className="auth-logo">
-          <JiraMark size={40} />
+          <BrandMark size={40} />
         </div>
-        <h1>{mode === "login" ? "Log in to continue" : "Sign up for Jira"}</h1>
+        <h1>{mode === "login" ? `Log in to ${APP_NAME}` : `Sign up for ${APP_NAME}`}</h1>
         {mode === "register" && (
           <label>
             Full name
@@ -473,7 +466,7 @@ function CreateSpaceDialog({
     <div className="create-layer" onMouseDown={onClose}>
       <form className="create-dialog" onMouseDown={(e) => e.stopPropagation()} onSubmit={submit}>
         <div className="create-dialog-head">
-          <strong>Create project</strong>
+          <strong>Create space</strong>
           <button type="button" className="icon-btn" onClick={onClose}>
             ✕
           </button>
@@ -484,12 +477,9 @@ function CreateSpaceDialog({
             <input value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
           </label>
           <label className="span-2">
-            Key / description
+            Description
             <input value={description} onChange={(e) => setDescription(e.target.value)} />
           </label>
-          <p className="muted span-2">
-            Template: <strong>Kanban</strong> · Team-managed software
-          </p>
         </div>
         <div className="create-dialog-foot">
           <button type="button" className="btn-subtle" onClick={onClose}>
@@ -528,7 +518,7 @@ function CreateProjectUnderClientDialog({
     <div className="create-layer" onMouseDown={onClose}>
       <form className="create-dialog" onMouseDown={(e) => e.stopPropagation()} onSubmit={submit}>
         <div className="create-dialog-head">
-          <strong>Create software project</strong>
+          <strong>Create project</strong>
           <button type="button" className="icon-btn" onClick={onClose}>
             ✕
           </button>
@@ -588,8 +578,8 @@ function TopNav({
   return (
     <header className="top-nav">
       <Link to="/" className="nav-brand" onClick={close}>
-        <JiraMark />
-        <span>Jira</span>
+        <BrandMark />
+        <span>{APP_NAME}</span>
       </Link>
 
       <MenuDropdown
@@ -604,7 +594,7 @@ function TopNav({
             <span className="project-icon sm">{initials(p.name)}</span>
             <span>
               <div>{p.name}</div>
-              <div className="muted">Software project</div>
+              <div className="muted">Project</div>
             </span>
           </Link>
         ))}
@@ -640,7 +630,7 @@ function TopNav({
             onCreateSpace();
           }}
         >
-          Create project
+          Create space
         </button>
       </MenuDropdown>
 
@@ -801,7 +791,7 @@ function Sidebar({
           <div className="meta">
             <div className="name">{(activeProject ?? activeClient)!.name}</div>
             <div className="sub">
-              {activeProject ? "Software project" : "Business"} · Company-managed
+              {activeProject ? "Project" : "Space"} · Member access
             </div>
           </div>
         </div>
@@ -890,7 +880,7 @@ function AppChrome({
   const navigate = useNavigate();
 
   return (
-    <div className="jira-shell">
+    <div className="app-shell">
       <TopNav
         user={user}
         clients={clients}
@@ -952,12 +942,12 @@ function ProjectsHome({ user, onLogout }: { user: User; onLogout: () => void }) 
     <AppChrome user={user} onLogout={onLogout} clients={clients} projects={projects} view="list">
       <div className="page-header">
         <div className="breadcrumb">
-          <span>Jira Software</span>
+          <span>{APP_NAME}</span>
         </div>
         <div className="page-title-row">
           <h1>Projects</h1>
           <button type="button" className="btn-primary" onClick={() => setCreateSpace(true)}>
-            Create project
+            Create space
           </button>
         </div>
       </div>
@@ -984,7 +974,7 @@ function ProjectsHome({ user, onLogout }: { user: User; onLogout: () => void }) 
               {c.name}
             </span>
             <span className="muted">{c.name.slice(0, 3).toUpperCase()}</span>
-            <span className="muted">Team-managed software</span>
+            <span className="muted">Space</span>
             <span className="muted">{c.role}</span>
           </Link>
         ))}
@@ -1068,11 +1058,11 @@ function ClientPage({ user, onLogout }: { user: User; onLogout: () => void }) {
               <span className="project-icon sm">{initials(p.name)}</span>
               {p.name}
             </span>
-            <span className="muted">Software</span>
+            <span className="muted">Project</span>
             <span className="muted">Open board</span>
           </Link>
         ))}
-        {projects.length === 0 && <div className="empty">No software projects yet.</div>}
+        {projects.length === 0 && <div className="empty">No projects yet.</div>}
       </div>
       {createOpen && (
         <CreateProjectUnderClientDialog
@@ -1594,7 +1584,7 @@ function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () => void
   );
 
   if (fullscreen) {
-    return <div className="jira-shell fullscreen-main">{shell}</div>;
+    return <div className="app-shell fullscreen-main">{shell}</div>;
   }
 
   return (
