@@ -1,0 +1,37 @@
+{
+  "name": "sw-factory-workers",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "PLAYWRIGHT_BROWSERS_PATH=\"${PLAYWRIGHT_BROWSERS_PATH:-$HOME/Library/Caches/ms-playwright}\" playwright test -c e2e/playwright.config.ts",
+    "test:e2e:headed": "PLAYWRIGHT_BROWSERS_PATH=\"${PLAYWRIGHT_BROWSERS_PATH:-$HOME/Library/Caches/ms-playwright}\" playwright test -c e2e/playwright.config.ts --headed",
+    "test:e2e:ui": "PLAYWRIGHT_BROWSERS_PATH=\"${PLAYWRIGHT_BROWSERS_PATH:-$HOME/Library/Caches/ms-playwright}\" playwright test -c e2e/playwright.config.ts --ui",
+    "test:e2e:install": "PLAYWRIGHT_BROWSERS_PATH=\"${PLAYWRIGHT_BROWSERS_PATH:-$HOME/Library/Caches/ms-playwright}\" playwright install chromium",
+    "db:migrate:local": "wrangler d1 migrations apply sw-factory --local",
+    "deploy": "npm run build && wrangler deploy -c dist/sw_factory_workers/wrangler.json"
+  },
+  "dependencies": {
+    "hono": "^4.7.2",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "react-router-dom": "^7.2.0"
+  },
+  "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.54.6",
+    "@cloudflare/vitest-pool-workers": "^0.8.71",
+    "@cloudflare/workers-types": "^4.20250906.0",
+    "@playwright/test": "^1.63.0",
+    "@types/react": "^19.0.10",
+    "@types/react-dom": "^19.0.4",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.8.2",
+    "vite": "^6.2.0",
+    "vitest": "~3.2.0",
+    "wrangler": "4.35.0"
+  }
+}
