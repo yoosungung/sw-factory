@@ -72,7 +72,7 @@
 ## F7. Timeline — `?view=timeline`
 
 **Layout:** 날짜 축 + `date_from`/`date_to` 간트 바; milestone 강조.  
-**Empty State (필수):** 일정이 등록된 티켓이 없을 때 표준 `EmptyState`(아이콘 + 제목 + 가이드 문구). in-view 생성 CTA는 보류 — 티켓 생성은 탑바 **Create**(F14)만.  
+**Empty State (필수):** Backlog와 동일 형태 — 제목 `Timeline is empty` + 안내 한 줄, CTA 없음. 티켓 생성은 탑바 **Create**(F14)만.  
 **Behavior:** 클릭 → issue; 바 드래그로 기간 `PATCH` (**Prod**).  
 **API:** `GET …/timeline`, `PATCH /api/tickets/:id`.  
 **Connections:** → Issue.
@@ -81,7 +81,7 @@
 
 ## F8. List — `?view=list`
 
-**Layout:** 테이블 Type | Title | Status(컬러 뱃지) | Assignee | Due | Priority(아이콘+태그) | Updated. 컬럼 표시 토글.  
+**Layout:** 테이블 Type | Title | Status(컬러 뱃지) | Assignee | Due | Priority(아이콘+태그) | Updated. 컬럼 표시 토글. 빈 리스트는 Backlog와 동일 EmptyState(제목 `List is empty` + 안내, CTA 없음).  
 **Behavior:** 행 → issue; 헤더 정렬(정렬 방향 화살표 표시); 필터 칩(status/type).  
 **API:** `GET …/tickets`.  
 **Connections:** → Issue.
@@ -151,8 +151,9 @@
 | Assignee | — | 미지정 기본 |
 | Description | — | 내용 입력 |
 | Due date | — | 마감일 |
+| Status | — | **Backlog 기본** (compact도 이 값으로 POST; expand에서 변경 가능) |
 
-expand / dock(선택) / Esc. 성공 → 뷰 갱신 ± issue 오픈.
+expand / dock(선택) / Esc. 성공 → 보드 Backlog 컬럼에 카드 + issue 오픈.
 
 ---
 

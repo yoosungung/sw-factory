@@ -12,6 +12,12 @@ test.describe("happy path", () => {
 
     const title = `Issue ${Date.now()}`;
     await createIssue(page, title);
+    await expect(
+      page
+        .locator(".board-col")
+        .filter({ has: page.getByRole("heading", { name: "Backlog", exact: true }) })
+        .getByText(title),
+    ).toBeVisible();
 
     const panel = page.getByRole("dialog");
     await expect(panel).toBeVisible();

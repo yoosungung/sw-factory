@@ -23,7 +23,7 @@
 | Projects | `/projects` | `GET /api/projects` |
 | Your work | `/` (`/your-work` → `/`) | `GET /api/projects` + `…/tickets?assignee_id=me` · `…/tickets?created_by=me` |
 | Search | `/search?q=` | `GET /api/search` |
-| Create | Quick Create 모달 | `POST /api/projects/:id/tickets` |
+| Create | Quick Create 모달 | `POST /api/projects/:id/tickets` (`status=backlog` 기본) |
 | Avatar | `/account` · `/admin`(admin만) · logout | `GET/PATCH /api/users/me`, `GET /api/admin/users`, `POST /api/auth/logout` |
 
 **Top nav에 두지 않음:** Filters(서버 리소스 없음, [pages F10](pages.md)에서 Search로 연결) · Teams(전용 API 없음 — People은 Space/Project settings).

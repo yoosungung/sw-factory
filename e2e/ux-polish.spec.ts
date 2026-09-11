@@ -7,19 +7,29 @@ import {
   loginAsAdmin,
 } from "./helpers";
 
-test("UX2: empty timeline shows EmptyState without create CTA", async ({ page }) => {
+test("UX2: empty timeline and list match backlog EmptyState form", async ({ page }) => {
   await loginAsAdmin(page);
   const stamp = Date.now();
   await createSpace(page, `UX2 Space ${stamp}`);
   await createSoftwareProject(page, `UX2 Proj ${stamp}`);
   await expect(page).toHaveURL(/\/projects\//);
 
+  await clickEl(page.locator(".view-segment").getByRole("tab", { name: "Backlog" }));
+  const backlogEmpty = page.getByTestId("empty-state");
+  await expect(backlogEmpty.getByRole("heading", { name: "Backlog is empty" })).toBeVisible();
+  await expect(backlogEmpty.getByRole("button")).toHaveCount(0);
+
   await clickEl(page.locator(".view-segment").getByRole("tab", { name: "Timeline" }));
-  await expect(page.getByRole("heading", { name: "Timeline" })).toBeVisible();
-  const empty = page.getByTestId("empty-state");
-  await expect(empty).toBeVisible();
-  await expect(empty.getByRole("heading", { name: "등록된 타임라인 일정이 없습니다" })).toBeVisible();
-  await expect(empty.getByRole("button")).toHaveCount(0);
+  await expect(page.getByRole("heading", { name: "Timeline", exact: true })).toBeVisible();
+  const timelineEmpty = page.getByTestId("empty-state");
+  await expect(timelineEmpty.getByRole("heading", { name: "Timeline is empty" })).toBeVisible();
+  await expect(timelineEmpty.getByRole("button")).toHaveCount(0);
+
+  await clickEl(page.locator(".view-segment").getByRole("tab", { name: "List" }));
+  await expect(page.getByRole("heading", { name: "List", exact: true })).toBeVisible();
+  const listEmpty = page.getByTestId("empty-state");
+  await expect(listEmpty.getByRole("heading", { name: "List is empty" })).toBeVisible();
+  await expect(listEmpty.getByRole("button")).toHaveCount(0);
 });
 
 test("UX3: sidebar inspector has no backdrop; switching cards updates panel", async ({ page }) => {

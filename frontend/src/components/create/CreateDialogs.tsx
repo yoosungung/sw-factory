@@ -28,7 +28,7 @@ export function CreateIssueDialog({
     defaultProjectId ?? projects[0]?.id ?? "",
   );
   const [type, setType] = useState<Ticket["type"]>("task");
-  const [status, setStatus] = useState<Ticket["status"]>(defaultStatus ?? "todo");
+  const [status, setStatus] = useState<Ticket["status"]>(defaultStatus ?? "backlog");
   const [summary, setSummary] = useState("");
   const [description, setDescription] = useState("");
   const [dateFrom, setDateFrom] = useState("");

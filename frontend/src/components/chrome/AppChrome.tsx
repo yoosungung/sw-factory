@@ -306,7 +306,7 @@ export function AppChrome({
   activeProject,
   view,
   children,
-  createDefaultStatus,
+  createDefaultStatus = "backlog",
   hideSidebar = false,
 }: {
   user: User;

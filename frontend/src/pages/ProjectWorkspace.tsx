@@ -411,8 +411,8 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
             if (items.length === 0) {
               return (
                 <EmptyState
-                  title="등록된 타임라인 일정이 없습니다"
-                  description="티켓에 시작일과 마감일을 지정하면 간트 차트로 한눈에 일정을 관리할 수 있습니다."
+                  title="Timeline is empty"
+                  description="Work items you create show up here so you can see the project schedule."
                 />
               );
             }
@@ -431,39 +431,54 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
 
       {view === "list" && (
         <div className="content-panel tableish">
-          <div className="list-row head list-issue">
-            <span>Work</span>
-            <span>Summary</span>
-            <span>Status</span>
-            <span>Assignee</span>
-            <span>Due</span>
-            <span>Priority</span>
-          </div>
-          {listTickets
-            .filter((t) => !filter.trim() || t.title.toLowerCase().includes(filter.trim().toLowerCase()))
-            .map((t) => (
-              <div key={t.id} className="list-row list-issue" onClick={() => openIssue(t)}>
-                <span className="issue-key">
-                  <span className={`type-icon ${t.type}`}>{t.type === "task" ? "✓" : "◆"}</span>
-                  {issueKey(project.name, t.id)}
-                </span>
-                <span>{t.title}</span>
-                <span className="muted">{STATUS_LABEL[t.status]}</span>
-                <span className="muted">{memberName(t.assignee_id) ?? "—"}</span>
-                <span className="muted">{t.due_at ?? "—"}</span>
-                <span className="muted">{PRIORITY_LABEL[t.priority]}</span>
-              </div>
-            ))}
-          {listCursor && (
-            <button
-              type="button"
-              className="btn-subtle"
-              disabled={listLoading}
-              onClick={() => void loadList(false)}
-            >
-              {listLoading ? "Loading…" : "Load more"}
-            </button>
-          )}
+          {(() => {
+            const rows = listTickets.filter(
+              (t) => !filter.trim() || t.title.toLowerCase().includes(filter.trim().toLowerCase()),
+            );
+            if (rows.length === 0) {
+              return (
+                <EmptyState
+                  title="List is empty"
+                  description="Work items you create show up here so you can scan the project in one table."
+                />
+              );
+            }
+            return (
+              <>
+                <div className="list-row head list-issue">
+                  <span>Work</span>
+                  <span>Summary</span>
+                  <span>Status</span>
+                  <span>Assignee</span>
+                  <span>Due</span>
+                  <span>Priority</span>
+                </div>
+                {rows.map((t) => (
+                  <div key={t.id} className="list-row list-issue" onClick={() => openIssue(t)}>
+                    <span className="issue-key">
+                      <span className={`type-icon ${t.type}`}>{t.type === "task" ? "✓" : "◆"}</span>
+                      {issueKey(project.name, t.id)}
+                    </span>
+                    <span>{t.title}</span>
+                    <span className="muted">{STATUS_LABEL[t.status]}</span>
+                    <span className="muted">{memberName(t.assignee_id) ?? "—"}</span>
+                    <span className="muted">{t.due_at ?? "—"}</span>
+                    <span className="muted">{PRIORITY_LABEL[t.priority]}</span>
+                  </div>
+                ))}
+                {listCursor && (
+                  <button
+                    type="button"
+                    className="btn-subtle"
+                    disabled={listLoading}
+                    onClick={() => void loadList(false)}
+                  >
+                    {listLoading ? "Loading…" : "Load more"}
+                  </button>
+                )}
+              </>
+            );
+          })()}
         </div>
       )}
 
