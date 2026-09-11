@@ -14,7 +14,7 @@ GitHub 원본 개념: CursorBridge Listener / Router / DeferredDispatch / Resili
 | prompt 조립 → cursor에 전달 | `add_comment` / `PATCH ticket` |
 | 로컬 retry 큐 · `acked_id` checkpoint | SDK import / inference |
 
-## Layout (목표)
+## Layout
 
 ```
 agent/gateway/
@@ -22,10 +22,11 @@ agent/gateway/
   DESIGN.md
   docs/
   reference/
-  src/          # 구현 후속 (A2)
+  src/          # A2: tail · router · prompts · dispatch · retry · loop
+  tests/        # mock cursor E2E
 ```
 
-## 내부 모듈 (설계)
+## 내부 모듈
 
 | 모듈 | 대응 (GH) | 책임 |
 |------|-----------|------|
@@ -33,9 +34,14 @@ agent/gateway/
 | `router` | Router | 대상 persona, self-echo skip, mention |
 | `prompts` | `bridge.json` prompts | 이벤트 타입별 템플릿 + Active ticket 스코프 |
 | `dispatch` | RunnerClient | cursor `POST /sessions` · `/prompt` (localhost) |
-| `retry` | ResilientRunnerClient | 409/5xx → `/data/gateway/` 큐 |
-| `checkpoint` | SQLite sessions/ready | `acked_id`만 전진 (202 accept 후) |
+| `retry` | ResilientRunnerClient | 409/5xx → `/data/gateway/retry/` 큐 |
+| `checkpoint` | SQLite sessions/ready | `acked_id`만 전진 (202/200 accept 후) |
+| `loop` | tick | pull → route → dispatch → checkpoint |
 
 ## Commands
 
-코드 없음. 구현 마일스톤(A2)에서 채운다.
+```bash
+# from repo root
+npm run test:agent          # gateway(+cursor) node tests
+npm test                    # backend workers + agent
+```
