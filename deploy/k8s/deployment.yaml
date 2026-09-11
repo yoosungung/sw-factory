@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sw-factory-agent
+  namespace: sw-factory
+  labels:
+    app: sw-factory-agent
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sw-factory-agent
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: sw-factory-agent
+    spec:
+      containers:
+        - name: agent
+          image: sw-factory-agent:local
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: FACTORY_BASE_URL
+              value: https://factory.askwho.net
+            - name: DATA_DIR
+              value: /data
+            - name: AGENTS_YAML
+              value: /config/agents.yaml
+            - name: GATEWAY_SESSION_COOKIE
+              valueFrom:
+                secretKeyRef:
+                  name: sw-factory-agent
+                  key: GATEWAY_SESSION_COOKIE
+            - name: CURSOR_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: sw-factory-agent
+                  key: CURSOR_API_KEY
+                  optional: true
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: agents
+              mountPath: /config
+              readOnly: true
+          resources:
+            requests:
+              cpu: "250m"
+              memory: 512Mi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          # cursor listens on loopback only — no Service/Ingress
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: sw-factory-agent-data
+        - name: agents
+          configMap:
+            name: sw-factory-agents

@@ -11,4 +11,5 @@ e2e/test-results
 e2e/blob-report
 agent/.tmp-test
 **/agents.yaml
-
+deploy/local/.env
+deploy/local/.local-data/

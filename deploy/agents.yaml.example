@@ -1,0 +1,57 @@
+# Local / ConfigMap sample. Copy & edit user_id/email to match factory users.
+# type: sessions — gateway delivery targets.
+
+factory_base_url: https://factory.askwho.net
+
+settings:
+  model: composer-2.5
+  debounce_ms: 2000
+  pool_size: 2
+  max_active_per_persona: 1
+  max_queue_per_persona: 32
+  cursor_listen: 127.0.0.1:8080
+  poll_interval_ms: 3000
+
+prompts:
+  ticket_created: "Ticket {ticket_id} created. Read via MCP then act. Active ticket_id={ticket_id}"
+  ticket_updated: "Ticket {ticket_id} updated. Active ticket_id={ticket_id}"
+  comment_added: "New comment on ticket {ticket_id}. Active ticket_id={ticket_id}"
+  assignee_changed: "You are assignee of ticket {ticket_id}. Active ticket_id={ticket_id}"
+  mention: "You were mentioned on ticket {ticket_id}. Active ticket_id={ticket_id}"
+  handoff: "Handoff on ticket {ticket_id}. Active ticket_id={ticket_id}"
+  catch_up: "Catch-up since {lookback_since}. Pick at most one actionable item; if none, exit without writes."
+
+agents:
+  - name: admin
+    user_id: "00000000-0000-0000-0000-000000000001"
+    email: admin@example.com
+    persona: admin
+    type: human
+
+  - name: pm
+    user_id: "00000000-0000-0000-0000-000000000002"
+    email: pm@example.com
+    persona: pm
+    type: sessions
+    workspace: /data/workspaces/pm
+
+  - name: ta
+    user_id: "00000000-0000-0000-0000-000000000004"
+    email: ta@example.com
+    persona: ta
+    type: sessions
+    workspace: /data/workspaces/ta
+
+  - name: qa
+    user_id: "00000000-0000-0000-0000-000000000005"
+    email: qa@example.com
+    persona: qa
+    type: sessions
+    workspace: /data/workspaces/qa
+
+  - name: aa
+    user_id: "00000000-0000-0000-0000-000000000006"
+    email: aa@example.com
+    persona: aa
+    type: sessions
+    workspace: /data/workspaces/aa

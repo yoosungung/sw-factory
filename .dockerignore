@@ -1,0 +1,16 @@
+# Repo-root context for deploy/docker/Dockerfile
+node_modules
+.git
+.wrangler
+.tools
+dist
+frontend/dist
+**/agents.yaml
+deploy/local/.env
+deploy/local/.local-data
+e2e/playwright-report
+e2e/test-results
+e2e/blob-report
+*.local
+.dev.vars
+.DS_Store

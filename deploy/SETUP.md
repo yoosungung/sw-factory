@@ -77,6 +77,13 @@ npm run dev
 
 로컬 admin: `.dev.vars`의 `ADMIN_EMAIL` / `ADMIN_PASSWORD` (예: `admin@localhost` / `adminadmin`). 첫 API 요청 시 시드. Space 생성은 이 계정만.
 
+## Agent (Docker / k8s)
+
+- 이미지: [docker/README.md](docker/README.md)
+- 로컬 실행: [local/README.md](local/README.md)
+- 클러스터 (`NS=sw-factory`): [k8s/README.md](k8s/README.md)
+- 프로덕션 Worker URL 기본값: `https://factory.askwho.net`
+
 ## 참고
 
 - Custom Domain 문서: https://developers.cloudflare.com/workers/configuration/routing/custom-domains/

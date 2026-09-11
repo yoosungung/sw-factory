@@ -7,7 +7,10 @@
 - [ARCHITECTURE.md](ARCHITECTURE.md) — 계약·스키마·API
 - [ROADMAP.md](ROADMAP.md) — 마일스톤
 - [AGENTS.md](AGENTS.md) — 에이전트/기여자 워크플로
-- [deploy/SETUP.md](deploy/SETUP.md) — 배포·시크릿
+- [deploy/SETUP.md](deploy/SETUP.md) — Workers 배포·시크릿
+- [deploy/docker/](deploy/docker/) — agent 이미지
+- [deploy/local/](deploy/local/) — agent 로컬 Docker 실행
+- [deploy/k8s/](deploy/k8s/) — agent Kubernetes (`NS=sw-factory`)
 - [backend/DESIGN.md](backend/DESIGN.md) · [frontend/DESIGN.md](frontend/DESIGN.md) · [frontend/ia/](frontend/ia/) — 컴포넌트 설계·IA
 - [agent/gateway/](agent/gateway/) · [agent/cursor/](agent/cursor/) — 코딩 agent(배달 / runtime) 설계
 
