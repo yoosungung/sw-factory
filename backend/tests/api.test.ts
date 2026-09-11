@@ -756,3 +756,132 @@ describe("comments and files", () => {
     expect(dl.json.raw).toBe("hello-bytes");
   });
 });
+
+describe("A1 agent event log", () => {
+  it("requires auth for pull and rejects unknown after_id", async () => {
+    const anon = await request("/api/agent/events");
+    expect(anon.status).toBe(401);
+
+    const { cookie } = await register("GatewayBot");
+    const bad = await request(
+      "/api/agent/events?after_id=does-not-exist",
+      {},
+      cookie,
+    );
+    expect(bad.status).toBe(400);
+    expect(bad.json.error).toBe("invalid_after_id");
+  });
+
+  it("appends on ticket/comment mutate and supports after_id tail", async () => {
+    const { cookie, userId } = await register("AgentActor");
+    const clientId = await createClient(cookie, "AgentCo");
+    const proj = await request(
+      "/api/projects",
+      { method: "POST", body: JSON.stringify({ name: "AgentProj", client_id: clientId }) },
+      cookie,
+    );
+    const projectId = (proj.json.project as Json).id as string;
+
+    const baseline = await request("/api/agent/events?limit=500", {}, cookie);
+    expect(baseline.status).toBe(200);
+    const baselineEvents = baseline.json.events as Json[];
+    const afterId = baselineEvents.at(-1)?.id as string | undefined;
+
+    const created = await request(
+      `/api/projects/${projectId}/tickets`,
+      {
+        method: "POST",
+        body: JSON.stringify({ title: "Wake me", type: "task", assignee_id: userId }),
+      },
+      cookie,
+    );
+    expect(created.status).toBe(201);
+    const ticketId = (created.json.ticket as Json).id as string;
+
+    const patched = await request(
+      `/api/tickets/${ticketId}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ status: "todo", version: 1 }),
+      },
+      cookie,
+    );
+    expect(patched.status).toBe(200);
+
+    const comment = await request(
+      `/api/tickets/${ticketId}/comments`,
+      { method: "POST", body: JSON.stringify({ body: "ping agent" }) },
+      cookie,
+    );
+    expect(comment.status).toBe(201);
+    const commentId = (comment.json.comment as Json).id as string;
+
+    const deleted = await request(`/api/tickets/${ticketId}`, { method: "DELETE" }, cookie);
+    expect(deleted.status).toBe(200);
+
+    const pullPath = afterId
+      ? `/api/agent/events?after_id=${afterId}&limit=50`
+      : "/api/agent/events?limit=50";
+    const pull = await request(pullPath, {}, cookie);
+    expect(pull.status).toBe(200);
+    const events = (pull.json.events as Json[]).filter((e) => e.ticket_id === ticketId);
+    expect(events).toHaveLength(4);
+    expect(events.map((e) => e.event_type)).toEqual([
+      "ticket_created",
+      "ticket_updated",
+      "comment_added",
+      "ticket_deleted",
+    ]);
+
+    expect(events[0].project_id).toBe(projectId);
+    expect(events[0].actor_user_id).toBe(userId);
+    expect(events[0].assignee_user_id).toBe(userId);
+
+    const updatedPayload = events[1].payload as Json;
+    expect(updatedPayload.changed_fields).toEqual(expect.arrayContaining(["status"]));
+    expect((events[2].payload as Json).comment_id).toBe(commentId);
+
+    const mid = events[1].id as string;
+    const page = await request(`/api/agent/events?after_id=${mid}&limit=50`, {}, cookie);
+    expect(page.status).toBe(200);
+    const pageTicketEvents = (page.json.events as Json[]).filter(
+      (e) => e.ticket_id === ticketId,
+    );
+    expect(pageTicketEvents.map((e) => e.event_type)).toEqual([
+      "comment_added",
+      "ticket_deleted",
+    ]);
+  });
+
+  it("does not append ticket_updated when PATCH changes nothing", async () => {
+    const { cookie } = await register("NoopPatch");
+    const clientId = await createClient(cookie, "NoopCo");
+    const proj = await request(
+      "/api/projects",
+      { method: "POST", body: JSON.stringify({ name: "Noop", client_id: clientId }) },
+      cookie,
+    );
+    const projectId = (proj.json.project as Json).id as string;
+    const created = await request(
+      `/api/projects/${projectId}/tickets`,
+      { method: "POST", body: JSON.stringify({ title: "Stable", type: "task" }) },
+      cookie,
+    );
+    const ticketId = (created.json.ticket as Json).id as string;
+    const ticket = created.json.ticket as Json;
+
+    const noop = await request(
+      `/api/tickets/${ticketId}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ title: ticket.title, version: ticket.version }),
+      },
+      cookie,
+    );
+    expect(noop.status).toBe(200);
+
+    const after = await request("/api/agent/events?limit=500", {}, cookie);
+    const forTicket = (after.json.events as Json[]).filter((e) => e.ticket_id === ticketId);
+    expect(forTicket.map((e) => e.event_type)).toEqual(["ticket_created"]);
+  });
+});

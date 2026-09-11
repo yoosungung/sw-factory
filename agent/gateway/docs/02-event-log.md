@@ -12,12 +12,12 @@ Worker가 티켓 도메인 mutate 시 append하는 **outbox**. gateway의 유일
 | gateway | `GET …?after_id=` tail; **acked_id**는 gateway 로컬(`/data/gateway/checkpoint.json`) |
 | cursor | 읽지 않음 |
 
-## 이벤트 종류 (초안)
+## 이벤트 종류
 
 | `event_type` | 트리거 (Worker) | gateway 기본 라우팅 |
 |--------------|-----------------|---------------------|
 | `ticket_created` | POST ticket | assignee agent; 없으면 unassigned→pm triage 멘션 정책(후속) |
-| `ticket_updated` | PATCH ticket | assignee; assignee 변경 시 handoff |
+| `ticket_updated` | PATCH ticket (필드 변경 시) | assignee; assignee 변경 시 handoff |
 | `ticket_deleted` | DELETE ticket | sticky session delete 힌트만 (작업 없음) |
 | `comment_added` | POST comment | assignee + @mention targets |
 | `catch_up` | (log 아님) gateway 기동 | 티켓리스 prompt — [03-routing](03-routing.md) |

@@ -148,7 +148,7 @@ payload_json TEXT NOT NULL DEFAULT '{}'
 
 인덱스: `sessions(user_id)`, `client_members(user_id)`, `project_members(user_id)`, `projects(client_id)`, `tickets(project_id, status, sort_order)`, `tickets(project_id, type)`, `tickets(assignee_id)`, `tickets(due_at)`, `comments(entity_type, entity_id)`, `files(entity_type, entity_id)`, `pending_uploads(ticket_id)`, `pending_uploads(expires_at)`, `ticket_activities(ticket_id, at)`, `agent_event_log(at)`, `agent_event_log(id)`(tail).
 
-정본 필드·REST 초안: [agent/gateway/reference/event-log-schema.md](agent/gateway/reference/event-log-schema.md). 마이그레이션·구현은 ROADMAP A1.
+정본 필드·REST: [agent/gateway/reference/event-log-schema.md](agent/gateway/reference/event-log-schema.md).
 
 ## 4. REST API
 
@@ -224,13 +224,13 @@ payload_json TEXT NOT NULL DEFAULT '{}'
 | GET | `/api/files/:id` | Worker R2 스트림 프록시 |
 | DELETE | `/api/files/:id` | 업로더 또는 owner; R2 객체도 삭제 |
 
-### Agent outbox (A1 planned)
+### Agent outbox
 
 | Method | Path | 비고 |
 | --- | --- | --- |
-| GET | `/api/agent/events` | query `after_id`, `limit`. gateway가 세션으로 pull. Worker→agent push 없음. |
+| GET | `/api/agent/events` | query `after_id`, `limit`(기본 100, 최대 500). **세션 인증 필수**(gateway 전용 시스템 유저로 로그인). 응답 `{ events }` — 각 항목에 `payload`(JSON 객체). Worker→agent push 없음. |
 
-티켓/코멘트 mutate 성공 시 Worker가 `agent_event_log`에 append한다. 라우팅·prompt는 gateway; 상세는 [agent/gateway/](agent/gateway/).
+티켓 create/update(필드 변경 시)/delete·코멘트 create 성공 시 Worker가 `agent_event_log`에 동기 append한다. tail은 `(at, id)` 키셋(`after_id`로 앵커). 라우팅·prompt는 gateway; 상세는 [agent/gateway/](agent/gateway/).
 
 ## 5. 첨부 업로드 흐름
 

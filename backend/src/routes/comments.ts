@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { AppVariables, Env } from "../env";
 import { newId, nowIso } from "../lib/crypto";
+import { appendAgentEvent } from "../lib/agent-events";
 import { requireAuth, requireProjectMember } from "../middleware/auth";
 
 export const commentRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
@@ -8,20 +9,22 @@ export const commentRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }
 commentRoutes.use("/tickets/*", requireAuth);
 commentRoutes.use("/comments/*", requireAuth);
 
-async function ticketProjectId(db: D1Database, ticketId: string): Promise<string | null> {
-  const row = await db
-    .prepare(`SELECT project_id FROM tickets WHERE id = ?`)
+async function loadTicketMeta(
+  db: D1Database,
+  ticketId: string,
+): Promise<{ project_id: string; assignee_id: string | null } | null> {
+  return db
+    .prepare(`SELECT project_id, assignee_id FROM tickets WHERE id = ?`)
     .bind(ticketId)
-    .first<{ project_id: string }>();
-  return row?.project_id ?? null;
+    .first<{ project_id: string; assignee_id: string | null }>();
 }
 
 commentRoutes.get("/tickets/:ticketId/comments", async (c) => {
   const user = c.get("user");
   const ticketId = c.req.param("ticketId");
-  const projectId = await ticketProjectId(c.env.DB, ticketId);
-  if (!projectId) return c.json({ error: "not_found" }, 404);
-  const role = await requireProjectMember(c.env.DB, projectId, user.id);
+  const ticket = await loadTicketMeta(c.env.DB, ticketId);
+  if (!ticket) return c.json({ error: "not_found" }, 404);
+  const role = await requireProjectMember(c.env.DB, ticket.project_id, user.id);
   if (!role) return c.json({ error: "forbidden" }, 403);
 
   const { results } = await c.env.DB.prepare(
@@ -40,9 +43,9 @@ commentRoutes.get("/tickets/:ticketId/comments", async (c) => {
 commentRoutes.post("/tickets/:ticketId/comments", async (c) => {
   const user = c.get("user");
   const ticketId = c.req.param("ticketId");
-  const projectId = await ticketProjectId(c.env.DB, ticketId);
-  if (!projectId) return c.json({ error: "not_found" }, 404);
-  const role = await requireProjectMember(c.env.DB, projectId, user.id);
+  const ticket = await loadTicketMeta(c.env.DB, ticketId);
+  if (!ticket) return c.json({ error: "not_found" }, 404);
+  const role = await requireProjectMember(c.env.DB, ticket.project_id, user.id);
   if (!role) return c.json({ error: "forbidden" }, 403);
 
   const body = await c.req.json<{ body?: string }>();
@@ -57,6 +60,16 @@ commentRoutes.post("/tickets/:ticketId/comments", async (c) => {
   )
     .bind(id, ticketId, text, user.id, created_at)
     .run();
+
+  await appendAgentEvent(c.env.DB, {
+    event_type: "comment_added",
+    ticket_id: ticketId,
+    project_id: ticket.project_id,
+    actor_user_id: user.id,
+    assignee_user_id: ticket.assignee_id,
+    payload: { comment_id: id },
+    at: created_at,
+  });
 
   return c.json(
     {
@@ -83,9 +96,9 @@ commentRoutes.delete("/comments/:id", async (c) => {
     .first<{ id: string; entity_id: string; author_id: string }>();
   if (!comment) return c.json({ error: "not_found" }, 404);
 
-  const projectId = await ticketProjectId(c.env.DB, comment.entity_id);
-  if (!projectId) return c.json({ error: "not_found" }, 404);
-  const role = await requireProjectMember(c.env.DB, projectId, user.id);
+  const ticket = await loadTicketMeta(c.env.DB, comment.entity_id);
+  if (!ticket) return c.json({ error: "not_found" }, 404);
+  const role = await requireProjectMember(c.env.DB, ticket.project_id, user.id);
   if (!role) return c.json({ error: "forbidden" }, 403);
   if (comment.author_id !== user.id && role !== "owner") {
     return c.json({ error: "forbidden" }, 403);

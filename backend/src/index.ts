@@ -9,6 +9,7 @@ import { commentRoutes } from "./routes/comments";
 import { fileRoutes } from "./routes/files";
 import { userRoutes } from "./routes/users";
 import { searchRoutes } from "./routes/search";
+import { agentRoutes } from "./routes/agent";
 
 const app = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -17,6 +18,7 @@ app.get("/api/health", (c) => c.json({ ok: true, service: "sw-factory-workers" }
 app.route("/api/auth", authRoutes);
 app.route("/api/users", userRoutes);
 app.route("/api/search", searchRoutes);
+app.route("/api/agent", agentRoutes);
 app.route("/api", ticketRoutes);
 app.route("/api", commentRoutes);
 app.route("/api", fileRoutes);

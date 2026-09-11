@@ -11,8 +11,8 @@ SPA IA: [frontend/ia/](../frontend/ia/).
 - `src/env.ts` — Env 타입
 - `src/lib/` — crypto, ids, cookies
 - `src/middleware/auth.ts` — 세션 로드
-- `src/routes/` — auth, clients, projects, tickets, comments, files
-- `src/db/` — 쿼리 헬퍼
+- `src/routes/` — auth, clients, projects, tickets, comments, files, agent
+- `src/lib/agent-events.ts` — `agent_event_log` append 헬퍼
 - `tests/` — Vitest (workers pool)
 
 ## Commands
@@ -55,6 +55,7 @@ npm run dev
 | comments | **Adopt** | `comments` | ticket만; 스레드 Defer |
 | files | **Adopt** | `files` + R2 | Direct Presigned Upload |
 | ticket_activities | **Adopt** | `ticket_activities` | 필드 변경 이력 (M8) |
+| agent_event_log | **Adopt** | `agent_event_log`, `GET /api/agent/events` | agent wake outbox (A1); UI History와 분리 |
 | sprints | **Defer** | — | ROADMAP 후순위 |
 | timesheets | **Exclude** | — | |
 | calendar / notifications | **Exclude** | — | |
@@ -109,6 +110,7 @@ erDiagram
 | `comments` | `entity_type`+`entity_id` (MVP: ticket), `body`, `author_id` |
 | `files` | `entity_type`+`entity_id`, `r2_key`, `filename`/`mime`/`size`, `uploaded_by` |
 | `ticket_activities` | 티켓 필드 변경 로그 |
+| `agent_event_log` | agent wake outbox (티켓/코멘트 mutate append; `ticket_id` FK 없음) |
 
 칸반: 컬럼 = `status` 값. Done은 기본 최근 N일 필터.  
 타임라인: `date_from`/`date_to` NOT NULL (`GET …/timeline`).
@@ -185,7 +187,13 @@ erDiagram
 | `POST …/files/upload-url` · `…/confirm` | Presigned Direct Upload |
 | `GET`/`DELETE /api/files/:id` | |
 
-### 4.6 에러
+### 4.6 Agent outbox
+
+| REST | 비고 |
+| --- | --- |
+| `GET /api/agent/events` | `after_id`, `limit`; 세션 필수; mutate append는 tickets/comments 경로 |
+
+### 4.7 에러
 
 | HTTP | 의미 |
 | --- | --- |
@@ -224,11 +232,12 @@ backend/src/
     auth.ts
     clients.ts
     projects.ts
-    tickets.ts          # kanban + timeline + activities
-    comments.ts
+    tickets.ts          # kanban + timeline + activities + agent append
+    comments.ts         # agent append on create
     files.ts
+    agent.ts            # GET /api/agent/events
   lib/
-  db/
+    agent-events.ts     # appendAgentEvent
 ```
 
 가드 순서: 세션 → 리소스 load → membership → owner/creator 검사 → 변이.
@@ -244,6 +253,7 @@ backend/src/
 | assignee / due_at / priority / 삭제 가드 | **구현됨** | M6 |
 | Cursor 페이징 · Done 기간 필터 · Presigned upload · 세션 Cron | **구현됨** | M7 |
 | `version` 409 · `ticket_activities` | **구현됨** | M8 |
+| `agent_event_log` · `GET /api/agent/events` | **구현됨** | A1 |
 | timesheets, calendar, notifications, canvas/ideas/wiki/goals, plugins, PAT | **Exclude** | — |
 | 커스텀 status labels | Exclude | — |
 

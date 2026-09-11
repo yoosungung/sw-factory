@@ -8,6 +8,7 @@ import type {
 } from "../env";
 import { TICKET_PRIORITIES, TICKET_STATUSES } from "../env";
 import { newId, nowIso } from "../lib/crypto";
+import { appendAgentEvent } from "../lib/agent-events";
 import { requireAuth, requireProjectMember } from "../middleware/auth";
 
 type TicketRow = {
@@ -179,6 +180,15 @@ ticketRoutes.post("/projects/:projectId/tickets", async (c) => {
     )
     .run();
 
+  await appendAgentEvent(c.env.DB, {
+    event_type: "ticket_created",
+    ticket_id: id,
+    project_id: projectId,
+    actor_user_id: user.id,
+    assignee_user_id: body.assignee_id ?? null,
+    at: ts,
+  });
+
   const ticket = await loadTicket(c.env.DB, id);
   return c.json({ ticket }, 201);
 });
@@ -304,6 +314,16 @@ ticketRoutes.patch("/tickets/:id", async (c) => {
         ).bind(newId(), ticket.id, user.id, t.field, t.old_val, t.new_val, updated_at),
       ),
     );
+
+    await appendAgentEvent(c.env.DB, {
+      event_type: "ticket_updated",
+      ticket_id: ticket.id,
+      project_id: ticket.project_id,
+      actor_user_id: user.id,
+      assignee_user_id: next.assignee_id,
+      payload: { changed_fields: tracked.map((t) => t.field) },
+      at: updated_at,
+    });
   }
 
   return c.json({ ticket: await loadTicket(c.env.DB, ticket.id) });
@@ -336,6 +356,14 @@ ticketRoutes.delete("/tickets/:id", async (c) => {
 
   const canDelete = ticket.created_by === user.id || role === "owner";
   if (!canDelete) return c.json({ error: "forbidden" }, 403);
+
+  await appendAgentEvent(c.env.DB, {
+    event_type: "ticket_deleted",
+    ticket_id: ticket.id,
+    project_id: ticket.project_id,
+    actor_user_id: user.id,
+    assignee_user_id: ticket.assignee_id,
+  });
 
   await c.env.DB.prepare(`DELETE FROM tickets WHERE id = ?`).bind(ticket.id).run();
   return c.json({ ok: true });
