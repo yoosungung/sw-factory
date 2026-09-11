@@ -12,9 +12,9 @@ GitHub 원본: `agent-runner` (parent + SDK worker pool, R1–R5 recovery) + `de
 | localhost HTTP dialect (`/sessions`, `/prompt`) | `agent_event_log` tail / 라우팅 |
 | parent + SDK worker pool · 티켓 뮤텍스 | Worker로 HTTP push wake |
 | persona cwd에서 MCP로 티켓 읽기/쓰기 | gateway checkpoint 관리 |
-| R1–R5 zombie recovery | Dual-loop 정책의 배달 (배달은 gateway) |
+| R1–R5 zombie recovery | Dual-loop 정책형 배달 (배달은 gateway) |
 
-## Layout (목표)
+## Layout
 
 ```
 agent/cursor/
@@ -22,22 +22,28 @@ agent/cursor/
   DESIGN.md
   docs/
   reference/
-  src/              # runner 구현 후속 (A3)
-  mcp/              # factory-mcp 후속 (A4)
+  src/              # A3 runner (parent HTTP · pool · mutex · recover)
+  mcp/              # factory-mcp (A4)
+  tests/
 ```
 
 런타임 데이터(PVC): `/data/workspaces/{name}/` — [docs/04-pvc-layout.md](docs/04-pvc-layout.md).
 
-## 내부 모듈 (설계)
+## 내부 모듈
 
 | 모듈 | 대응 (GH) | 책임 |
 |------|-----------|------|
-| `parent` | Hono server | HTTP, 큐, 뮤텍스, pool lease (SDK 미로드) |
-| `worker` | SDK child | create/resume → send → wait → close |
-| `session-map` | ticket↔agent_id | sticky session (gateway sticky rebind와 협조) |
+| `server` | Hono parent | HTTP, 큐, 뮤텍스 (SDK 미로드) |
+| `pool` | SDK child slots | lease → backend send |
+| `session-map` | ticket↔agent_id | sticky session |
 | `recover` | R1–R5 | zombie `active_run` |
-| `factory-mcp` | leantime-mcp | Worker REST 도구 + 세션 쿠키 |
+| `pvc` | workspaces | persona cwd 보장 |
+| `factory-mcp` | leantime-mcp | Worker REST + 세션 쿠키 (A4) |
 
 ## Commands
 
-코드 없음. 구현 마일스톤(A3–A4)에서 채운다.
+```bash
+# from repo root
+npm run test:agent
+npm test
+```
