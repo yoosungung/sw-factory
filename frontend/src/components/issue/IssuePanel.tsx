@@ -157,6 +157,7 @@ function AutoResizeTitle({
       className="issue-title-input"
       rows={1}
       value={value}
+      placeholder="Issue title…"
       onChange={(e) => onChange(e.target.value)}
       onBlur={onBlur}
     />
@@ -286,10 +287,20 @@ export function IssuePanel({
   const content = (
     <>
       <div className="drawer-top">
-        <span className="issue-key">
-          <span className={`type-icon ${ticket.type}`}>{ticket.type === "task" ? "✓" : "◆"}</span>
-          {key}
-        </span>
+        <div className="issue-header-left">
+          <Link
+            className="project-breadcrumb-link"
+            to={`/projects/${project.id}?view=board`}
+            title={`Go to ${project.name} board`}
+          >
+            {project.name}
+          </Link>
+          <span className="breadcrumb-sep">/</span>
+          <span className="issue-key">
+            <span className={`type-icon ${ticket.type}`}>{ticket.type === "task" ? "✓" : "◆"}</span>
+            {key}
+          </span>
+        </div>
         <div className="row-gap">
           {mode !== "page" && (
             <Link className="icon-btn" to={`/browse/${ticket.id}`} title="Open full page">
@@ -297,223 +308,255 @@ export function IssuePanel({
             </Link>
           )}
           {mode !== "page" && (
-            <button type="button" className="icon-btn" onClick={onClose}>
+            <button type="button" className="icon-btn" onClick={onClose} title="Close">
               ✕
             </button>
           )}
         </div>
       </div>
       <div className="drawer-body">
-        <AutoResizeTitle
-          value={title}
-          onChange={setTitle}
-          onBlur={() => {
-            if (title.trim() && title !== ticket.title) void save({ title: title.trim() });
-          }}
-        />
-        {error && <p className="error">{error}</p>}
-        <div className="field-grid">
-          <div className="label">Status</div>
-          <BadgePicker
-            className="status-picker"
-            label="Status"
-            value={ticket.status}
-            options={statusKeys.length ? statusKeys : [ticket.status]}
-            labels={statusKeys.length ? statusLabels : { [ticket.status]: statusLabel(ticket.status) }}
-            onChange={(status) => void save({ status })}
-          />
+        <div className="issue-layout">
+          <div className="issue-main">
+            <AutoResizeTitle
+              value={title}
+              onChange={setTitle}
+              onBlur={() => {
+                if (title.trim() && title !== ticket.title) void save({ title: title.trim() });
+              }}
+            />
+            {error && <p className="error">{error}</p>}
 
-          <div className="label">Priority</div>
-          <BadgePicker
-            className="prio-picker"
-            label="Priority"
-            value={ticket.priority}
-            options={PRIORITIES}
-            labels={PRIORITY_LABEL}
-            onChange={(priority) => void save({ priority: priority as TicketPriority })}
-          />
+            <section className="issue-desc-section">
+              <h3 className="section-title">Description</h3>
+              <textarea
+                className="issue-desc"
+                value={description}
+                placeholder="Add a description…"
+                onChange={(e) => setDescription(e.target.value)}
+                onBlur={() => {
+                  if (description !== ticket.description) void save({ description });
+                }}
+              />
+            </section>
 
-          <div className="label">Assignee</div>
-          <select
-            value={ticket.assignee_id ?? ""}
-            onChange={(e) =>
-              void save({ assignee_id: e.target.value ? e.target.value : null })
-            }
-          >
-            <option value="">Unassigned</option>
-            {members.map((m) => (
-              <option key={m.user_id} value={m.user_id}>
-                {m.name}
-              </option>
-            ))}
-          </select>
-
-          <div className="label">Due date</div>
-          <input
-            type="date"
-            value={ticket.due_at ?? ""}
-            onChange={(e) => void save({ due_at: e.target.value || null })}
-          />
-
-          <div className="label">Type</div>
-          <div>{ticket.type === "task" ? "Task" : "Milestone"}</div>
-          <div className="label">Project</div>
-          <div>{project.name}</div>
-          {(ticket.date_from || ticket.date_to) && (
-            <>
-              <div className="label">Dates</div>
-              <div>
-                {ticket.date_from ?? "—"} → {ticket.date_to ?? "—"}
+            <section className="issue-activity-section">
+              <div className="activity-tabs">
+                <button
+                  type="button"
+                  className={`activity-tab chip ${tab === "comments" ? "active" : ""}`}
+                  onClick={() => setTab("comments")}
+                >
+                  Comments {comments.length > 0 && <span className="tab-pill">{comments.length}</span>}
+                </button>
+                <button
+                  type="button"
+                  className={`activity-tab chip ${tab === "history" ? "active" : ""}`}
+                  onClick={() => setTab("history")}
+                >
+                  History
+                </button>
+                <button
+                  type="button"
+                  className={`activity-tab chip ${tab === "files" ? "active" : ""}`}
+                  onClick={() => setTab("files")}
+                >
+                  Files {files.length > 0 && <span className="tab-pill">{files.length}</span>}
+                </button>
               </div>
-            </>
-          )}
-          {assignee && (
-            <>
-              <div className="label">Assigned</div>
-              <div className="name-cell">
-                <span className="avatar sm">{initials(assignee.name)}</span>
-                {assignee.name}
-              </div>
-            </>
-          )}
-        </div>
 
-        <section>
-          <h3 className="section-title">Description</h3>
-          <textarea
-            className="issue-desc"
-            value={description}
-            placeholder="Add a description…"
-            onChange={(e) => setDescription(e.target.value)}
-            onBlur={() => {
-              if (description !== ticket.description) void save({ description });
-            }}
-          />
-        </section>
+              {tab === "comments" && (
+                <>
+                  <form className="comment-form" onSubmit={(e) => void postComment(e)}>
+                    <textarea
+                      placeholder="Add a comment…"
+                      value={body}
+                      onChange={(e) => setBody(e.target.value)}
+                      required
+                    />
+                    <div className="comment-form-actions">
+                      <button className="btn-primary" type="submit" disabled={!body.trim()}>
+                        Save
+                      </button>
+                    </div>
+                  </form>
+                  {comments.map((c) => (
+                    <div key={c.id} className="comment">
+                      <div className="avatar">{initials(c.author_name)}</div>
+                      <div className="bubble">
+                        <div className="comment-head">
+                          <strong>{c.author_name}</strong>
+                          {(c.author_id === user.id || projectRole === "owner") && (
+                            <button
+                              type="button"
+                              className="btn-subtle sm"
+                              onClick={() =>
+                                void client.deleteComment(c.id).then(async () => {
+                                  setComments((await client.comments(ticket.id)).comments);
+                                })
+                              }
+                            >
+                              Delete
+                            </button>
+                          )}
+                        </div>
+                        <div>{c.body}</div>
+                        <div className="muted">{new Date(c.created_at).toLocaleString()}</div>
+                      </div>
+                    </div>
+                  ))}
+                </>
+              )}
 
-        <section>
-          <h3 className="section-title">Activity</h3>
-          <div className="activity-tabs">
-            <button
-              type="button"
-              className={`chip ${tab === "comments" ? "active" : ""}`}
-              onClick={() => setTab("comments")}
-            >
-              Comments
-            </button>
-            <button
-              type="button"
-              className={`chip ${tab === "history" ? "active" : ""}`}
-              onClick={() => setTab("history")}
-            >
-              History
-            </button>
-            <button
-              type="button"
-              className={`chip ${tab === "files" ? "active" : ""}`}
-              onClick={() => setTab("files")}
-            >
-              Files
-            </button>
+              {tab === "history" && (
+                <div className="history-list">
+                  {activities.map((a) => (
+                    <div key={a.id} className="list-row">
+                      <span>
+                        <strong>{a.field}</strong>: {a.old_val ?? "—"} → {a.new_val ?? "—"}
+                      </span>
+                      <span className="muted">{new Date(a.at).toLocaleString()}</span>
+                    </div>
+                  ))}
+                  {activities.length === 0 && <p className="muted">No history yet.</p>}
+                </div>
+              )}
+
+              {tab === "files" && (
+                <>
+                  <input type="file" onChange={(e) => void onUpload(e)} />
+                  {files.map((f) => (
+                    <div key={f.id} className="file-row">
+                      <a href={`/api/files/${f.id}`} target="_blank" rel="noreferrer">
+                        {f.filename}
+                      </a>
+                      <span className="muted">{Math.round(f.size / 1024)} KB</span>
+                      <button
+                        type="button"
+                        className="btn-subtle sm"
+                        onClick={() =>
+                          void client.deleteFile(f.id).then(async () => {
+                            setFiles((await client.listFiles(ticket.id)).files);
+                          })
+                        }
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  ))}
+                  {files.length === 0 && <p className="muted">No attachments yet.</p>}
+                </>
+              )}
+            </section>
           </div>
 
-          {tab === "comments" && (
-            <>
-              <form className="comment-form" onSubmit={(e) => void postComment(e)}>
-                <textarea
-                  placeholder="Add a comment…"
-                  value={body}
-                  onChange={(e) => setBody(e.target.value)}
-                  required
+          <aside className="issue-aside">
+            <div className="properties-panel">
+              <h4 className="properties-title">Details</h4>
+              <div className="field-grid">
+                <div className="label">Status</div>
+                <BadgePicker
+                  className="status-picker"
+                  label="Status"
+                  value={ticket.status}
+                  options={statusKeys.length ? statusKeys : [ticket.status]}
+                  labels={statusKeys.length ? statusLabels : { [ticket.status]: statusLabel(ticket.status) }}
+                  onChange={(status) => void save({ status })}
                 />
-                <div>
-                  <button className="btn-primary" type="submit">
-                    Save
-                  </button>
-                </div>
-              </form>
-              {comments.map((c) => (
-                <div key={c.id} className="comment">
-                  <div className="avatar">{initials(c.author_name)}</div>
-                  <div className="bubble">
-                    <div className="comment-head">
-                      <strong>{c.author_name}</strong>
-                      {(c.author_id === user.id || projectRole === "owner") && (
-                        <button
-                          type="button"
-                          className="btn-subtle sm"
-                          onClick={() =>
-                            void client.deleteComment(c.id).then(async () => {
-                              setComments((await client.comments(ticket.id)).comments);
-                            })
-                          }
-                        >
-                          Delete
-                        </button>
-                      )}
-                    </div>
-                    <div>{c.body}</div>
-                    <div className="muted">{new Date(c.created_at).toLocaleString()}</div>
-                  </div>
-                </div>
-              ))}
-            </>
-          )}
 
-          {tab === "history" && (
-            <div className="history-list">
-              {activities.map((a) => (
-                <div key={a.id} className="list-row">
-                  <span>
-                    <strong>{a.field}</strong>: {a.old_val ?? "—"} → {a.new_val ?? "—"}
-                  </span>
-                  <span className="muted">{new Date(a.at).toLocaleString()}</span>
-                </div>
-              ))}
-              {activities.length === 0 && <p className="muted">No history yet.</p>}
-            </div>
-          )}
+                <div className="label">Priority</div>
+                <BadgePicker
+                  className="prio-picker"
+                  label="Priority"
+                  value={ticket.priority}
+                  options={PRIORITIES}
+                  labels={PRIORITY_LABEL}
+                  onChange={(priority) => void save({ priority: priority as TicketPriority })}
+                />
 
-          {tab === "files" && (
-            <>
-              <input type="file" onChange={(e) => void onUpload(e)} />
-              {files.map((f) => (
-                <div key={f.id} className="file-row">
-                  <a href={`/api/files/${f.id}`} target="_blank" rel="noreferrer">
-                    {f.filename}
-                  </a>
-                  <span className="muted">{Math.round(f.size / 1024)} KB</span>
-                  <button
-                    type="button"
-                    className="btn-subtle sm"
-                    onClick={() =>
-                      void client.deleteFile(f.id).then(async () => {
-                        setFiles((await client.listFiles(ticket.id)).files);
-                      })
+                <div className="label">Assignee</div>
+                <div className="assignee-select-wrap">
+                  {assignee && (
+                    <span className="avatar sm" title={assignee.name}>
+                      {initials(assignee.name)}
+                    </span>
+                  )}
+                  <select
+                    className="prop-select"
+                    value={ticket.assignee_id ?? ""}
+                    onChange={(e) =>
+                      void save({ assignee_id: e.target.value ? e.target.value : null })
                     }
                   >
-                    Delete
-                  </button>
+                    <option value="">Unassigned</option>
+                    {members.map((m) => (
+                      <option key={m.user_id} value={m.user_id}>
+                        {m.name}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              ))}
-              {files.length === 0 && <p className="muted">No attachments yet.</p>}
-            </>
-          )}
-        </section>
 
-        {canDelete && (
-          <section className="danger-block">
-            <button
-              type="button"
-              className="btn-danger"
-              disabled={busy}
-              onClick={() => void removeTicket()}
-            >
-              Delete issue
-            </button>
-            <p className="muted">Only the author or project owner can delete.</p>
-          </section>
-        )}
+                <div className="label">Due date</div>
+                <input
+                  type="date"
+                  className="prop-date-input"
+                  value={ticket.due_at ?? ""}
+                  onChange={(e) => void save({ due_at: e.target.value || null })}
+                />
+
+                <div className="label">Type</div>
+                <div className="prop-val">
+                  <span className={`prop-type-badge ${ticket.type}`}>
+                    {ticket.type === "task" ? "Task" : "Milestone"}
+                  </span>
+                </div>
+
+                <div className="label">Project</div>
+                <div className="prop-val">
+                  <span className="prop-project-name">{project.name}</span>
+                </div>
+
+                {(ticket.date_from || ticket.date_to) && (
+                  <>
+                    <div className="label">Dates</div>
+                    <div className="prop-val date-range">
+                      {ticket.date_from ?? "—"} → {ticket.date_to ?? "—"}
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {canDelete && (
+              <div className="issue-danger-action">
+                <button
+                  type="button"
+                  className="btn-delete-subtle"
+                  disabled={busy}
+                  onClick={() => void removeTicket()}
+                  title="Only author or project owner can delete"
+                >
+                  <svg
+                    width="14"
+                    height="14"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    aria-hidden="true"
+                  >
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  </svg>
+                  Delete issue
+                </button>
+                <span className="danger-hint">Only author or project owner can delete.</span>
+              </div>
+            )}
+          </aside>
+        </div>
       </div>
     </>
   );
