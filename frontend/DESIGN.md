@@ -1,7 +1,7 @@
 # Frontend Design
 
 SW Factory SPA. API는 `/api/*`만 사용.  
-**Prod IA:** [ia/](ia/) ([overview](ia/overview.md) · [menus](ia/menus.md) · [pages](ia/pages.md) · [admin](ia/admin.md)).  
+**Prod IA:** [ia/](ia/) ([overview](ia/overview.md) · [menus](ia/menus.md) · [pages](ia/pages.md) · [admin](ia/admin.md) · [design-system](ia/design-system.md)).  
 API 설계: [backend/DESIGN.md](../backend/DESIGN.md) · 계약: [ARCHITECTURE.md](../ARCHITECTURE.md).
 
 ## 모듈
@@ -9,6 +9,7 @@ API 설계: [backend/DESIGN.md](../backend/DESIGN.md) · 계약: [ARCHITECTURE.m
 ```
 frontend/src/
     api.ts
+    styles.css                          # UX0 시맨틱 토큰 · 라이트 크롬
     lib/recent.ts · savedViews.ts   # recent + Filters/Dashboards local
     components/issue/IssuePanel.tsx   # F9 · History · 409 · direct upload
     pages/Settings.tsx                # Space/Project settings (FE4)
