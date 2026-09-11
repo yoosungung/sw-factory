@@ -49,7 +49,7 @@
 | **A1** | Worker `agent_event_log` + `GET /api/agent/events` | 마이그레이션·mutate append·pull API 테스트 green | done |
 | **A2** | agent/gateway 구현 (tail·라우팅·localhost dispatch·retry/`acked_id`) | mock cursor에 이벤트→202 배달 E2E | done |
 | **A3** | agent/cursor runner (pool·뮤텍스·persona cwd·PVC 경로) | mock MCP로 병렬 prompt·R1–R5 단위 테스트 | done |
-| **A4** | factory-mcp + personas 시드 | 세션 쿠키로 티켓 읽기/코멘트; sample agents.yaml | planned |
+| **A4** | factory-mcp + personas 시드 | 세션 쿠키로 티켓 읽기/코멘트; sample agents.yaml | done |
 
 ## 범위 밖 (Exclude)
 

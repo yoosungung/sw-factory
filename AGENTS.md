@@ -45,6 +45,6 @@ This file provides guidance to AI coding assistants (Claude Code, Codex, Gemini,
 
 ## 3. Status
 
-M0–M8 · FE0–FE6 완료. Agent: A0–A3 완료(A4 planned).  
+M0–M8 · FE0–FE6 완료. Agent: A0–A4 완료.  
 로컬: npm install && npm run db:migrate:local && npm run dev. 테스트: npm test · E2E: npm run test:e2e ([e2e/DESIGN.md](e2e/DESIGN.md)).  
 Agent 설계: [agent/gateway/](agent/gateway/) · [agent/cursor/](agent/cursor/).

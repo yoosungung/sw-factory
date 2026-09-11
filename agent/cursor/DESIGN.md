@@ -38,7 +38,7 @@ agent/cursor/
 | `session-map` | ticket↔agent_id | sticky session |
 | `recover` | R1–R5 | zombie `active_run` |
 | `pvc` | workspaces | persona cwd 보장 |
-| `factory-mcp` | leantime-mcp | Worker REST + 세션 쿠키 (A4) |
+| `factory-mcp` | leantime-mcp | Worker REST + 세션 쿠키 (`mcp/`) |
 
 ## Commands
 

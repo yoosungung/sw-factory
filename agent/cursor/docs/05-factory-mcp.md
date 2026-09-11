@@ -24,4 +24,4 @@ GitHub `leantime-mcp`(JSON-RPC + PAT) 대신 Worker **REST + 세션 쿠키**를 
 3. catch-up·스케줄은 스코프 없음; actionable 1건 선택 후 그 티켓에만 쓰기.
 4. MCP는 persona workspace의 `.cursor/mcp.json`이 가리키며, 쿠키는 그 persona 것.
 
-구현 코드는 A4. 이 문서는 계약·매핑만.
+구현: [../mcp/](../mcp/) (A4). 도구 매핑·세션 쿠키 계약은 이 문서.
