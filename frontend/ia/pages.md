@@ -17,7 +17,7 @@
 ## F2. Projects — `/`
 
 **Layout:** Top nav(사이드바 없음) + 제목 Projects + Create space · Create project + 테이블 (Name, Space, Role).  
-**Behavior:** 행 → `/projects/:id?view=board` (Space hub 생략). Create space → `POST /api/clients` 후 hub; Create project → space 선택 후 `POST /api/projects`.  
+**Behavior:** 행 → `/projects/:id?view=board` (Space hub 생략). Create space → `POST /api/clients` 후 hub (**admin만**); Create project → space 선택 후 `POST /api/projects`. 비admin·무멤버십 빈 화면: admin 초대 안내.  
 **API:** `GET /api/projects`, `GET /api/clients`.  
 **Connections:** → Project board. Top nav **Projects**.
 
@@ -25,8 +25,8 @@
 
 ## F2b. Spaces — `/spaces`
 
-**Layout:** Top nav + 제목 Spaces + Create space + Client 테이블 (Name, Role).  
-**Behavior:** 행 → `/clients/:id`.  
+**Layout:** Top nav + 제목 Spaces + Create space(**admin만**) + Client 테이블 (Name, Role).  
+**Behavior:** 행 → `/clients/:id`. 비admin은 Create space 없음.  
 **API:** `GET/POST /api/clients`.  
 **Connections:** → Space hub. Top nav **Spaces**.
 
@@ -52,8 +52,9 @@
 
 ## F5. Board — `/projects/:id?view=board`
 
-**Layout:** Sidebar(Board) + 툴바(뷰·검색·•••) + 4컬럼 + 카드(title, type, assignee 아바타, priority 뱃지, due_at).  
-**Behavior:** 드래그 → `PATCH` `{ status, sort_order, version }`; 컬럼 `+ Create`; 카드 → issue UI; Group by(assignee/milestone/type) **Prod 포함**(클라이언트 그룹핑).  
+**Layout:** 툴바(타이틀 + 세그먼트 탭 `Board|Backlog|Timeline|List` + 검색·•••) + 4컬럼 + 카드.  
+**카드 규격:** 타입 아이콘 + 키(`MOB-F416`) + 우선순위 뱃지(High/Medium/Low 컬러 태그) + 2줄 말줄임 타이틀 + 마감일 태그 + 우측 정렬된 담당자 아바타.  
+**Behavior:** 드래그 → `PATCH` `{ status, sort_order, version }`; 컬럼 `+ Create`; 카드 클릭 → **논모달 사이드 인스펙터** 오픈; Group by(assignee/milestone/type) **Prod 포함**(클라이언트 그룹핑); 가로 스크롤 페이드 인디케이터.  
 **API:** `GET …/kanban` (최근 완료건 기본), `POST …/tickets`.  
 **Connections:** → Issue.
 
@@ -61,8 +62,8 @@
 
 ## F6. Backlog — `?view=backlog`
 
-**Layout:** 이슈 리스트(정렬: status, sort_order, updated); 하단 `+ Create` (`status=backlog`).  
-**Behavior:** 행 → issue; 인라인 status 변경. Sprint 섹션은 Defer.  
+**Layout:** 이슈 리스트(우선순위 뱃지, 키, 타이틀, 담당자, 상태 셀렉트) + 하단 `+ Create` (`status=backlog`) + Board issues 드롭 영역(안내 문구 포함).  
+**Behavior:** 행 → issue 인스펙터; 인라인 status 변경. Sprint 섹션은 Defer.  
 **API:** `GET/POST/PATCH …/tickets`.  
 **Connections:** → Issue.
 
@@ -70,7 +71,8 @@
 
 ## F7. Timeline — `?view=timeline`
 
-**Layout:** 날짜 축 + `date_from`/`date_to` 바; milestone 강조.  
+**Layout:** 날짜 축 + `date_from`/`date_to` 간트 바; milestone 강조.  
+**Empty State (필수):** 일정이 등록된 티켓이 없을 때 완전한 공백을 방지하고, 표준 `EmptyState` 컴포넌트(아이콘 + "등록된 일정이 없습니다" + 가이드 문구 + `[+ 일정 티켓 만들기]` CTA 버튼) 노출.  
 **Behavior:** 클릭 → issue; 바 드래그로 기간 `PATCH` (**Prod**).  
 **API:** `GET …/timeline`, `PATCH /api/tickets/:id`.  
 **Connections:** → Issue.
@@ -79,8 +81,8 @@
 
 ## F8. List — `?view=list`
 
-**Layout:** 테이블 Type | Title | Status | Assignee | Due | Updated. 컬럼 표시 토글.  
-**Behavior:** 행 → issue; 헤더 정렬; 필터 칩(status/type).  
+**Layout:** 테이블 Type | Title | Status(컬러 뱃지) | Assignee | Due | Priority(아이콘+태그) | Updated. 컬럼 표시 토글.  
+**Behavior:** 행 → issue; 헤더 정렬(정렬 방향 화살표 표시); 필터 칩(status/type).  
 **API:** `GET …/tickets`.  
 **Connections:** → Issue.
 
@@ -88,16 +90,21 @@
 
 ## F9. Issue — `?issue=` / `/browse/:ticketId`
 
-**Layout (sidebar/modal/full):**
+**Layout (Non-modal Inspector / Modal / Full):**
 
 ```
-[ Type · Title · Status ]
-[ Description ]
-[ Milestone · Dates · Assignee · Priority ]
+[ Type · Key · Status(커스텀 뱃지) · Priority(커스텀 뱃지) ]
+[ Title (자동 개행 입력창, 클리핑 방지) ]
+[ Description (리사이즈 텍스트에어리어) ]
+[ Milestone · Dates · Assignee ]
 [ Activity: Comments | History | Files ]
 ```
 
-**Behavior:** 인라인 저장 `PATCH` (낙관적 락 `version`); 댓글 CRUD; 파일 업로드/다운로드/삭제; 삭제 시 작성자/owner만 가능; Esc로 쿼리 제거(sidebar/modal).  
+**인터랙션 규격:**
+- **사이드 인스펙터 (`?issue=`):** 배경 딤(Backdrop) 없는 **논모달 패널**. 우측 480px 고정, 뒤쪽 보드/리스트와 실시간 동시 탐색 가능, 다른 카드 클릭 시 즉시 내용 갱신.
+- **모달 (`?issue=&issueUi=modal`):** 중앙 집중 팝업 + 어두운 오버레이 딤.
+- **전체 페이지 (`/browse/:ticketId`):** 독립 전체 화면.
+- **Behavior:** 인라인 저장 `PATCH` (낙관적 락 `version`); 투박한 네이티브 `<select>` 대신 커스텀 상태/우선순위 팝오버; 댓글 CRUD; 파일 업로드/다운로드/삭제; 삭제 시 작성자/owner만 가능; Esc로 닫기.  
 **API:** tickets, comments, files; History는 `GET /api/tickets/:id/activities`.  
 **Connections:** ← Board · List · Search · Your work.
 
@@ -142,14 +149,17 @@
 
 ## F14. Quick Create (모달, 전역)
 
-| 필드 | 필수 |
-| --- | --- |
-| Project | ✓ |
-| Type | ✓ |
-| Summary | ✓ |
-| Description | expand |
-| Assignee / Priority / Dates | expand |
-| Status | 보드 인라인 시 프리필 |
+**Layout:** 컴팩트 모달 (`max-width: 540px`). 빈 여백 낭비 없이 핵심 필드(Project, Work type, Summary, Description, Assignee, Priority)가 조화롭게 배치된 밸런스 그리드.  
+
+| 필드 | 필수 | 비고 |
+| --- | --- | --- |
+| Project | ✓ | 현재 프로젝트 기본 선택 |
+| Type | ✓ | Task / Milestone |
+| Summary | ✓ | 한 줄 타이틀 |
+| Priority | — | Medium 기본 |
+| Assignee | — | 미지정 기본 |
+| Description | — | 내용 입력 |
+| Due date | — | 마감일 |
 
 expand / dock(선택) / Esc. 성공 → 뷰 갱신 ± issue 오픈.
 
@@ -157,7 +167,7 @@ expand / dock(선택) / Esc. 성공 → 뷰 갱신 ± issue 오픈.
 
 ## F15. Create Space / Create project (모달)
 
-- Space: name, description → `POST /api/clients`
+- Space: name, description → `POST /api/clients` (**플랫폼 admin만**)
 - Project: name, description, client_id 고정 → `POST /api/projects`
 
 ---

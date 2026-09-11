@@ -29,6 +29,9 @@ npm run dev
 
 - 앱: http://localhost:5173
 - API health: `GET /api/health`
+- 로컬 admin: `admin@localhost` / `adminadmin` (`.dev.vars`의 `ADMIN_EMAIL`/`ADMIN_PASSWORD`). Space 생성은 이 계정만.
+
+디버그 (VS Code / Cursor): Run and Debug → **Debug All** — Vite + Worker + Chrome + agent:cursor/gateway를 한 번에 기동. gateway 세션은 로컬 유저(`debug-gateway@local`)로 자동 로그인한다. 설정: [`.vscode/launch.json`](.vscode/launch.json).
 
 테스트:
 

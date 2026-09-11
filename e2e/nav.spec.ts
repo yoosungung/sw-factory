@@ -1,8 +1,8 @@
 import { expect, test } from "@playwright/test";
-import { clickEl, createSoftwareProject, createSpace, register } from "./helpers";
+import { clickEl, createSoftwareProject, createSpace, loginAsAdmin } from "./helpers";
 
 test("top nav maps to API screens in one click", async ({ page }) => {
-  await register(page, { name: "Nav User" });
+  await loginAsAdmin(page);
 
   const nav = page.locator("header.top-nav");
   await expect(nav.getByRole("link", { name: "Spaces", exact: true })).toBeVisible();

@@ -7,6 +7,9 @@ declare module "cloudflare:test" {
     FILES: R2Bucket;
     ASSETS: Fetcher;
     SESSION_SECRET: string;
+    ADMIN_EMAIL?: string;
+    ADMIN_PASSWORD?: string;
+    ADMIN_NAME?: string;
     TEST_MIGRATIONS: D1Migration[];
   }
 }

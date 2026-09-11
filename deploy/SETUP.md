@@ -18,6 +18,8 @@ npx wrangler d1 create sw-factory
 
 npx wrangler r2 bucket create sw-factory-files
 npx wrangler secret put SESSION_SECRET   # 강한 랜덤 값
+npx wrangler secret put ADMIN_PASSWORD   # 시드 admin 비밀번호 (≥8자)
+# ADMIN_EMAIL 은 wrangler secret 또는 vars. 미설정이면 시드하지 않음.
 npx wrangler d1 migrations apply sw-factory --remote
 ```
 
@@ -72,6 +74,8 @@ cp .dev.vars.example .dev.vars
 npm run db:migrate:local
 npm run dev
 ```
+
+로컬 admin: `.dev.vars`의 `ADMIN_EMAIL` / `ADMIN_PASSWORD` (예: `admin@localhost` / `adminadmin`). 첫 API 요청 시 시드. Space 생성은 이 계정만.
 
 ## 참고
 

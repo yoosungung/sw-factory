@@ -1,4 +1,10 @@
-export type User = { id: string; email: string; name: string; created_at: string };
+export type User = {
+  id: string;
+  email: string;
+  name: string;
+  created_at: string;
+  is_admin: boolean;
+};
 
 export type Member = {
   user_id: string;
@@ -133,7 +139,7 @@ export const client = {
     api<{ ok: boolean }>(`/api/clients/${id}`, { method: "DELETE" }),
   clientProjects: (id: string) => api<{ projects: Project[] }>(`/api/clients/${id}/projects`),
   clientMembers: (id: string) => api<{ members: Member[] }>(`/api/clients/${id}/members`),
-  addClientMember: (id: string, body: { user_id: string; role: "owner" | "member" }) =>
+  addClientMember: (id: string, body: { user_id?: string; email?: string; role: "owner" | "member" }) =>
     api<{ member: Member }>(`/api/clients/${id}/members`, {
       method: "POST",
       body: JSON.stringify(body),
@@ -159,7 +165,7 @@ export const client = {
   deleteProject: (id: string) =>
     api<{ ok: boolean }>(`/api/projects/${id}`, { method: "DELETE" }),
   projectMembers: (id: string) => api<{ members: Member[] }>(`/api/projects/${id}/members`),
-  addProjectMember: (id: string, body: { user_id: string; role: "owner" | "member" }) =>
+  addProjectMember: (id: string, body: { user_id?: string; email?: string; role: "owner" | "member" }) =>
     api<{ member: Member }>(`/api/projects/${id}/members`, {
       method: "POST",
       body: JSON.stringify(body),
@@ -259,4 +265,11 @@ export const client = {
   },
   deleteFile: (id: string) =>
     api<{ ok: boolean }>(`/api/files/${id}`, { method: "DELETE" }),
+
+  adminUsers: () => api<{ users: User[] }>("/api/admin/users"),
+  patchAdminUser: (id: string, body: { is_admin: boolean }) =>
+    api<{ user: User }>(`/api/admin/users/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(body),
+    }),
 };

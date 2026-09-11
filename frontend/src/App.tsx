@@ -28,6 +28,7 @@ import {
   type IssueOpenMode,
 } from "./components/issue/IssuePanel";
 import { ClientSettingsPage, ProjectSettingsPage } from "./pages/Settings";
+import { AdminPage } from "./pages/Admin";
 import {
   AccountPage,
   SearchPage,
@@ -657,6 +658,11 @@ function TopNav({
         <Link className="menu-item" to="/account" onClick={close}>
           Account
         </Link>
+        {user.is_admin && (
+          <Link className="menu-item" to="/admin" onClick={close}>
+            Admin
+          </Link>
+        )}
         <div className="menu-sep" />
         <button
           type="button"
@@ -867,9 +873,11 @@ function ProjectsHome({ user, onLogout }: { user: User; onLogout: () => void }) 
         <div className="page-title-row">
           <h1>Projects</h1>
           <div className="row-gap">
-            <button type="button" className="btn-subtle" onClick={() => setCreateSpace(true)}>
-              Create space
-            </button>
+            {user.is_admin && (
+              <button type="button" className="btn-subtle" onClick={() => setCreateSpace(true)}>
+                Create space
+              </button>
+            )}
             <button
               type="button"
               className="btn-primary"
@@ -907,7 +915,11 @@ function ProjectsHome({ user, onLogout }: { user: User; onLogout: () => void }) 
         ))}
         {shown.length === 0 && (
           <div className="empty">
-            {clients.length === 0 ? "Create a space to get started." : "No projects yet."}
+            {clients.length === 0
+              ? user.is_admin
+                ? "Create a space to get started."
+                : "Ask an admin to add you to a space."
+              : "No projects yet."}
           </div>
         )}
       </div>
@@ -949,9 +961,11 @@ function SpacesPage({ user, onLogout }: { user: User; onLogout: () => void }) {
         </div>
         <div className="page-title-row">
           <h1>Spaces</h1>
-          <button type="button" className="btn-primary" onClick={() => setCreateSpace(true)}>
-            Create space
-          </button>
+          {user.is_admin && (
+            <button type="button" className="btn-primary" onClick={() => setCreateSpace(true)}>
+              Create space
+            </button>
+          )}
         </div>
       </div>
       <div className="toolbar">
@@ -976,7 +990,11 @@ function SpacesPage({ user, onLogout }: { user: User; onLogout: () => void }) {
             <span className="muted">{c.role}</span>
           </Link>
         ))}
-        {shown.length === 0 && <div className="empty">Create a space to get started.</div>}
+        {shown.length === 0 && (
+          <div className="empty">
+            {user.is_admin ? "Create a space to get started." : "Ask an admin to add you to a space."}
+          </div>
+        )}
       </div>
       {createSpace && (
         <CreateSpaceDialog
@@ -1696,6 +1714,10 @@ export function App() {
             chrome={pageChrome}
           />
         }
+      />
+      <Route
+        path="/admin"
+        element={<AdminPage user={user} chrome={(opts) => pageChrome({ ...opts, user, onLogout, clients, projects, view: "list" })} />}
       />
       <Route
         path="/search"

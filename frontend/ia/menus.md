@@ -8,12 +8,13 @@
 
 ## 1. Top navigation
 
-백엔드 REST 표면에 1:1. 드롭다운 없이 **직접 링크**(Avatar만 예외). 활성 항목은 라우트 prefix 매칭.
+백엔드 REST 표면에 1:1. 드롭다운 없이 **직접 링크**(Avatar만 예외). 활성 항목은 라우트 prefix 매칭.  
+스타일: 48px 클린 라이트 크롬 (`#ffffff`, Slate 텍스트). 모바일(`< 768px`)에서는 컴팩트 헤더(`[☰] Logo ... [Search] [Avatar]`)로 반응형 축소.
 
 ```
 [ Logo → / ]
 [ Spaces ] [ Projects ] [ Your work ]
-[ Create ] [ Search ] [ Avatar ▾ ]
+[ Create ] [ Search ⌘K ] [ Avatar ▾ ]
 ```
 
 | 메뉴 | 경로 | API |
@@ -23,42 +24,9 @@
 | Your work | `/your-work` | `GET /api/projects` + `…/tickets?assignee_id=me` |
 | Search | `/search?q=` | `GET /api/search` |
 | Create | Quick Create 모달 | `POST /api/projects/:id/tickets` |
-| Avatar | `/account` · logout | `GET/PATCH /api/users/me`, `POST /api/auth/logout` |
+| Avatar | `/account` · `/admin`(admin만) · logout | `GET/PATCH /api/users/me`, `GET /api/admin/users`, `POST /api/auth/logout` |
 
 **Top nav에 두지 않음:** Filters · Dashboards(서버 리소스 없음, [pages F10·F11](pages.md)에서 Search/Your work로 연결) · Teams(전용 API 없음 — People은 Space/Project settings).
-
-### 1.1 Spaces
-
-→ `/spaces`. 행 → Space hub `/clients/:id`. Create space → `POST /api/clients`.
-
-### 1.2 Projects
-
-→ `/`. 내가 멤버인 프로젝트 목록. 행 → `/projects/:id?view=board` (Space hub 경유 생략). Create space / Create project.
-
-### 1.3 Your work
-
-→ `/your-work`. Assigned / Recently viewed / Recent projects.
-
-### 1.4 Search
-
-| 동작 | |
-| --- | --- |
-| 클릭/⌘K | Search 팝오버 또는 `/search?q=` |
-| 범위 | Projects, Clients(Spaces), Tickets(title) |
-
-### 1.5 Create
-
-전역 **Quick Create** 모달 — [pages F14](pages.md).  
-기본 Project = 현재 `/projects/:id` 또는 최근.
-
-### 1.6 Avatar ▾
-
-| 항목 | 동작 |
-| --- | --- |
-| Account | → `/account` |
-| Log out | `POST /api/auth/logout` |
-
-**넣지 않음:** Notifications, API tokens, Plugins, Admin 플러그인 설정 (Exclude).
 
 ---
 
@@ -66,8 +34,8 @@
 
 페이지 툴바(메뉴가 아님):
 
-- Projects: Create space · Create project · name 검색
-- Spaces: Create space · name 검색
+- Projects: Create space(**admin**) · Create project · name 검색
+- Spaces: Create space(**admin**) · name 검색
 
 ---
 
@@ -94,24 +62,28 @@ Space hub 컨텍스트.
 
 ```
 [ ← Back to projects ]     → `/` 또는 `/clients/:clientId`
+[ Space Switcher ▾ ]       → 드롭다운 스위처 (사이드바 하단 전역 덤프 금지)
 [ Icon · Project name ]
-[ Software ]
 ──────────── Planning
-  Timeline     ?view=timeline
-  Backlog      ?view=backlog
   Board        ?view=board   ← 기본 랜딩
+  Backlog      ?view=backlog
+  Timeline     ?view=timeline
   List         ?view=list
-────────────
-  Project settings → /projects/:id/settings/*
+──────────── Settings
+  Project settings → /projects/:id/settings/* (단일 셸 전환, 이중 사이드바 금지)
 ```
+
+- **뷰 전환 일원화 원칙:** 본문 툴바의 세그먼트 탭이 주된 인터랙션 진실 공급원이며, 사이드바는 프로젝트 컨텍스트 전환을 보조한다.
+- **전역 스페이스 덤프 금지:** 사이드바 하단에 시스템의 모든 스페이스를 수직 나열하지 않고, 상단 Space Switcher로 압축한다.
+- **설정 셸:** `Project settings` 진입 시 사이드바가 2중으로 겹쳐 노출되지 않고, 설정 전용 단일 사이드바/전환 레이아웃을 사용한다.
 
 | 구역 | 항목 | 비고 |
 | --- | --- | --- |
-| Planning | Timeline, Backlog, Board, List | 작업 뷰 전환 |
+| Planning | Board, Backlog, Timeline, List | 세그먼트 탭과 1:1 동기화 |
+| Settings | Project settings | **단일 셸 관리** — [admin.md](admin.md) |
 | Development | — | 비표시 |
 | Think | Ideas/Wiki/Goals | **Exclude** |
 | Time | Timesheets/Calendar | **Exclude** |
-| Settings | Project settings | **관리** — [admin.md](admin.md) |
 
 사이드바 collapse · Board fullscreen(`•••`).
 
@@ -128,12 +100,12 @@ Space hub 컨텍스트.
 
 ## 5. Issue 열기 모드 (보드 `•••`)
 
-| 모드 | |
-| --- | --- |
-| Open in sidebar | `?issue=` |
-| Open in modal | `?issue=&issueUi=modal` |
-| Open full page | `/browse/:ticketId` |
-| Full screen board | 사이드바 숨김 |
+| 모드 | 경로/파라미터 | 인터랙션 규격 ([design-system §3.6](design-system.md#36-issue-panel-non-modal-inspector-vs-centered-modal)) |
+| --- | --- | --- |
+| **Open in sidebar (기본)** | `?issue=` | **논모달 사이드 인스펙터** (오버레이 딤 없음, 보드 카드 클릭 시 즉시 전환) |
+| **Open in modal** | `?issue=&issueUi=modal` | **집중 중앙 모달** (어두운 배경 딤, 독립 팝업) |
+| **Open full page** | `/browse/:ticketId` | 전체 페이지 단독 뷰 |
+| **Full screen board** | — | 사이드바 숨김 전폭 보드 |
 
 ---
 

@@ -53,6 +53,20 @@ export async function login(page: Page, email: string, password: string) {
   await expect(page.getByRole("heading", { name: "Projects" })).toBeVisible();
 }
 
+export const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? "admin@localhost";
+export const ADMIN_PASSWORD = process.env.E2E_ADMIN_PASSWORD ?? "adminadmin";
+
+export async function loginAsAdmin(page: Page) {
+  await page.request.get("/api/health");
+  await login(page, ADMIN_EMAIL, ADMIN_PASSWORD);
+}
+
+export async function logout(page: Page) {
+  await clickEl(page.locator(".avatar-inline"));
+  await clickEl(page.getByRole("button", { name: "Log out" }));
+  await expect(page).toHaveURL(/\/login/);
+}
+
 export async function createSpace(page: Page, name: string) {
   await clickEl(page.getByRole("button", { name: "Create space" }).first());
   const dialog = page.locator(".create-dialog").filter({ hasText: "Create space" });

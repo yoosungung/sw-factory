@@ -1,7 +1,9 @@
 import { Hono } from "hono";
 import type { AppVariables, Env } from "./env";
 import { nowIso } from "./lib/crypto";
+import { ensureSeedAdmin } from "./lib/seed-admin";
 import { authRoutes } from "./routes/auth";
+import { adminRoutes } from "./routes/admin";
 import { clientRoutes } from "./routes/clients";
 import { projectRoutes } from "./routes/projects";
 import { ticketRoutes } from "./routes/tickets";
@@ -16,6 +18,7 @@ const app = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 app.get("/api/health", (c) => c.json({ ok: true, service: "sw-factory-workers" }));
 
 app.route("/api/auth", authRoutes);
+app.route("/api/admin", adminRoutes);
 app.route("/api/users", userRoutes);
 app.route("/api/search", searchRoutes);
 app.route("/api/agent", agentRoutes);
@@ -41,7 +44,10 @@ export async function cleanupExpiredSessions(db: D1Database): Promise<number> {
 }
 
 const worker = {
-  fetch: app.fetch,
+  async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+    await ensureSeedAdmin(env);
+    return app.fetch(request, env, ctx);
+  },
   async scheduled(
     _controller: ScheduledController,
     env: Env,

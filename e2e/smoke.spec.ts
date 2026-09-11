@@ -26,5 +26,8 @@ test.describe("smoke", () => {
 
     await login(page, email, password);
     await expect(page.getByRole("heading", { name: "Projects" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Create space" })).toHaveCount(0);
+    await clickEl(page.locator(".avatar-inline"));
+    await expect(page.getByRole("link", { name: "Admin" })).toHaveCount(0);
   });
 });

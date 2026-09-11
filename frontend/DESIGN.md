@@ -12,6 +12,7 @@ frontend/src/
     lib/recent.ts · savedViews.ts   # recent + Filters/Dashboards local
     components/issue/IssuePanel.tsx   # F9 · History · 409 · direct upload
     pages/Settings.tsx                # Space/Project settings (FE4)
+    pages/Admin.tsx                   # 플랫폼 /admin (FE7)
     pages/Personal.tsx                # Your work · Account · Search (FE3)
     pages/Directory.tsx               # Filters · Dashboards (FE5 local)
     App.tsx                           # 크롬·뷰·라우트 · List 페이징 · Done 아카이브
@@ -23,6 +24,7 @@ frontend/src/
 - Issue: assignee · due · priority 인라인 `PATCH`(+`version` 409), Comments/History/Files, 작성자·owner 삭제
 - `/browse/:ticketId` 전체 페이지; 보드 `?issue=` sidebar/modal
 - Space/Project settings: Details · People · (Board) · Danger
+- `/admin`: 플랫폼 admin 계정 목록 · Space 생성
 - Your work: Assigned / Recently viewed / Recent projects
 - Search: `GET /api/search`
 - Filters·Dashboards: localStorage 메타 + tickets API

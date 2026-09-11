@@ -10,11 +10,18 @@ import {
   verifyPassword,
 } from "../lib/crypto";
 import { requireAuth } from "../middleware/auth";
+import { asAdminFlag } from "../lib/users";
 
 export const authRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
 function publicUser(u: User) {
-  return { id: u.id, email: u.email, name: u.name, created_at: u.created_at };
+  return {
+    id: u.id,
+    email: u.email,
+    name: u.name,
+    is_admin: !!u.is_admin,
+    created_at: u.created_at,
+  };
 }
 
 authRoutes.post("/register", async (c) => {
@@ -49,7 +56,7 @@ authRoutes.post("/register", async (c) => {
     .run();
 
   c.header("Set-Cookie", sessionCookie(sessionId, SESSION_DAYS * 86400));
-  return c.json({ user: publicUser({ id, email, name, created_at }) }, 201);
+  return c.json({ user: publicUser({ id, email, name, is_admin: false, created_at }) }, 201);
 });
 
 authRoutes.post("/login", async (c) => {
@@ -59,10 +66,10 @@ authRoutes.post("/login", async (c) => {
   if (!email || !password) return c.json({ error: "invalid_input" }, 400);
 
   const row = await c.env.DB.prepare(
-    `SELECT id, email, name, created_at, password_hash FROM users WHERE email = ?`,
+    `SELECT id, email, name, is_admin, created_at, password_hash FROM users WHERE email = ?`,
   )
     .bind(email)
-    .first<User & { password_hash: string }>();
+    .first<User & { password_hash: string; is_admin: number | boolean }>();
 
   if (!row || !(await verifyPassword(password, row.password_hash, c.env.SESSION_SECRET))) {
     return c.json({ error: "invalid_credentials" }, 401);
@@ -83,6 +90,7 @@ authRoutes.post("/login", async (c) => {
       id: row.id,
       email: row.email,
       name: row.name,
+      is_admin: asAdminFlag(row.is_admin),
       created_at: row.created_at,
     }),
   });

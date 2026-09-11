@@ -1,9 +1,9 @@
 import { test, expect } from "@playwright/test";
-import { clickEl, createSoftwareProject, createSpace, fillField, register, submitForm } from "./helpers";
+import { clickEl, createSoftwareProject, createSpace, fillField, loginAsAdmin, submitForm } from "./helpers";
 
 test.describe("happy path", () => {
   test("space → project → create issue on board", async ({ page }) => {
-    await register(page, { name: "Happy Path" });
+    await loginAsAdmin(page);
 
     const space = `Space ${Date.now()}`;
     const project = `App ${Date.now()}`;
@@ -35,7 +35,7 @@ test.describe("happy path", () => {
   });
 
   test("project settings people page loads for owner", async ({ page }) => {
-    await register(page, { name: "Settings Owner" });
+    await loginAsAdmin(page);
     const space = `Settings Space ${Date.now()}`;
     const project = `Settings Proj ${Date.now()}`;
     await createSpace(page, space);
@@ -46,7 +46,6 @@ test.describe("happy path", () => {
 
     await clickEl(page.getByRole("link", { name: "People" }));
     await expect(page.getByRole("heading", { name: "People" })).toBeVisible();
-    await expect(page.getByText("Settings Owner")).toBeVisible();
-    await expect(page.getByText("owner").first()).toBeVisible();
+    await expect(page.locator("select").first()).toHaveValue("owner");
   });
 });

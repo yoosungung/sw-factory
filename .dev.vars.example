@@ -1,1 +1,4 @@
 SESSION_SECRET=dev-session-secret-change-me
+ADMIN_EMAIL=admin@localhost
+ADMIN_PASSWORD=adminadmin
+# GATEWAY_SESSION_COOKIE=lt_session=...   # agent:gateway 로컬 디버그용

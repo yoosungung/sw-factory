@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { Env, AppVariables } from "../env";
 import { newId, nowIso } from "../lib/crypto";
+import { resolveUserId } from "../lib/users";
 import {
   getClientMembership,
   requireAuth,
@@ -174,10 +175,15 @@ projectRoutes.post("/projects/:id/members", async (c) => {
   if (!role) return c.json({ error: "forbidden" }, 403);
   if (role !== "owner") return c.json({ error: "forbidden" }, 403);
 
-  const body = await c.req.json<{ user_id?: string; role?: string }>();
-  const userId = body.user_id?.trim();
+  const body = await c.req.json<{ user_id?: string; email?: string; role?: string }>();
   const memberRole = body.role === "owner" || body.role === "member" ? body.role : null;
-  if (!userId || !memberRole) return c.json({ error: "invalid_input" }, 400);
+  if (!memberRole) return c.json({ error: "invalid_input" }, 400);
+
+  const resolved = await resolveUserId(c.env.DB, body);
+  if ("error" in resolved) {
+    return c.json({ error: resolved.error }, resolved.error === "invalid_input" ? 400 : 404);
+  }
+  const userId = resolved.userId;
 
   const project = await c.env.DB.prepare(`SELECT client_id FROM projects WHERE id = ?`)
     .bind(id)
@@ -186,11 +192,6 @@ projectRoutes.post("/projects/:id/members", async (c) => {
 
   const clientRole = await getClientMembership(c.env.DB, project.client_id, userId);
   if (!clientRole) return c.json({ error: "not_client_member" }, 400);
-
-  const target = await c.env.DB.prepare(`SELECT id FROM users WHERE id = ?`)
-    .bind(userId)
-    .first();
-  if (!target) return c.json({ error: "not_found" }, 404);
 
   await c.env.DB.prepare(
     `INSERT INTO project_members (project_id, user_id, role) VALUES (?, ?, ?)

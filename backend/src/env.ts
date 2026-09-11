@@ -3,12 +3,16 @@ export type Env = {
   FILES: R2Bucket;
   ASSETS: Fetcher;
   SESSION_SECRET: string;
+  ADMIN_EMAIL?: string;
+  ADMIN_PASSWORD?: string;
+  ADMIN_NAME?: string;
 };
 
 export type User = {
   id: string;
   email: string;
   name: string;
+  is_admin: boolean;
   created_at: string;
 };
 

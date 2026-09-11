@@ -16,7 +16,7 @@ This file provides guidance to AI coding assistants (Claude Code, Codex, Gemini,
 | `README.md`                                           | 저장소 방문자용 소개 + 로컬 quickstart                       | 루트                              |
 | `ROADMAP.md`                                          | 수행 계획(마일스톤·순서·미결정 항목)                             | 루트                              |
 | `<comp>/DESIGN.md`                                    | 컴포넌트 *내부* 설계 + `## Commands` (빌드/실행/테스트)          | `backend/`, `frontend/`, `e2e/`, `agent/gateway/`, `agent/cursor/` |
-| `frontend/ia/`                                        | SPA **Prod IA** (메뉴·페이지·관리)                         | `frontend/ia/`                  |
+| `frontend/ia/`                                        | SPA **Prod IA** (메뉴·페이지·관리·디자인 시스템)             | `frontend/ia/`                  |
 | `agent/shared/`                                       | agents.yaml 로드 등 gateway/cursor 공용                   | `agent/shared/`                 |
 | `agent/gateway/`                                      | 티켓 이벤트 → agent prompt **배달** (CursorBridge 이식)   | `agent/gateway/`                |
 | `agent/cursor/`                                       | Cursor SDK runtime + MCP 작업 (agent-runner 이식)     | `agent/cursor/`                 |
@@ -46,6 +46,7 @@ This file provides guidance to AI coding assistants (Claude Code, Codex, Gemini,
 
 ## 3. Status
 
-M0–M8 · FE0–FE6 완료. Agent: A0–A5 완료.  
+M0–M9 · FE0–FE7 완료. Agent: A0–A5 완료. UX: [ROADMAP.md](ROADMAP.md) UX0–UX4 계획 수립 ([frontend/ia/design-system.md](frontend/ia/design-system.md)).  
 로컬: npm install && npm run db:migrate:local && npm run dev. 테스트: npm test · E2E: npm run test:e2e ([e2e/DESIGN.md](e2e/DESIGN.md)).  
+디버그: [.vscode/launch.json](.vscode/launch.json) — Run and Debug → **Debug All**.  
 Agent: [agent/gateway/](agent/gateway/) · [agent/cursor/](agent/cursor/) · `npm run agent:cursor` / `agent:gateway`.

@@ -34,7 +34,7 @@ function cookieFrom(headers: Headers): string {
   return m?.[0] ?? "";
 }
 
-async function register(name: string) {
+async function register(name: string, opts: { admin?: boolean } = {}) {
   const email = `${name.toLowerCase()}_${crypto.randomUUID()}@example.com`;
   const res = await request("/api/auth/register", {
     method: "POST",
@@ -42,6 +42,10 @@ async function register(name: string) {
   });
   expect(res.status).toBe(201);
   const user = res.json.user as Json;
+  expect(user.is_admin).toBe(false);
+  if (opts.admin) {
+    await env.DB.prepare(`UPDATE users SET is_admin = 1 WHERE id = ?`).bind(user.id).run();
+  }
   return { cookie: cookieFrom(res.headers), email, userId: user.id as string };
 }
 
@@ -89,7 +93,7 @@ describe("auth", () => {
 
 describe("clients", () => {
   it("CRUD with membership and project linkage", async () => {
-    const a = await register("Alice");
+    const a = await register("Alice", { admin: true });
     const b = await register("Bob");
 
     const created = await request(
@@ -143,7 +147,7 @@ describe("clients", () => {
 
 describe("projects and tickets", () => {
   it("enforces membership and supports CRUD, kanban, timeline", async () => {
-    const a = await register("Alice");
+    const a = await register("Alice", { admin: true });
     const b = await register("Bob");
     const clientId = await createClient(a.cookie);
 
@@ -216,7 +220,7 @@ describe("projects and tickets", () => {
 
 describe("M6 collaboration", () => {
   it("manages client and project members", async () => {
-    const owner = await register("Owner");
+    const owner = await register("Owner", { admin: true });
     const invitee = await register("Invitee");
     const stranger = await register("Stranger");
     const clientId = await createClient(owner.cookie, "MemberCo");
@@ -303,7 +307,7 @@ describe("M6 collaboration", () => {
   });
 
   it("supports assignee, due_at, priority and delete guard", async () => {
-    const owner = await register("Owner2");
+    const owner = await register("Owner2", { admin: true });
     const member = await register("Member2");
     const clientId = await createClient(owner.cookie, "CollabCo");
 
@@ -424,7 +428,7 @@ describe("M6 collaboration", () => {
 
 describe("M7 scale and durability", () => {
   it("paginates tickets and filters archived done on kanban", async () => {
-    const { cookie } = await register("Pager");
+    const { cookie } = await register("Pager", { admin: true });
     const clientId = await createClient(cookie, "PageCo");
     const proj = await request(
       "/api/projects",
@@ -507,7 +511,7 @@ describe("M7 scale and durability", () => {
   });
 
   it("supports direct upload url + confirm and session cleanup", async () => {
-    const { cookie, userId } = await register("Uploader");
+    const { cookie, userId } = await register("Uploader", { admin: true });
     const clientId = await createClient(cookie, "UpCo");
     const proj = await request(
       "/api/projects",
@@ -581,7 +585,7 @@ describe("M7 scale and durability", () => {
 
 describe("M8 concurrency and history", () => {
   it("returns 409 on version conflict and records activities", async () => {
-    const { cookie } = await register("Concurrency");
+    const { cookie } = await register("Concurrency", { admin: true });
     const clientId = await createClient(cookie, "OccCo");
     const proj = await request(
       "/api/projects",
@@ -675,8 +679,8 @@ describe("account profile and password", () => {
 
 describe("search", () => {
   it("finds members-scoped clients, projects, and tickets by q", async () => {
-    const { cookie } = await register("Searcher");
-    const other = await register("Outsider");
+    const { cookie } = await register("Searcher", { admin: true });
+    const other = await register("Outsider", { admin: true });
     const clientId = await createClient(cookie, "SearchSpace");
     const outsiderClient = await createClient(other.cookie, "HiddenSpace");
     const proj = await request(
@@ -719,7 +723,7 @@ describe("search", () => {
 
 describe("comments and files", () => {
   it("adds comment and uploads file via R2", async () => {
-    const { cookie } = await register("Cara");
+    const { cookie } = await register("Cara", { admin: true });
     const clientId = await createClient(cookie, "FilesCo");
     const proj = await request(
       "/api/projects",
@@ -773,7 +777,7 @@ describe("A1 agent event log", () => {
   });
 
   it("appends on ticket/comment mutate and supports after_id tail", async () => {
-    const { cookie, userId } = await register("AgentActor");
+    const { cookie, userId } = await register("AgentActor", { admin: true });
     const clientId = await createClient(cookie, "AgentCo");
     const proj = await request(
       "/api/projects",
@@ -854,7 +858,7 @@ describe("A1 agent event log", () => {
   });
 
   it("does not append ticket_updated when PATCH changes nothing", async () => {
-    const { cookie } = await register("NoopPatch");
+    const { cookie } = await register("NoopPatch", { admin: true });
     const clientId = await createClient(cookie, "NoopCo");
     const proj = await request(
       "/api/projects",
@@ -883,5 +887,69 @@ describe("A1 agent event log", () => {
     const after = await request("/api/agent/events?limit=500", {}, cookie);
     const forTicket = (after.json.events as Json[]).filter((e) => e.ticket_id === ticketId);
     expect(forTicket.map((e) => e.event_type)).toEqual(["ticket_created"]);
+  });
+});
+
+describe("platform admin", () => {
+  it("forbids space create for non-admin and lists users for admin", async () => {
+    const member = await register("Normie");
+    const forbidden = await request(
+      "/api/clients",
+      { method: "POST", body: JSON.stringify({ name: "Nope" }) },
+      member.cookie,
+    );
+    expect(forbidden.status).toBe(403);
+
+    const deniedList = await request("/api/admin/users", {}, member.cookie);
+    expect(deniedList.status).toBe(403);
+
+    const admin = await register("Boss", { admin: true });
+    const listed = await request("/api/admin/users", {}, admin.cookie);
+    expect(listed.status).toBe(200);
+    const users = listed.json.users as Json[];
+    expect(users.some((u) => u.id === member.userId)).toBe(true);
+    expect(users.some((u) => u.id === admin.userId && u.is_admin === true)).toBe(true);
+
+    const created = await createClient(admin.cookie, "AdminSpace");
+    expect(created).toBeTruthy();
+
+    const invited = await request(
+      `/api/clients/${created}/members`,
+      {
+        method: "POST",
+        body: JSON.stringify({ email: member.email, role: "member" }),
+      },
+      admin.cookie,
+    );
+    expect(invited.status).toBe(201);
+    expect((invited.json.member as Json).user_id).toBe(member.userId);
+  });
+
+  it("seeds admin from ADMIN_EMAIL when none exist and refuses demoting the last admin", async () => {
+    const { ensureSeedAdmin } = await import("../src/lib/seed-admin");
+    await env.DB.prepare(`UPDATE users SET is_admin = 0`).run();
+    await ensureSeedAdmin({
+      ...env,
+      ADMIN_EMAIL: "seed-admin@example.com",
+      ADMIN_PASSWORD: "password123",
+      ADMIN_NAME: "Seed Admin",
+    });
+
+    const login = await request("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify({ email: "seed-admin@example.com", password: "password123" }),
+    });
+    expect(login.status).toBe(200);
+    expect((login.json.user as Json).is_admin).toBe(true);
+    const seedId = (login.json.user as Json).id as string;
+    const cookie = cookieFrom(login.headers);
+
+    const demote = await request(
+      `/api/admin/users/${seedId}`,
+      { method: "PATCH", body: JSON.stringify({ is_admin: false }) },
+      cookie,
+    );
+    expect(demote.status).toBe(400);
+    expect(demote.json.error).toBe("last_admin");
   });
 });

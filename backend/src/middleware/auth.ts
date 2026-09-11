@@ -1,6 +1,7 @@
 import { createMiddleware } from "hono/factory";
 import type { Env, User, AppVariables } from "../env";
 import { parseCookie, SESSION_COOKIE, nowIso } from "../lib/crypto";
+import { asAdminFlag } from "../lib/users";
 
 export const requireAuth = createMiddleware<{ Bindings: Env; Variables: AppVariables }>(
   async (c, next) => {
@@ -8,13 +9,13 @@ export const requireAuth = createMiddleware<{ Bindings: Env; Variables: AppVaria
     if (!token) return c.json({ error: "unauthorized" }, 401);
 
     const row = await c.env.DB.prepare(
-      `SELECT u.id, u.email, u.name, u.created_at, s.expires_at
+      `SELECT u.id, u.email, u.name, u.is_admin, u.created_at, s.expires_at
        FROM sessions s
        JOIN users u ON u.id = s.user_id
        WHERE s.id = ?`,
     )
       .bind(token)
-      .first<User & { expires_at: string }>();
+      .first<User & { expires_at: string; is_admin: number | boolean }>();
 
     if (!row || row.expires_at < nowIso()) {
       if (token) {
@@ -27,6 +28,7 @@ export const requireAuth = createMiddleware<{ Bindings: Env; Variables: AppVaria
       id: row.id,
       email: row.email,
       name: row.name,
+      is_admin: asAdminFlag(row.is_admin),
       created_at: row.created_at,
     });
     await next();

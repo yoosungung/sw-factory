@@ -7,11 +7,11 @@ SPA IA: [frontend/ia/](../frontend/ia/).
 
 ## Layout
 
-- `src/index.ts` — Hono app + `scheduled` (만료 세션 정리)
+- `src/index.ts` — Hono app + 시드 admin + `scheduled` (만료 세션 정리)
 - `src/env.ts` — Env 타입
-- `src/lib/` — crypto, ids, cookies
+- `src/lib/` — crypto, ids, cookies, seed-admin
 - `src/middleware/auth.ts` — 세션 로드
-- `src/routes/` — auth, clients, projects, tickets, comments, files, agent
+- `src/routes/` — auth, admin, clients, projects, tickets, comments, files, agent
 - `src/lib/agent-events.ts` — `agent_event_log` append 헬퍼
 - `tests/` — Vitest (workers pool)
 
@@ -48,7 +48,7 @@ npm run dev
 
 | 도메인 | 채택 | 대응 | 비고 |
 | --- | --- | --- | --- |
-| users / auth | **Adopt** | `users`, `sessions`, `/api/auth/*` | 2FA·LDAP 제외 |
+| users / auth | **Adopt** | `users`, `sessions`, `/api/auth/*`, `/api/admin/users` | 2FA·LDAP 제외. `is_admin` 시드 |
 | clients | **Adopt** | `clients`, `client_members` | |
 | projects | **Adopt** | `projects`, `project_members` | |
 | tickets | **Adopt** | `tickets` | type·status·milestone·assignee·due_at·priority·version |
@@ -61,7 +61,7 @@ npm run dev
 | calendar / notifications | **Exclude** | — | |
 | canvas / ideas / wiki / goals | **Exclude** | — | |
 | plugins / 전역 settings | **Exclude** | — | |
-| 전역 RBAC | **Exclude** | `owner`\|`member`만 | |
+| 전역 RBAC / 계정별 CRUD 매트릭스 | **Exclude** | `is_admin` + `owner`\|`member`만 | |
 | 전역 audit | **Exclude** | — | 티켓 이력만 유지 |
 | access_tokens / PAT | **Exclude** | — | 세션만 |
 
@@ -102,7 +102,7 @@ erDiagram
 
 | 테이블 | 핵심 |
 | --- | --- |
-| `users` | `id` UUID, `email` UNIQUE, `password_hash`, `name` |
+| `users` | `id` UUID, `email` UNIQUE, `password_hash`, `name`, `is_admin` 0\|1 |
 | `sessions` | opaque cookie `id`, `user_id`, `expires_at` |
 | `clients` | `name`, `description`, `created_by` + `client_members`(role) |
 | `projects` | `client_id` NOT NULL + `project_members`(role ∈ {owner, member}) |
@@ -117,7 +117,7 @@ erDiagram
 
 ### 3.3 Exclude / Defer
 
-**Exclude:** timesheets, calendar, notifications, canvas/ideas/wiki/goals, plugins, 전역 settings, PAT, 전역 RBAC·audit.  
+**Exclude:** timesheets, calendar, notifications, canvas/ideas/wiki/goals, plugins, 전역 settings, PAT, 계정별 CRUD 매트릭스·전역 audit.  
 **Defer:** sprints, 커스텀 status labels, 코멘트 스레드.
 
 ### 3.4 인덱스 (설계)
@@ -142,18 +142,19 @@ erDiagram
 | `POST /api/auth/login` | 세션 발급 |
 | `POST /api/auth/register` | |
 | `POST /api/auth/logout` | |
-| `GET /api/auth/me`, `PATCH /api/users/me` | name/email |
+| `GET /api/auth/me`, `PATCH /api/users/me` | name/email. `user.is_admin` |
 | `POST /api/auth/password` | `{ current_password, new_password }` |
+| `GET /api/admin/users`, `PATCH /api/admin/users/:id` | 플랫폼 admin만. `{ is_admin }` |
 | `GET /api/search?q=` | 멤버십 범위 Issues/Projects/Spaces |
 
 ### 4.2 Clients
 
 | REST | 비고 |
 | --- | --- |
-| `GET/POST /api/clients` | 목록 / 생성(생성자=owner) |
+| `GET/POST /api/clients` | 목록 / 생성(**admin만**, 생성자=owner) |
 | `GET/PATCH/DELETE /api/clients/:id` | 삭제=owner (projects CASCADE) |
 | `GET /api/clients/:id/projects` | |
-| `GET/POST /api/clients/:id/members` | POST `{ user_id, role }` — owner만 |
+| `GET/POST /api/clients/:id/members` | POST `{ user_id?, email?, role }` — owner만 |
 | `DELETE /api/clients/:id/members/:userId` | owner만 (마지막 owner 보호) |
 
 ### 4.3 Projects
@@ -161,7 +162,7 @@ erDiagram
 | REST | 비고 |
 | --- | --- |
 | `GET/POST /api/projects`, `GET/PATCH/DELETE /api/projects/:id` | 생성 시 `client_id`+멤버십; 삭제=owner |
-| `GET/POST /api/projects/:id/members` | POST — project owner; client 멤버여야 함 |
+| `GET/POST /api/projects/:id/members` | POST `{ user_id?, email?, role }` — project owner; client 멤버여야 함 |
 | `DELETE /api/projects/:id/members/:userId` | 마지막 owner 보호 |
 
 ### 4.4 Tickets
@@ -209,16 +210,18 @@ erDiagram
 
 | 범위 | 역할 |
 | --- | --- |
+| 플랫폼 | `users.is_admin` (시드 1명+) |
 | Client | `client_members.role` (`owner`, `member`) |
 | Project | `project_members.role` (`owner`, `member`) |
-| 전역 RBAC | 없음 |
+| 계정별 CRUD | 없음 |
 
-1. **Client:** 멤버십 필수; 삭제·멤버 관리 = `owner`만  
-2. **Project:** 멤버십 필수; 생성 시 client 멤버; 삭제·멤버 관리 = `owner`만  
-3. **Ticket/Comment/File 읽기·생성:** project 멤버  
-4. **Ticket 수정:** project 멤버 + `version`  
-5. **Ticket 삭제:** 작성자 또는 project `owner`  
-6. **Comment/File 삭제:** 작성자(업로더) 또는 project `owner`
+1. **Space 생성:** `is_admin`만. 가입 계정은 초대 전까지 멤버십 없음  
+2. **Client:** 멤버십 필수; 삭제·멤버 관리 = `owner`만  
+3. **Project:** 멤버십 필수; 생성 시 client 멤버; 삭제·멤버 관리 = `owner`만  
+4. **Ticket/Comment/File 읽기·생성:** project 멤버  
+5. **Ticket 수정:** project 멤버 + `version`  
+6. **Ticket 삭제:** 작성자 또는 project `owner`  
+7. **Comment/File 삭제:** 작성자(업로더) 또는 project `owner`
 
 ---
 
@@ -230,6 +233,7 @@ backend/src/
   middleware/auth.ts    # 세션 → user, 멤버십 가드
   routes/
     auth.ts
+    admin.ts              # GET/PATCH /api/admin/users
     clients.ts
     projects.ts
     tickets.ts          # kanban + timeline + activities + agent append
@@ -238,6 +242,7 @@ backend/src/
     agent.ts            # GET /api/agent/events
   lib/
     agent-events.ts     # appendAgentEvent
+    seed-admin.ts       # ADMIN_EMAIL/PASSWORD 시드
 ```
 
 가드 순서: 세션 → 리소스 load → membership → owner/creator 검사 → 변이.
@@ -254,6 +259,7 @@ backend/src/
 | Cursor 페이징 · Done 기간 필터 · Presigned upload · 세션 Cron | **구현됨** | M7 |
 | `version` 409 · `ticket_activities` | **구현됨** | M8 |
 | `agent_event_log` · `GET /api/agent/events` | **구현됨** | A1 |
+| 플랫폼 admin · Space 생성 가드 | **구현됨** | M9 |
 | timesheets, calendar, notifications, canvas/ideas/wiki/goals, plugins, PAT | **Exclude** | — |
 | 커스텀 status labels | Exclude | — |
 

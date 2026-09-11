@@ -7,24 +7,29 @@
 | 무엇을 | Space(Client)·Project·Board/Backlog/Timeline/List·Issue·관리 |
 | 어떻게 | Top nav·Create·보드·이슈 패널·Project settings 중심 SPA |
 | 데이터 | backend REST + 세션 쿠키만 |
-| 권한 UI | `owner` \| `member` (전역 RBAC·플러그인 설정 없음) |
+| 권한 UI | 플랫폼 `is_admin`(Space 생성·계정 목록) + Space/Project `owner` \| `member` |
 
-사용성: Create anywhere → 보드 드래그·인라인 생성 → 이슈와 보드 동시 → Esc/바깥 클릭 → 최근·검색·멤버 관리까지 한 제품 흐름.
+사용성: Create anywhere → 보드 드래그·인라인 생성 → 이슈와 보드 동시(논모달 인스펙터) → Esc/바깥 클릭 → 최근·검색·멤버 관리까지 한 제품 흐름.  
+디자인 시스템·토큰·인터랙션 표준: [design-system.md](design-system.md).
 
 ## 2. 공통 크롬
 
 ```
-┌─ Top nav (전역, 직접 링크) ─────────────────────────────────┐
-│ Logo │ Spaces │ Projects │ Your work │ [Create] [Search] [Avatar ▾] │
-├─ (Space/Project 진입 시에만 Side) ─┬─ Main ──────────────────┤
-│ Back · Project · Planning          │ view / settings / issue │
-│ Timeline Backlog Board List        │                           │
-└────────────────────────────────────┴───────────────────────────┘
+┌─ Top nav (전역, 48px 클린 라이트 크롬) ──────────────────────────┐
+│ Logo │ Spaces │ Projects │ Your work │ [Create] [Search ⌘K] [Avatar ▾] │
+├─ (Space/Project 진입 시 Side) ──────┬─ Main ────────────────────────┤
+│ Back · Project (Space Switcher)    │ Title [Board|Backlog|Time|List]│
+│ Settings · Members                 │ Filter/Search                  │
+│                                    │ view content / issue inspector │
+└────────────────────────────────────┴────────────────────────────────┘
 ```
 
-전역 화면(`/`, `/spaces`, `/your-work`, `/search`, `/account`)에는 사이드바를 두지 않는다.
+- **단일 뷰 전환 (Single Source of Truth):** 4대 뷰(`Board | Backlog | Timeline | List`)는 작업 화면 상단 툴바의 세그먼트 탭으로 단일화하며 사이드바에 중복 배치하지 않는다.
+- **스페이스 스위처:** 프로젝트 사이드바에 모든 전역 스페이스를 덤프하지 않고, 사이드바 상단 콤보박스 스위처로 압축한다.
+- **설정 전용 셸:** `/projects/:id/settings/*` 진입 시 이중 사이드바 병렬 노출을 방지하고 설정 전용 단일 사이드바/전환 레이아웃을 사용한다.
+- **전역 화면:** (`/`, `/spaces`, `/your-work`, `/search`, `/account`, `/admin`)에는 프로젝트 사이드바를 두지 않는다.
 
-세부 메뉴: [menus.md](menus.md). 화면: [pages.md](pages.md). 관리: [admin.md](admin.md).
+세부 메뉴: [menus.md](menus.md). 화면: [pages.md](pages.md). 관리: [admin.md](admin.md). 디자인 시스템: [design-system.md](design-system.md).
 
 ## 3. 정보 구조 (라우트 맵)
 
@@ -43,6 +48,7 @@ flowchart TB
   Dash["/dashboards · /dashboards/:id"]
   Teams["/teams"]
   Account["/account"]
+  Admin["/admin"]
   Search["/search?q="]
   Issue["?issue= 또는 /browse/:ticketId"]
 
@@ -52,6 +58,7 @@ flowchart TB
   Top --> YW
   Top --> Search
   Top --> Account
+  Top --> Admin
   Spaces --> Space
   Home --> Proj
   Space --> Proj
@@ -80,6 +87,7 @@ flowchart TB
 | `/teams` | 사람·멤버십 디렉터리 | F12 |
 | `/search` | 전역 검색 | F13 |
 | `/account` | 내 계정 | admin |
+| `/admin` | 플랫폼 Admin (계정 목록·Space 생성) | admin |
 
 ## 4. status · type
 
@@ -113,6 +121,7 @@ Prod UI가 요구하는 항목의 백엔드 승격 현황:
 | Issue History 탭 | `ticket_activities` | **구현됨** (M8, `GET …/activities`) |
 | 전역 검색 | `GET /api/search` | **구현됨** (FE3) |
 | Account 프로필·비밀번호 | `PATCH /api/users/me`, `POST /api/auth/password` | **구현됨** (FE3) |
+| 플랫폼 Admin | `users.is_admin`, `GET/PATCH /api/admin/users`, Space 생성 가드 | **구현됨** (M9/FE7) |
 | Sprints 섹션 | sprints 도메인 | Defer |
 
 Exclude 도메인 API는 만들지 않는다.

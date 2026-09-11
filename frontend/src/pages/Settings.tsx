@@ -216,7 +216,7 @@ export function ClientSettingsPage({
                     onSubmit={(e) => {
                       e.preventDefault();
                       void client
-                        .addClientMember(id, { user_id: inviteUserId.trim(), role: inviteRole })
+                        .addClientMember(id, { email: inviteUserId.trim(), role: inviteRole })
                         .then(() => {
                           setInviteUserId("");
                           return reload();
@@ -225,7 +225,8 @@ export function ClientSettingsPage({
                     }}
                   >
                     <input
-                      placeholder="User id to invite"
+                      type="email"
+                      placeholder="Email to invite"
                       value={inviteUserId}
                       onChange={(e) => setInviteUserId(e.target.value)}
                       required

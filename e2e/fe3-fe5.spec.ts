@@ -4,12 +4,13 @@ import {
   createSoftwareProject,
   createSpace,
   fillField,
+  loginAsAdmin,
   register,
   submitForm,
 } from "./helpers";
 
 test("FE3: your-work, search, account", async ({ page }) => {
-  const creds = await register(page, { name: "FE3 User" });
+  await loginAsAdmin(page);
   await createSpace(page, "FE3 Space");
   await createSoftwareProject(page, "FE3 Proj");
 
@@ -46,7 +47,12 @@ test("FE3: your-work, search, account", async ({ page }) => {
   await fillField(page.getByLabel("Name"), "FE3 Renamed");
   await clickEl(page.getByRole("button", { name: "Save profile" }));
   await expect(page.getByText("Profile saved.")).toBeVisible();
+});
 
+test("FE3: registered user can update password", async ({ page }) => {
+  const creds = await register(page, { name: "FE3 Pw User" });
+  await page.goto("/account");
+  await expect(page.getByRole("heading", { name: "Account" })).toBeVisible();
   await fillField(page.getByLabel("Current password"), creds.password);
   await fillField(page.getByLabel("New password"), "password456");
   await clickEl(page.getByRole("button", { name: "Change password" }));
@@ -54,7 +60,7 @@ test("FE3: your-work, search, account", async ({ page }) => {
 });
 
 test("FE5: filters and dashboards", async ({ page }) => {
-  await register(page, { name: "FE5 User" });
+  await loginAsAdmin(page);
   await createSpace(page, "FE5 Space");
   await createSoftwareProject(page, "FE5 Proj");
 
@@ -72,7 +78,7 @@ test("FE5: filters and dashboards", async ({ page }) => {
 });
 
 test("FE6: history tab on issue", async ({ page }) => {
-  await register(page, { name: "FE6 User" });
+  await loginAsAdmin(page);
   await createSpace(page, "FE6 Space");
   await createSoftwareProject(page, "FE6 Proj");
 

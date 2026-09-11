@@ -6,7 +6,7 @@
 - MVP B: 인증, 프로젝트, 태스크, 마일스톤/칸반/타임라인, 코멘트, 파일 첨부
 - 저장소: D1 + R2
 - 설계 정본: [ARCHITECTURE.md](ARCHITECTURE.md)
-- SPA **Prod IA** 정본: [frontend/ia/](frontend/ia/) ([overview](frontend/ia/overview.md) · [menus](frontend/ia/menus.md) · [pages](frontend/ia/pages.md) · [admin](frontend/ia/admin.md))
+- SPA **Prod IA** 정본: [frontend/ia/](frontend/ia/) ([overview](frontend/ia/overview.md) · [menus](frontend/ia/menus.md) · [pages](frontend/ia/pages.md) · [admin](frontend/ia/admin.md) · [design-system](frontend/ia/design-system.md))
 - Backend 설계: [backend/DESIGN.md](backend/DESIGN.md)
 
 ## Backend 마일스톤
@@ -22,6 +22,7 @@
 | **M6** | **협업 필수 체계** (100인 협업 코어): Client/Project 멤버 초대/제거 API, 티켓 담당자(`assignee_id`)·마감일(`due_at`)·우선순위(`priority`) 승격, 티켓 삭제 권한 가드(작성자/Owner 한정) | 멤버 관리 API 및 티켓 협업 필드/삭제 가드 테스트 green | done |
 | **M7** | **대규모 데이터 & 인프라 내구성**: 티켓 Cursor 페이징, 칸반 완료(Done) 티켓 기간 필터/아카이빙, R2 Presigned Direct Upload, 만료 세션 정기 삭제 Scheduled Worker (Cron) | 페이징/대용량 업로드/세션 정리 테스트 green | done |
 | **M8** | **동시성 & 이력 무결성**: 칸반/티켓 낙관적 락 (`version` 필드 및 409 충돌 처리), 티켓 변경 이력(`ticket_activities`) 추적 | 동시성 충돌 검증 및 이력 로그 조회 테스트 green | done |
+| **M9** | **플랫폼 admin**: `users.is_admin`, 시드 admin, Space 생성 admin-only, `GET/PATCH /api/admin/users`, 멤버 초대 `email` | 비admin `POST /api/clients` 403 · admin 시드/목록 테스트 green | done |
 
 ## Frontend 마일스톤
 
@@ -36,8 +37,23 @@
 | **FE4** | **관리**: Space/Project settings (Details · People · Danger · Board 고정 컬럼 안내) | owner 가드·멤버 초대/역할/제거 UI; 빈 stub 없음 | M6 | done |
 | **FE5** | **디렉터리·저장 뷰**: F10 Filters, F11 Dashboards, F12 Teams (Search/Your work/Space People에서 연결) | 실데이터 또는 local→서버 경로 명시·동작 (설계 승격 전 local 허용) | overview §5 승격 항목 | done |
 | **FE6** | **규모·동시성 UX**: List/Board 커서 페이징·Done 기간 필터, Presigned 업로드, `version` 409 처리, Issue History 탭 | M7/M8 API에 맞춘 UI 검증 | M7, M8 | done |
+| **FE7** | **플랫폼 Admin**: `/admin` 계정 목록·is_admin, Create space 가드, People 이메일 초대 | admin만 Space 생성·Users 관리; 비admin Create space 숨김 | M9 | done |
 
 권장 순서: **FE0 → FE1 → FE2 → FE4 → FE3 → FE5**, FE6은 M7/M8과 병행.
+
+## UX/UI 개선 마일스톤
+
+디자인 시스템 및 시각 위계(Visual Hierarchy), 인터랙션 품질(Polish) 개선. 정본: [frontend/ia/design-system.md](frontend/ia/design-system.md).
+
+| ID | 내용 | 완료 기준 | 의존 | 상태 |
+| --- | --- | --- | --- | --- |
+| **UX0** | **디자인 시스템 토큰 & 탑바 크롬 모던화**: Primary/Surface/Status 시맨틱 토큰화, 라이트 모던 셸(다크 탑바의 시각적 분열 해소), 통일된 4/8/12px Radius 및 Elevation 시스템 | `styles.css` 토큰 전면 정리, 탑바-본문 일체형 전환, 브라우저 시각 테스트 통과 | FE0 | ready |
+| **UX1** | **내비게이션 & IA 일원화**: 사이드바 vs 툴바 4대 뷰(Board/Backlog/Timeline/List) 이중 내비게이션 제거, 사이드바 하단 전역 스페이스 무차별 덤프 제거(스위처 도입), 프로젝트 설정 진입 시 이중 사이드바 병렬 노출 해소 | E2E strict mode 중복 링크 해소, 단일 셸 설정 레이아웃 검증 | FE1, FE4 | ready |
+| **UX2** | **보드·백로그 카드 고도화 & Empty State 시스템**: 카드 내 담당자 아바타/우선순위 뱃지/마감일 태그 노출, 타임라인(Timeline) 백색 공백 쇼크 해결(`EmptyState` 공통 컴포넌트: 일러스트+가이드+CTA), 보드 Done 컬럼 가로 스크롤 페이드 인디케이터 | 카드 정보 밀도 강화, 타임라인 및 빈 화면 Empty State E2E green | FE1, FE6 | ready |
+| **UX3** | **상세 패널(Drawer/Modal) & 빠른 생성(Quick Create) 인터랙션 혁신**: 배경 차단 딤 제거된 논모달 사이드 인스펙터(보드-패널 동시 탐색), 긴 제목 클리핑 방지, 네이티브 `<select>` → 커스텀 상태 뱃지/드롭다운, Quick Create 다이얼로그 여백 불균형 정돈 | 비차단형 패널 인터랙션, 드롭다운 키보드 조작, 제목 자동 개행 검증 | FE2, FE1 | ready |
+| **UX4** | **모바일 반응형 완결**: 390px 뷰포트 상단 탑바 오버플로우 및 타이틀 텍스트 클리핑("ROJECTS", "PACES") 해결, 모바일 컴팩트 헤더 + 햄버거 메뉴 레이아웃 적용 | 모바일 뷰포트 E2E 테스트 green, 텍스트 잘림 0건 | FE0 | ready |
+
+권장 순서: **UX0 → UX1 → UX2 → UX3 → UX4**.
 
 ## Agent 마일스톤
 
@@ -65,7 +81,7 @@
 
 - Sprints (도메인·UI)
 - 커스텀 status labels (고정 4컬럼 유지)
-- 전역 RBAC (단순 `owner`\|`member` 유지)
+- 계정별 CRUD 매트릭스 / 전역 permission scheme (`owner`\|`member` + `is_admin` 한 비트만)
 - 고급 리포트; Issue History는 M8 승격 전 UI에 넣지 않음
 
 ## 진행 규칙

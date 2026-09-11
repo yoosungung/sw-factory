@@ -1,0 +1,79 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Vite inspector",
+      "type": "node",
+      "request": "attach",
+      "websocketAddress": "ws://localhost:9229/sw-factory-workers",
+      "timeout": 30000,
+      "resolveSourceMapLocations": null,
+      "attachExistingChildren": false,
+      "autoAttachChildProcesses": false,
+      "sourceMaps": true,
+      "presentation": { "hidden": true }
+    },
+    {
+      "name": "Chrome: SPA",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}",
+      "pathMapping": { "/@fs": "/" },
+      "presentation": { "hidden": true }
+    },
+    {
+      "name": "agent:cursor (mock)",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/tsx",
+      "args": [
+        "${workspaceFolder}/agent/cursor/src/cli.ts",
+        "--config",
+        "${workspaceFolder}/agent/cursor/reference/agents.yaml.sample",
+        "--data-dir",
+        "${workspaceFolder}/.tools/debug-data",
+        "--mock"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "skipFiles": ["<node_internals>/**"],
+      "presentation": { "hidden": true }
+    },
+    {
+      "name": "agent:gateway",
+      "type": "node",
+      "request": "launch",
+      "runtimeExecutable": "${workspaceFolder}/node_modules/.bin/tsx",
+      "args": [
+        "${workspaceFolder}/agent/gateway/src/cli.ts",
+        "--config",
+        "${workspaceFolder}/agent/cursor/reference/agents.yaml.sample",
+        "--data-dir",
+        "${workspaceFolder}/.tools/debug-data/gateway"
+      ],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "envFile": "${workspaceFolder}/.tools/debug.env",
+      "env": {
+        "FACTORY_BASE_URL": "http://localhost:5173"
+      },
+      "skipFiles": ["<node_internals>/**"],
+      "presentation": { "hidden": true }
+    }
+  ],
+  "compounds": [
+    {
+      "name": "Debug All",
+      "configurations": [
+        "Vite inspector",
+        "Chrome: SPA",
+        "agent:cursor (mock)",
+        "agent:gateway"
+      ],
+      "preLaunchTask": "ensure-session",
+      "stopAll": true,
+      "presentation": { "order": 1 }
+    }
+  ]
+}

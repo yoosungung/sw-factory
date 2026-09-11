@@ -1,92 +1,104 @@
 # Frontend — Admin / 관리 (Prod)
 
 Space/Project settings·People을 **멤버십 모델**(`owner`\|`member`)로 구현한다.  
-전역 RBAC·플러그인·전역 settings·PAT는 Exclude — [backend §2](../../backend/DESIGN.md#2-도메인-범위).
+플랫폼 권한은 `users.is_admin` **한 비트**만 — 계정별 CRUD 매트릭스·플러그인·전역 settings·PAT는 Exclude.
 
-관리 UI는 **빈 stub 금지**. owner가 아니면 읽기 전용 또는 메뉴 숨김.
+관리 UI는 **빈 stub 금지**. owner가 아니면 읽기 전용 또는 메뉴 숨김. Create space·`/admin`은 `is_admin`만.
 
 ---
 
 ## 1. 권한 매트릭스 (UI)
 
-| 기능 | member | owner |
-| --- | --- | --- |
-| Space/Project 조회·이슈 CRUD* | ✓ | ✓ |
-| Space/Project 이름·설명 수정 | ✓ (제품 정책: member 허용) | ✓ |
-| People 초대·역할 변경·제거 | — | ✓ |
-| Space/Project 삭제 | — | ✓ |
-| Ownership 양도 | — | ✓ |
-| Account 본인 프로필 | ✓ | ✓ |
+| 기능 | 가입만 | member | owner | 플랫폼 admin |
+| --- | --- | --- | --- | --- |
+| Space/Project 조회·이슈 CRUD* | — | ✓ (초대된 범위) | ✓ | ✓ (멤버인 범위) |
+| Space 생성 | — | — | — | ✓ |
+| Space/Project 이름·설명 수정 | — | ✓ | ✓ | ✓ |
+| People 초대·역할 변경·제거 | — | — | ✓ | ✓ (owner인 Space) |
+| Space/Project 삭제 | — | — | ✓ | ✓ (owner인 Space) |
+| `/admin` 계정 목록·is_admin | — | — | — | ✓ |
+| Account 본인 프로필 | ✓ | ✓ | ✓ | ✓ |
 
 \*이슈 삭제는 **작성자(`created_by`) 본인 또는 프로젝트 `owner`만** 가능 (ARCHITECTURE §1.7 계약).
 
 ---
 
-## 2. Space settings — `/clients/:id/settings/*`
+## 2. Platform admin — `/admin`
+
+**Layout:** Top nav(사이드바 없음). Users 테이블 (name, email, is_admin, created_at) + is_admin 토글. Create space.  
+**Behavior:** 비admin → `/`. 마지막 admin 강등 시 에러 표시. Create space → `POST /api/clients` 후 hub.  
+**API:** `GET /api/admin/users`, `PATCH /api/admin/users/:id` `{ is_admin }`, `POST /api/clients`.  
+**Connections:** Avatar ▾ **Admin**.
+
+시드 계정: `.dev.vars` `ADMIN_EMAIL` / `ADMIN_PASSWORD` (로컬 기본 `admin@localhost`).
+
+---
+
+## 3. Space settings — `/clients/:id/settings/*`
 
 Space/사이트 관리 축소.
 
-### 2.1 Details — `.../details`
+### 3.1 Details — `.../details`
 
 **Layout:** name, description, 저장.  
 **API:** `GET/PATCH /api/clients/:id`.  
 **Connections:** ← Space hub.
 
-### 2.2 People — `.../people`
+### 3.2 People — `.../people`
 
 **Layout:** 멤버 테이블 (name, email, role), Add people, role 셀렉트 (`owner`\|`member`), Remove.  
-**Behavior:** 이메일/사용자 검색 후 추가; 마지막 owner 제거 금지; 본인 owner 강등 시 경고.  
-**API(ARCHITECTURE §4 / M6):**
+**Behavior:** **가입된 계정 이메일**(또는 `user_id`)로 추가; 마지막 owner 제거 금지; 본인 owner 강등 시 경고.  
+**API(ARCHITECTURE §4 / M6·M9):**
 
 | Method | Path |
 | --- | --- |
 | GET | `/api/clients/:id/members` |
-| POST | `/api/clients/:id/members` `{ user_id, role }` |
+| POST | `/api/clients/:id/members` `{ user_id?, email?, role }` |
 | DELETE | `/api/clients/:id/members/:userId` |
 
-owner만 멤버 추가/제거 가능. 마지막 owner는 제거할 수 없음.
+owner만 멤버 추가/제거 가능. 마지막 owner는 제거할 수 없음. 대상은 이미 가입된 `users` 행이어야 한다.
 
-### 2.3 Danger zone — `.../danger`
+### 3.3 Danger zone — `.../danger`
 
 **Layout:** 삭제 확인(이름 재입력).  
 **API:** `DELETE /api/clients/:id` (CASCADE projects). owner only.
 
 ---
 
-## 3. Project settings — `/projects/:id/settings/*`
+## 4. Project settings — `/projects/:id/settings/*`
 
 Project settings (Details / People).
 
-### 3.1 Details — `.../details`
+### 4.1 Details — `.../details`
 
 **Layout:** name, description, parent Space(client) 표시·변경(대상 Space 멤버십 필요).  
 **API:** `GET/PATCH /api/projects/:id`.
 
-### 3.2 People — `.../people`
+### 4.2 People — `.../people`
 
-Space People와 동일 UX.  
-**API(ARCHITECTURE §4 / M6):**
+Space People와 동일 UX. 초대는 해당 Space 멤버만(이메일/`user_id`).  
+**API(ARCHITECTURE §4 / M6·M9):**
 
 | Method | Path | 비고 |
 | --- | --- | --- |
 | GET | `/api/projects/:id/members` | 소속 멤버 목록 |
-| POST | `/api/projects/:id/members` | `{ user_id, role }` (project owner만; 해당 client 멤버여야 함) |
+| POST | `/api/projects/:id/members` | `{ user_id?, email?, role }` (project owner만; 해당 client 멤버여야 함) |
 | DELETE | `/api/projects/:id/members/:userId` | project owner만 (마지막 owner 보호) |
 
 생성 시 creator=owner는 현 계약 유지. 초대 사용자는 해당 Space(Client) 멤버여야 함(ARCHITECTURE §1.4).
 
-### 3.3 Board — `.../board`
+### 4.3 Board — `.../board`
 
 **Layout:** 고정 컬럼 4개 설명(Backlog/To Do/In Progress/Done). 커스텀 컬럼 **없음**(Exclude).  
 **Behavior:** 안내만; 저장 버튼 없음 또는 “Reset card open mode” 로컬 설정.
 
-### 3.4 Danger zone — `.../danger`
+### 4.4 Danger zone — `.../danger`
 
 **API:** `DELETE /api/projects/:id`. owner only.
 
 ---
 
-## 4. Account — `/account`
+## 5. Account — `/account`
 
 계정 프로필.
 
@@ -96,18 +108,18 @@ Space People와 동일 UX.
 | Security | 비밀번호 변경 | `POST /api/auth/password` |
 | Sessions | 현재 세션 로그아웃만(목록 Defer) | logout |
 
-**넣지 않음:** 2FA, API tokens, 알림 설정, LDAP (Exclude).
+**넣지 않음:** 2FA, API tokens, 알림 설정, LDAP, 본인 `is_admin` 변경 (Exclude).
 
 ---
 
-## 5. Teams 디렉터리와의 관계
+## 6. Teams 디렉터리와의 관계
 
 `/teams`([pages F12](pages.md))는 **조회·점프** 허브(Top nav 없음). Space hub **People**이 진입점.  
-실제 권한 변경은 항상 Space/Project **People** 설정에서 수행(프로젝트 단위 위임).
+실제 권한 변경은 항상 Space/Project **People** 설정에서 수행(프로젝트 단위 위임). 플랫폼 계정 목록은 `/admin`.
 
 ---
 
-## 6. 관리 IA (사이드 내비)
+## 7. 관리 IA (사이드 내비)
 
 Space settings:
 
@@ -130,7 +142,7 @@ Danger zone
 
 ---
 
-## 7. Backend 승격 체크리스트 (관리 Prod)
+## 8. Backend 승격 체크리스트 (관리 Prod)
 
 ARCHITECTURE·[backend/DESIGN.md](../../backend/DESIGN.md) 승격 현황:
 
@@ -138,7 +150,8 @@ ARCHITECTURE·[backend/DESIGN.md](../../backend/DESIGN.md) 승격 현황:
 2. `assignee_id`, `due_at`, `priority`, `version` — **승격 완료** (ARCHITECTURE §3, §4 / M6)
 3. 티켓 삭제 권한 가드 (작성자 or owner) — **승격 완료** (ARCHITECTURE §1.7 / M6)
 4. `PATCH /api/users/me`, password change — **구현됨**
-5. People 디렉터리 `GET /api/people` — 설계 검토
-6. (선택) invite-by-email → user 없으면 초대 토큰 Defer; 1차는 **기존 user_id만**
+5. 플랫폼 `is_admin` · Space 생성 가드 · `/api/admin/users` — **구현됨** (M9)
+6. People 초대 `email` — **구현됨** (M9)
+7. People 디렉터리 `GET /api/people` — 설계 검토
 
-Exclude: 플러그인 마켓, 시스템 settings 키-값, PAT 발급 UI.
+Exclude: 플러그인 마켓, 시스템 settings 키-값, PAT 발급 UI, 계정별 CRUD 매트릭스.

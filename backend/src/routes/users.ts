@@ -7,7 +7,13 @@ export const userRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>()
 userRoutes.use("*", requireAuth);
 
 function publicUser(u: User) {
-  return { id: u.id, email: u.email, name: u.name, created_at: u.created_at };
+  return {
+    id: u.id,
+    email: u.email,
+    name: u.name,
+    is_admin: !!u.is_admin,
+    created_at: u.created_at,
+  };
 }
 
 userRoutes.patch("/me", async (c) => {
