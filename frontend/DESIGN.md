@@ -9,14 +9,16 @@ API 설계: [backend/DESIGN.md](../backend/DESIGN.md) · 계약: [ARCHITECTURE.m
 ```
 frontend/src/
     api.ts
-    styles.css                          # UX0 시맨틱 토큰 · 라이트 크롬
-    lib/recent.ts · savedViews.ts   # recent + Filters/Dashboards local
-    components/issue/IssuePanel.tsx   # F9 · History · 409 · direct upload
-    pages/Settings.tsx                # Space/Project settings (FE4)
-    pages/Admin.tsx                   # 플랫폼 /admin (FE7)
-    pages/Personal.tsx                # Your work · Account · Search (FE3)
-    pages/Directory.tsx               # Filters · Dashboards (FE5 local)
-    App.tsx                           # 크롬·뷰·라우트 · List 페이징 · Done 아카이브
+    styles.css                          # UX0–UX4 토큰 · 보드/패널 · 모바일
+    lib/brand.tsx · due.ts · view-mode.ts · recent.ts · savedViews.ts
+    hooks/useDom.ts · useSession.ts
+    components/EmptyState.tsx
+    components/issue/IssuePanel.tsx     # F9 · non-modal inspector · 커스텀 픽커
+    components/chrome/AppChrome.tsx     # TopNav · Sidebar · AppChrome · OpenCreateCtx
+    components/create/CreateDialogs.tsx # Issue · Space · Project 생성
+    pages/Auth.tsx · Home.tsx · ProjectWorkspace.tsx · Misc.tsx
+    pages/Settings.tsx · Admin.tsx · Personal.tsx · Directory.tsx
+    App.tsx                             # 라우트 + 세션 셸만
 ```
 
 ## 사용 흐름

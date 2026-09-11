@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { client, type Client, type Project, type Ticket, type User } from "../api";
 import { initials, STATUS_LABEL } from "../components/issue/IssuePanel";
+import { EmptyState } from "../components/EmptyState";
 import { recentProjectIds, recentTicketIds } from "../lib/recent";
 
 function useClients() {
@@ -136,7 +137,14 @@ export function YourWorkPage({
                 <span className="muted">{t.due_at ?? "—"}</span>
               </Link>
             ))}
-            {assigned.length === 0 && <div className="empty">No issues assigned to you.</div>}
+            {assigned.length === 0 && (
+              <EmptyState
+                title="No issues assigned to you"
+                description="When someone assigns you work, it will show up here."
+                actionLabel="Go to projects"
+                actionHref="/"
+              />
+            )}
           </div>
         )}
         {tab === "viewed" && (
@@ -148,7 +156,14 @@ export function YourWorkPage({
                 <span className="muted">{STATUS_LABEL[t.status]}</span>
               </Link>
             ))}
-            {viewed.length === 0 && <div className="empty">Open an issue to see it here.</div>}
+            {viewed.length === 0 && (
+              <EmptyState
+                title="Nothing viewed yet"
+                description="Open an issue to see it in your recently viewed list."
+                actionLabel="Go to projects"
+                actionHref="/"
+              />
+            )}
           </div>
         )}
         {tab === "projects" && (
@@ -361,7 +376,12 @@ export function SearchPage({
           </form>
         </div>
         {busy && <p className="muted pad">Searching…</p>}
-        {!qParam.trim() && <div className="empty">Type a query to search.</div>}
+        {!qParam.trim() && (
+          <EmptyState
+            title="Search the workspace"
+            description="Type a query to find issues, projects, and spaces."
+          />
+        )}
         {qParam.trim() && (
           <>
             <h2 className="section-title pad">Issues</h2>
@@ -372,7 +392,9 @@ export function SearchPage({
                   <span className="muted">{STATUS_LABEL[t.status]}</span>
                 </Link>
               ))}
-              {results.tickets.length === 0 && <div className="empty">No issues.</div>}
+              {results.tickets.length === 0 && (
+                <EmptyState title="No issues" description="Try a different keyword or check spelling." />
+              )}
             </div>
             <h2 className="section-title pad">Projects</h2>
             <div className="content-panel tableish">
@@ -381,7 +403,9 @@ export function SearchPage({
                   <span>{p.name}</span>
                 </Link>
               ))}
-              {results.projects.length === 0 && <div className="empty">No projects.</div>}
+              {results.projects.length === 0 && (
+                <EmptyState title="No projects" description="No projects matched this query." />
+              )}
             </div>
             <h2 className="section-title pad">Spaces</h2>
             <div className="content-panel tableish">
@@ -390,7 +414,9 @@ export function SearchPage({
                   <span>{c.name}</span>
                 </Link>
               ))}
-              {results.clients.length === 0 && <div className="empty">No spaces.</div>}
+              {results.clients.length === 0 && (
+                <EmptyState title="No spaces" description="No spaces matched this query." />
+              )}
             </div>
           </>
         )}

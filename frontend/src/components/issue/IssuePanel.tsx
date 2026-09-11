@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ApiError,
@@ -51,6 +51,110 @@ function useEscape(onClose: () => void, active: boolean) {
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
   }, [onClose, active]);
+}
+
+function BadgePicker<T extends string>({
+  className,
+  label,
+  value,
+  options,
+  labels,
+  onChange,
+}: {
+  className: string;
+  label: string;
+  value: T;
+  options: T[];
+  labels: Record<T, string>;
+  onChange: (value: T) => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDoc(e: MouseEvent) {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onKey, true);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onKey, true);
+    };
+  }, [open]);
+
+  return (
+    <div className={`badge-picker ${className}`} ref={ref}>
+      <button
+        type="button"
+        className={`badge-picker-btn ${className}-btn ${value}`}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-label={label}
+        onClick={() => setOpen((v) => !v)}
+      >
+        <span className={`prio-badge ${value}`}>{labels[value]}</span>
+        <span className="chev">▾</span>
+      </button>
+      {open && (
+        <ul className="badge-picker-menu" role="listbox" aria-label={label}>
+          {options.map((opt) => (
+            <li key={opt}>
+              <button
+                type="button"
+                role="option"
+                aria-selected={opt === value}
+                className={`badge-picker-option ${opt === value ? "selected" : ""}`}
+                onClick={() => {
+                  onChange(opt);
+                  setOpen(false);
+                }}
+              >
+                <span className={`prio-badge ${opt}`}>{labels[opt]}</span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
+function AutoResizeTitle({
+  value,
+  onChange,
+  onBlur,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+  onBlur: () => void;
+}) {
+  const ref = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    el.style.height = "0px";
+    el.style.height = `${el.scrollHeight}px`;
+  }, [value]);
+
+  return (
+    <textarea
+      ref={ref}
+      className="issue-title-input"
+      rows={1}
+      value={value}
+      onChange={(e) => onChange(e.target.value)}
+      onBlur={onBlur}
+    />
+  );
 }
 
 export type IssueOpenMode = "sidebar" | "modal" | "page";
@@ -142,7 +246,6 @@ export function IssuePanel({
   async function onUpload(e: React.ChangeEvent<HTMLInputElement>) {
     if (!e.target.files?.[0]) return;
     const file = e.target.files[0];
-    // Prefer direct upload for files > 256KB
     if (file.size > 256 * 1024) {
       await client.uploadFileDirect(ticket.id, file);
     } else {
@@ -188,10 +291,9 @@ export function IssuePanel({
         </div>
       </div>
       <div className="drawer-body">
-        <input
-          className="issue-title-input"
+        <AutoResizeTitle
           value={title}
-          onChange={(e) => setTitle(e.target.value)}
+          onChange={setTitle}
           onBlur={() => {
             if (title.trim() && title !== ticket.title) void save({ title: title.trim() });
           }}
@@ -199,28 +301,24 @@ export function IssuePanel({
         {error && <p className="error">{error}</p>}
         <div className="field-grid">
           <div className="label">Status</div>
-          <select
+          <BadgePicker
+            className="status-picker"
+            label="Status"
             value={ticket.status}
-            onChange={(e) => void save({ status: e.target.value as Ticket["status"] })}
-          >
-            {STATUSES.map((s) => (
-              <option key={s} value={s}>
-                {STATUS_LABEL[s]}
-              </option>
-            ))}
-          </select>
+            options={STATUSES}
+            labels={STATUS_LABEL}
+            onChange={(status) => void save({ status })}
+          />
 
           <div className="label">Priority</div>
-          <select
+          <BadgePicker
+            className="prio-picker"
+            label="Priority"
             value={ticket.priority}
-            onChange={(e) => void save({ priority: e.target.value as TicketPriority })}
-          >
-            {PRIORITIES.map((p) => (
-              <option key={p} value={p}>
-                {PRIORITY_LABEL[p]}
-              </option>
-            ))}
-          </select>
+            options={PRIORITIES}
+            labels={PRIORITY_LABEL}
+            onChange={(priority) => void save({ priority })}
+          />
 
           <div className="label">Assignee</div>
           <select
@@ -421,13 +519,11 @@ export function IssuePanel({
     );
   }
 
+  // Non-modal inspector: no backdrop dim; board stays interactive
   return (
-    <>
-      <div className="drawer-backdrop" onClick={onClose} />
-      <aside className="drawer" role="dialog">
-        {content}
-      </aside>
-    </>
+    <aside className="drawer" role="dialog">
+      {content}
+    </aside>
   );
 }
 

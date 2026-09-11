@@ -24,7 +24,7 @@ test("FE3: your-work, search, account", async ({ page }) => {
   await clickEl(page.getByText(title));
   const panel = page.getByRole("dialog");
   await expect(panel).toBeVisible();
-  await panel.locator("select").nth(2).evaluate((el) => {
+  await panel.locator("select").first().evaluate((el) => {
     const select = el as HTMLSelectElement;
     if (select.options.length > 1) {
       select.value = select.options[1].value;
@@ -90,11 +90,8 @@ test("FE6: history tab on issue", async ({ page }) => {
   await clickEl(page.getByText(title));
 
   const panel = page.getByRole("dialog");
-  await panel.locator("select").first().evaluate((el) => {
-    const select = el as HTMLSelectElement;
-    select.value = "in_progress";
-    select.dispatchEvent(new Event("change", { bubbles: true }));
-  });
+  await clickEl(panel.locator(".status-picker").getByRole("button", { name: /status/i }));
+  await clickEl(panel.locator(".status-picker").getByRole("option", { name: /In Progress/i }));
   await clickEl(panel.getByRole("button", { name: "History" }));
   await expect(panel.getByText(/status/i).first()).toBeVisible({ timeout: 10000 });
 });

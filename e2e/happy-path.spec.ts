@@ -25,13 +25,10 @@ test.describe("happy path", () => {
     await expect(panel.getByText("Assignee")).toBeVisible();
     await expect(panel.getByText("Due date")).toBeVisible();
 
-    await panel.locator("select").nth(1).evaluate((el) => {
-      const select = el as HTMLSelectElement;
-      select.value = "high";
-      select.dispatchEvent(new Event("change", { bubbles: true }));
-    });
+    await clickEl(panel.locator(".prio-picker").getByRole("button", { name: /priority/i }));
+    await clickEl(panel.locator(".prio-picker").getByRole("option", { name: /High/i }));
     await clickEl(panel.getByRole("button", { name: "✕" }));
-    await expect(page.locator(".prio-badge.high")).toBeVisible();
+    await expect(page.locator(".prio-badge.high").first()).toBeVisible();
   });
 
   test("project settings people page loads for owner", async ({ page }) => {

@@ -64,22 +64,19 @@ Space hub 컨텍스트.
 [ ← Back to projects ]     → `/` 또는 `/clients/:clientId`
 [ Space Switcher ▾ ]       → 드롭다운 스위처 (사이드바 하단 전역 덤프 금지)
 [ Icon · Project name ]
-──────────── Planning
-  Board        ?view=board   ← 기본 랜딩
-  Backlog      ?view=backlog
-  Timeline     ?view=timeline
-  List         ?view=list
+──────────── Work
+  Overview / Board 랜딩    → `/projects/:id?view=board` (뷰 전환은 툴바 세그먼트만)
 ──────────── Settings
   Project settings → /projects/:id/settings/* (단일 셸 전환, 이중 사이드바 금지)
 ```
 
-- **뷰 전환 일원화 원칙:** 본문 툴바의 세그먼트 탭이 주된 인터랙션 진실 공급원이며, 사이드바는 프로젝트 컨텍스트 전환을 보조한다.
+- **뷰 전환 일원화:** Board/Backlog/Timeline/List는 **작업 툴바 세그먼트 탭만** 진실 공급원. 사이드바에 4뷰 링크를 두지 않는다.
 - **전역 스페이스 덤프 금지:** 사이드바 하단에 시스템의 모든 스페이스를 수직 나열하지 않고, 상단 Space Switcher로 압축한다.
-- **설정 셸:** `Project settings` 진입 시 사이드바가 2중으로 겹쳐 노출되지 않고, 설정 전용 단일 사이드바/전환 레이아웃을 사용한다.
+- **설정 셸:** `Project settings` 진입 시 프로젝트 사이드바를 숨기고, 설정 전용 단일 사이드바만 사용한다.
 
 | 구역 | 항목 | 비고 |
 | --- | --- | --- |
-| Planning | Board, Backlog, Timeline, List | 세그먼트 탭과 1:1 동기화 |
+| Work | Board 랜딩 링크 1개 | 4대 뷰 전환은 툴바 세그먼트 |
 | Settings | Project settings | **단일 셸 관리** — [admin.md](admin.md) |
 | Development | — | 비표시 |
 | Think | Ideas/Wiki/Goals | **Exclude** |
