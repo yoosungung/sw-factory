@@ -23,5 +23,6 @@ cp ../env.example .env
 | 스크립트 | 역할 |
 |----------|------|
 | `./obtain-cookie.sh` | 로그인 → `.env` |
+| `./seed-personas.sh` | sessions persona 쿠키·mcp·MEMORY/skills 시드 |
 | `./run-local.sh` | Docker 기동 |
 | `./stop-local.sh` | 중지·삭제 |

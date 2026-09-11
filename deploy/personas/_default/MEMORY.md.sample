@@ -1,63 +1,47 @@
 # Agent memory (defaults)
 
-Persona별 `MEMORY.md`가 이어 붙는다. Leantime 협업 절차는 `leantime-collab` 스킬을 따른다. 전사 지식은 `org-knowledge`(wiki-first·inbox). Pod에서 고친 내용은 PVC에 유지되며, 재배포 시 ConfigMap으로 덮어쓰지 않는다(시드 재적용은 dest 삭제 후 restart).
+Persona별 `MEMORY.md`가 이어 붙는다. factory 협업은 `factory-collab` 스킬을 따른다. Pod/로컬에서 고친 MEMORY는 PVC에 유지되며, 재시드 시 덮어쓰지 않는다.
 
-## Tool class policy (Goose A안)
-
-실행 정책 보조다. Pod/MCP가 강제 차단한다고 가정하지 말고, 스스로 지킨다.
+## Tool class policy
 
 | class | 예 | 기본 |
 |-------|----|------|
-| `read` | 티켓/코멘트 읽기, `git diff`, `kubectl logs` | 허용 |
+| `read` | 티켓/코멘트 읽기, `git diff` | 허용 |
 | `local_write` | 워크스페이스 파일 수정, 테스트 실행 | 허용 |
 | `external_write` | Active ticket 코멘트·상태, `git push`, `gh pr create` | 허용 + Active ticket에 감사 기록 |
-| `destructive` | `git push --force`, `git reset --hard`, secret/권한 변경, 임의 삭제, Active 외 티켓 write | **금지** |
+| `destructive` | `git push --force`, `git reset --hard`, secret 변경, Active 외 티켓 write | **금지** |
 
-- `budget`/`Success checks`가 prompt에 있으면 soft limit로 따른다. 못 끝내면 티켓에 blocker/next step을 남기고 멈춘다.
-- `Context summary`는 보조 문맥이다. 원문 감사는 Leantime 코멘트·PR 링크로 남긴다.
-- Delegation lineage(`delegated_from`/`delegated_to`)가 있으면 동일 Active ticket에 결과를 기록한다.
-- MCP 도구명·호출 세부는 `leantime-collab` 스킬을 따른다.
+- MCP 도구·호출 세부는 `factory-collab` 스킬과 [05-factory-mcp](../../../agent/cursor/docs/05-factory-mcp.md)를 따른다.
 
 ## 설계 시 협업
 
-- 설계·아키텍처·API 계약은 단독 확정하지 않는다. 티켓 코멘트로 대안·질문을 남기고, 관련 담당자에게 `@mention`으로 피드백을 요청한다.
-- 여러 저장소에 걸치면 해당 repo 전담 에이전트와 먼저 합의한다. 합의 후 assignee를 구현 담당으로 넘기고, 코멘트에 결정·미결 사항을 요약한다.
-- Review 단계에서는 `git-ship`(push + PR) 완료 후 **PM pm**에게 핸드오프한다. CD 티켓은 merge 후 TA(`ta`) → QA/AA → prod. 플랫폼 이슈만 eric.
+- 설계·아키텍처·API 계약은 단독 확정하지 않는다. 티켓 코멘트로 대안·질문을 남기고 `@mention`으로 피드백을 요청한다.
+- Review 단계에서는 `git-ship`(push + PR) 완료 후 **pm**에게 핸드오프한다.
 
 ## 계획
 
-- 범위가 넓거나 단계가 여러 개면 **티켓 첨부 `plan.md`** 로 계획을 구체화한다. 코멘트·본문에는 요약만 남기고, 상세(목표, 범위, 단계, 미결, 테스트)는 md에 쓴다.
-- 파일명은 **`plan.md`**(티켓당 1개)를 기본으로 한다. 갱신 시 같은 이름으로 다시 `upload_ticket_file`하고, 코멘트에 변경 요지만 적는다.
-- 작업 시작 전 `list_ticket_files` → `download_ticket_file`로 `plan.md`를 읽는다. 없으면 먼저 작성·첨부한 뒤 `@mention`으로 리뷰를 요청한다.
-- 저장소 불변 규칙(`ARCHITECTURE.md` 등)과 겹치면 issue plan은 **이 티켓 범위의 실행 계획**만 담고, 확정된 계약은 해당 repo 문서에 반영한다.
+- 범위가 넓으면 티켓 첨부 **`plan.md`**(티켓당 1개)로 계획을 구체화한다. 코멘트에는 요약만.
+- 작업 전 첨부가 있으면 읽고, 없으면 작성 후 `@mention`으로 리뷰를 요청한다.
 
 ## 디버그
 
-- **재현 → 가설 → 증거 → 수정 → 검증** 순서로 한다. 재현 전에는 코드를 고치지 않는다.
-- 가설은 「X가 원인이면 Y에서 Z가 나와야 한다」처럼 검증 가능하게 적는다. 확인된 원인만 고친다.
-- 실패하는 테스트(또는 재현 커맨드)를 먼저 만든 뒤 수정한다. 임시 디버그 로그는 PR에 남기지 않는다.
-- 재현이 안 되거나 가설이 2회 이상 틀리면, 티켓 코멘트에 시도·증거를 남기고 `@mention`으로 확인을 요청한다.
+- **재현 → 가설 → 증거 → 수정 → 검증**. 재현 전에는 코드를 고치지 않는다.
+- 실패하는 테스트(또는 재현 커맨드)를 먼저 만든 뒤 수정한다.
 
 ## 팀 구성원
 
 | 이름 | 유형 | 역할 |
 |------|------|------|
 | eric | 사람 | 플랫폼 소유자·승인 |
-| pm | 봇 | **PM** — intake·리뷰·머지·Done 게이트 (전 client) |
-| km | 봇 | **KM** — org-wiki librarian |
-| ta | 봇 | **TA** — tenant-cd (test→prod) · 주간 부하 · k8s |
-| qa | 봇 | **QA** — browser E2E · bulk/Opik · 주간 대량품질 |
-| aa | 봇 | **AA** — 티켓 보안 게이트 · 주간 클린코드 |
-| asky / path / … | 개발자 | client/repo IC (`human` 또는 `sessions`) |
+| pm | 봇 | **PM** — intake·리뷰·Done 게이트 |
+| km | 봇 | **KM** — 티켓/첨부 지식 정리(최소) |
+| ta | 봇 | **TA** — 배포·인프라·runtime |
+| qa | 봇 | **QA** — E2E·품질 |
+| aa | 봇 | **AA** — 보안·클린코드 |
 
-직원 5인(PM/KM/QA/TA/AA)은 **client_id에 묶이지 않음**. 테넌트 키는 티켓·배포 대상 조회용.
+직원(PM/KM/QA/TA/AA)은 client에 묶이지 않을 수 있다 (`agents.yaml`).
 
-## Dual-loop 상태
+## 칸반 (축약)
 
-`New` → `In Progress` → `Review` → `Deploying Test` → `QA` → `Deploying Prod` → `Done` (+ `Blocked` / `Waiting for Approval`). 숫자 id는 `settings.status_board` / client `status_map`.
-
-## 전사 지식 (org-wiki)
-
-- 조사 전 `org-knowledge`로 `INDEX.md`·`wiki/` 검색. 웹은 miss/stale일 때만.
-- 작업 후 `inbox/{name}/…md` push 또는 티켓에 `wiki: N/A — …`. `wiki/`·`INDEX`는 km만. Quartz는 `wiki/`만 배포(`inbox/`·`raw/` 제외).
-- km promote 후 inbox 원본 삭제(`git rm`). 급승격: `@km`.
+`backlog` → `todo` → `in_progress` → `done` (+ 프로젝트 커스텀 statuses).  
+Done 증거 마커(코멘트): `test:`, `qa:`, `aa:`, `prod:` (해당 시).

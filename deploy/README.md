@@ -7,6 +7,7 @@
 | [docker/](docker/) | agent Dockerfile·entrypoint·`build.sh` |
 | [local/](local/) | 로컬 Docker 실행·작업용 `.env` / `agents.yaml` |
 | [k8s/](k8s/) | Kubernetes 매니페스트·`apply.sh` (`NS=sw-factory`) |
+| [personas/](personas/) | MEMORY·skills·rules (`_default` + pm/ta/qa/aa/km) |
 
 로컬 빠른 경로:
 

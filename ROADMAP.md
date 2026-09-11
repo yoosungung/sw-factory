@@ -69,6 +69,7 @@
 | **A3** | agent/cursor runner (pool·뮤텍스·persona cwd·PVC 경로) | mock MCP로 병렬 prompt·R1–R5 단위 테스트 | done |
 | **A4** | factory-mcp + personas 시드 | 세션 쿠키로 티켓 읽기/코멘트; sample agents.yaml | done |
 | **A5** | 로컬 실행 하네스 (agents.yaml · gateway poll · cursor listen · SDK/mock backend) | `npm run agent:cursor`+`agent:gateway`로 mock E2E; yaml 로드·listen 테스트 green | done |
+| **A6** | `deploy/personas` MEMORY·skills 번들 + TS merge/seed | pm 번들에 default+persona MEMORY·`factory-collab`; MEMORY seed-once(재시드 시 미덮어씀); 테스트 green | done |
 
 ## 범위 밖 (Exclude)
 

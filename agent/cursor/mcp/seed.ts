@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { loginFactory } from "./client";
+import { applyPersonaBundle } from "../src/persona-bundle";
 
 export type PersonaSeed = {
   name: string;
@@ -11,12 +12,14 @@ export type PersonaSeed = {
 
 /**
  * Login as persona user and write session cookie + mcp.json under workspace.
+ * Also applies deploy/personas bundle (MEMORY seed-once, skills overwrite).
  */
 export async function seedPersonaWorkspace(opts: {
   dataDir: string;
   factoryBaseUrl: string;
   persona: PersonaSeed;
   fetchImpl?: typeof fetch;
+  personasRoot?: string;
 }): Promise<{ cwd: string; cookie: string }> {
   const cwd = path.join(opts.dataDir, "workspaces", opts.persona.persona);
   await mkdir(path.join(cwd, "secrets"), { recursive: true });
@@ -36,11 +39,15 @@ export async function seedPersonaWorkspace(opts: {
       {
         mcpServers: {
           factory: {
-            command: "node",
-            args: ["agent/cursor/mcp/stdio.js"],
+            command: "npx",
+            args: ["tsx", "agent/cursor/mcp/stdio.ts"],
             env: {
               FACTORY_BASE_URL: opts.factoryBaseUrl,
-              FACTORY_SESSION_COOKIE_FILE: path.join(cwd, "secrets", "session.cookie"),
+              FACTORY_SESSION_COOKIE_FILE: path.join(
+                cwd,
+                "secrets",
+                "session.cookie",
+              ),
             },
           },
         },
@@ -50,6 +57,14 @@ export async function seedPersonaWorkspace(opts: {
     ),
     "utf8",
   );
+
+  const personasRoot =
+    opts.personasRoot ?? path.resolve(process.cwd(), "deploy/personas");
+  await applyPersonaBundle({
+    dataDir: opts.dataDir,
+    persona: opts.persona.persona,
+    personasRoot,
+  });
 
   return { cwd, cookie };
 }

@@ -47,6 +47,8 @@ agent/cursor/
 npm run test:agent
 npm test
 npm run agent:cursor -- --config agent/cursor/reference/agents.yaml.sample --mock
+npx tsx agent/cursor/src/seed-cli.ts --config deploy/local/agents.yaml --data-dir /tmp/swf-data
 ```
 
-`CURSOR_API_KEY` + `@cursor/sdk` 설치 시 실 local agent; 아니면 mock.
+`CURSOR_API_KEY` + `@cursor/sdk` 설치 시 실 local agent; 아니면 mock.  
+persona 번들: [deploy/personas/](../../deploy/personas/) · [persona-bundle.ts](src/persona-bundle.ts).

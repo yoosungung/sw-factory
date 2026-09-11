@@ -1,5 +1,5 @@
 ---
-description: 응답·문서·TDD·조사·Python 실행·코딩 행동 원칙
+description: 응답·문서·TDD·코딩 행동 원칙
 alwaysApply: true
 ---
 
@@ -7,29 +7,23 @@ alwaysApply: true
 
 - Responses must always be written in Korean, concise (within three paragraphs), and intuitive.
 - Prioritize documentation updates during the development process and strictly adhere to TDD (Test-Driven Development).
-- Research: **wiki-first** (`org-knowledge`) then code review; web search only on wiki miss/stale/external fact. After work: inbox contribute or `wiki: N/A — reason` on the Active ticket.
+- Research: **ticket/code first** (`factory-collab` · repo docs) then web search for external facts only.
 - Use virtual environments (.venv) when running Python code.
 
 ## Coding Principles
 
-The following principles are intended to prevent over-speculation, over-design, and over-modification. Minor tasks may be omitted if necessary.
-
-- **Think Before Coding** — Do not hide assumptions or ambiguities. If interpretations differ, please leave options and pros and cons in the ticket comments before proceeding. If the ticket content is clear, proceed without verification.
-- **Simplicity First** — Solve only the requested problem with the minimum amount of code. Do not include code for future flexibility, unnecessary abstractions, or features outside the scope of the request.
-- **Refine** — Modify only the lines of code directly related to the request. Do not arbitrarily modify adjacent code, formatting, or comments, and do not refactor parts that do not have issues.
-- **Goal-driven execution** — Change to verifiable success criteria (Test fail → Test pass → Verify related test). If composed of multiple steps, write `Step → Verify` concisely and repeat.
+- **Think Before Coding** — If interpretations differ, leave options in ticket comments before proceeding.
+- **Simplicity First** — Solve only the requested problem with the minimum amount of code.
+- **Refine** — Modify only lines directly related to the request.
+- **Goal-driven execution** — Test fail → Test pass → Verify. Write `Step → Verify` when multi-step.
 
 ## Review After Ticket Development
 
-Goal: To deliver the project to reviewers so they can decide whether to merge based solely on the PR.
-
-Tools: Remote deployment = `git-ship`, Ticket creation = `leantime-collab`
+Tools: Remote ship = `git-ship`, Ticket = `factory-collab`
 
 | Sequence | Task | Completion Condition |
 |------|------|-----------|
-| 1 | Commit → Push → Open PR (Performed by an agent. Do not request a human to push.) | The commit and PR URL must exist in the remote repository. If it fails, add a blocking comment and `@eric` and stop. |
-| 2 | Write a summary and verification method in the PR. Comment **test evidence** (command/CI link) or `test: N/A — reason` / `browser: N/A — reason` on the Active ticket. Also `wiki: inbox/...` or `wiki: N/A — reason` (`org-knowledge`). | The ticket, commit, and PR must all be directed toward the same goal. |
-| 3 | Ticket Status → Review, Assignee → **pm** (PM) | PR·요약·검증·**지금** `@pm`(한 번). CD면 merge 후 ta→qa/aa→prod. |
-| 4 | Stop additional implementation | CI/피드백 대기는 **침묵** — `@pm`/`@IC` 되멘션·standby ack 금지 |
-
-pm merge: required checks pending/fail → merge 금지(`git-ship`). CI-wait는 status-board(무멘션); green·머지 **후**에만 IC `@mention` bounce.
+| 1 | Commit → Push → Open PR (agent; never ask a human to push) | Remote commit + PR URL, or blocking comment + `@eric` |
+| 2 | PR summary + verification; ticket comment with **test evidence** or `test: N/A — reason` | Ticket, commit, PR align |
+| 3 | Status → review intent; assignee → **pm**; `@pm` once | Handoff complete |
+| 4 | Stop additional implementation | CI wait = silence — no remount/@pm spam |

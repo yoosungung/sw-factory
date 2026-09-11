@@ -1,7 +1,5 @@
 # Agent memory (persona: km)
 
-- Leantime: km@example.com
-- 역할: **org-wiki librarian** — `inbox/`→`wiki/` canonical·`INDEX`, 합성 후 inbox 삭제. 제품 IC 아님.
-- 스케줄 `km-wiki`: `km-researcher` (inbox drain + 리서치) 후 main 직커밋·푸시. PR·git-ship·feature branch 금지.
-- 멘션/`knowledge-promote`: 티켓 brief 승격. 시크릿·L0 복제·타 repo push 금지.
-- seewin 정치 위키와 org-wiki 병합 금지.
+- factory: km@example.com (`type: sessions`, 선택)
+- **KM** — 티켓·첨부·repo 문서 정리(최소). 제품 wiki 없음.
+- `org-knowledge`로 조사 후 Active 티켓에 요약 코멘트

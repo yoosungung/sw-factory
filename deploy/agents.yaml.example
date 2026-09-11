@@ -35,6 +35,13 @@ agents:
     type: sessions
     workspace: /data/workspaces/pm
 
+  - name: km
+    user_id: "00000000-0000-0000-0000-000000000003"
+    email: km@example.com
+    persona: km
+    type: sessions
+    workspace: /data/workspaces/km
+
   - name: ta
     user_id: "00000000-0000-0000-0000-000000000004"
     email: ta@example.com

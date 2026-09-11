@@ -24,6 +24,7 @@ This file provides guidance to AI coding assistants (Claude Code, Codex, Gemini,
 | `deploy/docker/`                                      | agent Dockerfile·entrypoint·`build.sh`              | `deploy/docker/`                 |
 | `deploy/local/`                                       | 로컬 Docker 실행·작업용 `.env`/`agents.yaml`           | `deploy/local/`                  |
 | `deploy/k8s/`                                         | agent k8s 매니페스트·`apply.sh` (`NS=sw-factory`)     | `deploy/k8s/`                   |
+| `deploy/personas/`                                    | persona MEMORY·skills·rules (`_default`+overlay)    | `deploy/personas/`              |
 
 
 규칙:
@@ -50,7 +51,7 @@ This file provides guidance to AI coding assistants (Claude Code, Codex, Gemini,
 
 ## 3. Status
 
-M0–M10 · FE0–FE8 완료. Agent: A0–A5 완료. UX: UX0–UX4 완료 ([frontend/ia/design-system.md](frontend/ia/design-system.md)).  
+M0–M10 · FE0–FE8 완료. Agent: A0–A6 완료. UX: UX0–UX4 완료 ([frontend/ia/design-system.md](frontend/ia/design-system.md)).  
 로컬: npm install && npm run db:migrate:local && npm run dev. 테스트: npm test · E2E: npm run test:e2e ([e2e/DESIGN.md](e2e/DESIGN.md)).  
 디버그: [.vscode/launch.json](.vscode/launch.json) — Run and Debug → **Debug All**.  
 Agent: [agent/gateway/](agent/gateway/) · [agent/cursor/](agent/cursor/) · `npm run agent:cursor` / `agent:gateway`.  

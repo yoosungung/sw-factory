@@ -1,37 +1,14 @@
 ---
 name: agent-catch-up
 description: >-
-  Runner Ready 직후(재기동=출근) catch-up 세션에서 배정함·멘션을 훑고 할 일 한 건을
-  선별해 착수한다. catch_up 프롬프트, commute, Ready-edge, lookback_since 사용 시 적용.
+  티켓리스 catch-up 세션에서 assignee/멘션 actionable 1건을 고른 뒤 그 티켓만 작업한다.
 ---
 
-# Agent Ready Catch-up (출근)
+# Catch-up
 
-프롬프트에 **Active ticket_id가 없다**. 이 세션은 triage + **한 건 착수**용이다. 역할 전용 주기 작업(PM checkpoint, TA CD, 주간 NF 등)은 기존 `schedules[]`/스킬에 맡긴다.
+Active `ticket_id`가 없을 때:
 
-`MEMORY.md` / `bridge.json`의 내 `leantime_user_id`를 **me**로 쓴다.
-
-## Lookback
-
-프롬프트 `{lookback_since}`(ISO) 이후만 본다. 없으면 **지금 − 48h**.
-
-## 절차
-
-1. **배정함:** `list_tickets(assigned_to=me)`. Done/Archived 제외. 우선순위:
-   - (a) `In Progress` + lookback 이후 새 맥락(코멘트/수정) — 단, assignee=me가 아닌 Review·CI-wait만이면 스킵
-   - (b) `Blocked`이지만 내가 풀 수 있는 것
-   - (c) `New` / Todo 등 열린 배정
-2. **멘션:** `list_tickets(updated_since=lookback_since)`로 후보를 좁힌 뒤, 각 티켓에 `get_comments(module=ticket, module_id=…, mentioned_user_id=me, since=lookback_since)`. 다음이면 **스킵**(응답 코멘트 금지):
-   - 멘션 **이후**에 내가 이미 응답한 스레드
-   - 최신 맥락이 CI pending / PR OPEN·unstable / merge deferred / standby / “액션 없음”이고 silence-reset(머지·코드·`nf-progress:`·새 배정) 없음
-   - `Waiting for Approval`·사람 전용(@eric 시크릿/범위) — PM 레인에 맡김
-3. **선별:** **지금** 내가 실행할 actionable 한 건만.
-4. **착수:** 선정 티켓을 이 세션에서 `get_ticket` / `get_comments` 후 역할 스킬대로 진행. 진행·결정은 `add_comment`(HTML·멘션 규칙은 `leantime-collab` — 대기면 멘션 금지).
-5. **무업무:** read-only MCP로 종료한다. `create_ticket`·Outcome·standby ack·빈 기록 티켓 금지( runner `event=catch_up` 검증과 동일).
-
-## 하지 말 것
-
-- 한 세션에서 여러 티켓을 병렬로 크게 진행하지 않는다(한 건 착수 후 필요 시 다음 Ready/이벤트에 맡긴다).
-- Active-ticket 이벤트 세션처럼 “다른 티켓 금지”를 이 catch-up에 적용하지 않는다 — triage 범위는 배정/멘션 큐 전체다.
-- 이미 처리된 멘션을 자동 재재생한다고 가정하지 않는다.
-- 대기·CI-wait 멘션에 `Next @상대` / `mention-outcome`으로 되깨우지 않는다 — 침묵이 정답이다.
+1. `list_tickets`(me/assignee) 또는 `search`로 후보를 본다
+2. **최대 1건**만 선택 (없면 쓰기 없이 종료)
+3. 선택 후 그 티켓을 Active로 취급 — `factory-collab` 규칙 적용
+4. 여러 건이 actionable이면 우선순위(블로커·멘션·마감)로 1건만 고르고 나머지는 코멘트에 목록만

@@ -1,18 +1,11 @@
 ---
 name: bulk-api-probe
 description: >-
-  Direct bulk request/response quality checks against app servers using tenant
-  bulk_api specs. Use for ticket (when configured) and weekly qa-bulk-weekly.
-version: 1.1.0
-author: qa persona
-license: MIT
+  핵심 API 스모크(`/api/health` 등)를 확인하고 티켓에 남긴다.
 ---
 
 # Bulk API probe
 
-1. **Sync first** (weekly or when criteria may have changed) — `tenant-repo-sync` → `synced: repo_id=… sha=… path=…`. Read `.factory/quality.yaml` from that path.
-2. Read tenant `bulk_api:` (endpoints, payload, success criteria).
-3. Run against the configured base URL (usually test).
-4. Ticket context: comment `bulk_api: pass|fail …` on Active ticket when part of the gate.
-5. Weekly: for each client, run suite; failures → `New` ticket on `clients[].project_id`.
-6. **Long-run** (ARCHITECTURE §2.6 #10): if suite/`long_run: true` ≫ session budget — detach, do not foreground-wait; keep `nf-progress:` heartbeats; on pm nudge verify alive vs restart.
+1. `FACTORY_BASE_URL`에 대해 `GET /api/health` 등 스모크
+2. 실패 시 status·body 요약을 Active 코멘트에 기록
+3. 통과 시 `qa:` 또는 관련 마커에 한 줄 증거

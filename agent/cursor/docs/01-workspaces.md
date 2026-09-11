@@ -16,7 +16,10 @@
   secrets/               # session cookie file 등 (또는 Secret mount)
 ```
 
-시드: 이미지/ConfigMap의 `_default` + persona overlay (GH `render-agents` / persona bundle). `MEMORY.md`는 **seed-once**(파일 없을 때만).
+시드 정본: [deploy/personas/](../../../deploy/personas/) — `_default/` + `{persona}/` overlay.  
+머지·적용: [persona-bundle](../src/persona-bundle.ts) (`buildPersonaBundle` · `applyPersonaBundle`).  
+`MEMORY.md`는 **seed-once**(파일 없을 때만). skills/rules는 재시드 시 overwrite.  
+세션 쿠키·`mcp.json`은 [factory-mcp seed](../mcp/seed.ts)가 생성(번들 mcp.json은 사용하지 않음).
 
 ## 규칙
 
