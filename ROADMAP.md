@@ -39,6 +39,18 @@
 
 권장 순서: **FE0 → FE1 → FE2 → FE4 → FE3 → FE5**, FE6은 M7/M8과 병행.
 
+## Agent 마일스톤
+
+내부망 coding agent. 설계 정본: [agent/gateway/](agent/gateway/) · [agent/cursor/](agent/cursor/). 계약: [ARCHITECTURE.md](ARCHITECTURE.md) §1.11–14.
+
+| ID | 내용 | 완료 기준 | 상태 |
+| --- | --- | --- | --- |
+| **A0** | gateway/cursor 설계 문서·참고 스키마·구성도 | `agent/gateway/**` · `agent/cursor/**` 문서 존재; 루트 계약 링크 | done |
+| **A1** | Worker `agent_event_log` + `GET /api/agent/events` | 마이그레이션·mutate append·pull API 테스트 green | planned |
+| **A2** | agent/gateway 구현 (tail·라우팅·localhost dispatch·retry/`acked_id`) | mock cursor에 이벤트→202 배달 E2E | planned |
+| **A3** | agent/cursor runner (pool·뮤텍스·persona cwd·PVC 경로) | mock MCP로 병렬 prompt·R1–R5 단위 테스트 | planned |
+| **A4** | factory-mcp + personas 시드 | 세션 쿠키로 티켓 읽기/코멘트; sample agents.yaml | planned |
+
 ## 범위 밖 (Exclude)
 
 - timesheets, calendar / notifications

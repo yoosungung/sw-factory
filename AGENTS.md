@@ -15,8 +15,10 @@ This file provides guidance to AI coding assistants (Claude Code, Codex, Gemini,
 | `ARCHITECTURE.md`                                     | **계약사항(불변 규칙)** + 컴포넌트 *간* 인터페이스 형태(스키마·레이아웃·이벤트) | 루트                              |
 | `README.md`                                           | 저장소 방문자용 소개 + 로컬 quickstart                       | 루트                              |
 | `ROADMAP.md`                                          | 수행 계획(마일스톤·순서·미결정 항목)                             | 루트                              |
-| `<comp>/DESIGN.md`                                    | 컴포넌트 *내부* 설계 + `## Commands` (빌드/실행/테스트)          | `backend/`, `frontend/`, `e2e/` |
+| `<comp>/DESIGN.md`                                    | 컴포넌트 *내부* 설계 + `## Commands` (빌드/실행/테스트)          | `backend/`, `frontend/`, `e2e/`, `agent/gateway/`, `agent/cursor/` |
 | `frontend/ia/`                                        | SPA **Prod IA** (메뉴·페이지·관리)                         | `frontend/ia/`                  |
+| `agent/gateway/`                                      | 티켓 이벤트 → agent prompt **배달** (CursorBridge 이식)   | `agent/gateway/`                |
+| `agent/cursor/`                                       | Cursor SDK runtime + MCP 작업 (agent-runner 이식)     | `agent/cursor/`                 |
 
 
 규칙:
@@ -43,4 +45,6 @@ This file provides guidance to AI coding assistants (Claude Code, Codex, Gemini,
 
 ## 3. Status
 
-M0–M8 · FE0–FE6 완료. 로컬: npm install && npm run db:migrate:local && npm run dev. 테스트: npm test · E2E: npm run test:e2e ([e2e/DESIGN.md](e2e/DESIGN.md)).
+M0–M8 · FE0–FE6 완료. Agent: A0 설계 문서(구현 A1+는 planned).  
+로컬: npm install && npm run db:migrate:local && npm run dev. 테스트: npm test · E2E: npm run test:e2e ([e2e/DESIGN.md](e2e/DESIGN.md)).  
+Agent 설계: [agent/gateway/](agent/gateway/) · [agent/cursor/](agent/cursor/).

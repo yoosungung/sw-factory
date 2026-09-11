@@ -1,12 +1,13 @@
 # Architecture
 
 sw-factory(Auth, Clients, Projects, Tickets/Milestones, Comments, Files)를 Cloudflare Workers에서 구현한다.  
-컴포넌트 설계: [backend/DESIGN.md](backend/DESIGN.md) · [frontend/DESIGN.md](frontend/DESIGN.md) · [frontend/ia/](frontend/ia/).
+코딩 agent(내부망)는 티켓 시스템의 **일반 유저**로 접속한다.  
+컴포넌트 설계: [backend/DESIGN.md](backend/DESIGN.md) · [frontend/DESIGN.md](frontend/DESIGN.md) · [frontend/ia/](frontend/ia/) · [agent/gateway/](agent/gateway/) · [agent/cursor/](agent/cursor/).
 
 ## 1. 계약사항
 
 1. 브라우저·외부 클라이언트는 **Worker HTTP API만** 호출한다. D1·R2에 직접 접근하지 않는다. (단, R2 Presigned URL을 통한 다이렉트 바이너리 전송은 예외적으로 허용)
-2. 인증은 **HttpOnly + Secure + SameSite=Lax** 세션 쿠키와 D1 `sessions` 행으로 유지한다. JWT를 기본으로 쓰지 않는다.
+2. 인증은 **HttpOnly + Secure + SameSite=Lax** 세션 쿠키와 D1 `sessions` 행으로 유지한다. JWT를 기본으로 쓰지 않는다. **코딩 agent도 동일** — email/password 로그인 후 세션 쿠키(PAT/`x-api-key` 신설 없음).
 3. **Client**는 고객사/조직 단위다. Client 리소스는 **client_members** 멤버십이 없으면 거부한다(fail-closed). `owner`만 client 삭제·멤버 관리(초대/역할변경/제거)가 가능하다.
 4. **Project**는 반드시 하나의 `client_id`에 속한다. 프로젝트 생성 시 해당 client의 멤버여야 한다. 프로젝트 리소스 접근은 **project_members** 기준 fail-closed. `owner`만 프로젝트 삭제·멤버 관리(초대/역할변경/제거)가 가능하다.
 5. 첨부 **바이너리는 R2만** 저장한다. D1 `files`에는 메타데이터(key, mime, size, entity)만 둔다. 대용량은 `upload-url` → 임시 PUT(`direct-upload`) → `confirm` 흐름을 지원한다.
@@ -15,16 +16,23 @@ sw-factory(Auth, Clients, Projects, Tickets/Milestones, Comments, Files)를 Clou
 8. 대량 데이터 및 동시성: 티켓 목록은 Cursor 기반 페이징을 지원하며, 칸반은 활성 티켓 중심(완료건은 최근 기간 필터)으로 조회한다. 티켓 수정 시 낙관적 락(Optimistic Concurrency Control, `version` 필드)을 지원한다.
 9. 스키마·REST·권한 규칙을 바꿀 때는 이 문서를 코드와 **함께(또는 먼저)** 갱신한다.
 10. **범위 밖(Exclude):** LDAP/OIDC, Hyperdrive, timesheets, calendar, notifications, canvas/ideas/wiki/goals, plugins, 전역 settings 키-값, access_tokens(PAT/`x-api-key`), 전역 RBAC. 인증은 세션 쿠키만.
+11. **Agent wake = pull:** Worker는 내부망 agent로 HTTP push하지 않는다. 티켓 mutate 시 D1 `agent_event_log`에 append하고, 내부망 **[agent/gateway](agent/gateway/)** 가 outbound로 tail한다.
+12. **gateway vs cursor:** gateway는 이벤트→prompt **배달만**(라우팅·self-echo·debounce·retry). **[agent/cursor](agent/cursor/)** 는 localhost runner + **factory-mcp**로 티켓을 읽고 작업한다. gateway는 MCP/티켓 mutate를 하지 않는다.
+13. **단일 컨테이너 병렬:** agent Pod/컨테이너는 기본 1개. cursor는 parent(SDK 미로드) + **공유 SDK worker pool**; `ticket_id` 뮤텍스; 기본 `max_active_per_persona=1`. prompt는 **202** 비차단; gateway `acked_id`는 성공 accept 후에만 전진.
+14. **PVC:** 볼륨 **1개 공유**(`/data`). 작업 상태는 **경로 격리** — `gateway/` vs `workspaces/{persona}/`(MEMORY·chats·git·세션 쿠키 비공유). persona별 PVC N개는 후순위.
 
 ## 2. 컴포넌트
 
-| 컴포넌트 | 경로 | 역할 | Bindings |
+| 컴포넌트 | 경로 | 역할 | Bindings / 비고 |
 | --- | --- | --- | --- |
-| API Worker | `backend/` | Hono REST, 세션, 도메인 로직 | `DB`(D1), `FILES`(R2), `SESSION_SECRET` |
+| API Worker | `backend/` | Hono REST, 세션, 도메인 로직, `agent_event_log` append | `DB`(D1), `FILES`(R2), `SESSION_SECRET` |
 | SPA | `frontend/` | React UI | Workers Assets (`ASSETS`) |
 | Deploy | `deploy/` | Wrangler·마이그레이션·시크릿 런북 | — |
+| Agent gateway | `agent/gateway/` | event log pull · 라우팅 · cursor에 prompt | 내부망; `/data/gateway` |
+| Agent cursor | `agent/cursor/` | SDK pool · persona workspaces · factory-mcp | 내부망; `/data/workspaces/*` |
 
-요청 흐름: `Browser` → Assets(SPA) → `/api/*`는 Worker first → D1 / R2 (바이너리는 Presigned URL 통한 직결 지원).
+요청 흐름: `Browser` → Assets(SPA) → `/api/*`는 Worker first → D1 / R2.  
+Agent 흐름: Worker → `agent_event_log` ← gateway pull → cursor prompt → MCP/REST(세션) → Worker.
 
 ## 3. D1 스키마
 
@@ -126,9 +134,21 @@ field TEXT NOT NULL,
 old_val TEXT,
 new_val TEXT,
 at TEXT NOT NULL
+
+-- agent_event_log (agent wake outbox; ≠ UI History)
+id TEXT PRIMARY KEY,
+at TEXT NOT NULL,
+event_type TEXT NOT NULL,
+ticket_id TEXT,
+project_id TEXT,
+actor_user_id TEXT NOT NULL REFERENCES users(id),
+assignee_user_id TEXT,
+payload_json TEXT NOT NULL DEFAULT '{}'
 ```
 
-인덱스: `sessions(user_id)`, `client_members(user_id)`, `project_members(user_id)`, `projects(client_id)`, `tickets(project_id, status, sort_order)`, `tickets(project_id, type)`, `tickets(assignee_id)`, `tickets(due_at)`, `comments(entity_type, entity_id)`, `files(entity_type, entity_id)`, `pending_uploads(ticket_id)`, `pending_uploads(expires_at)`, `ticket_activities(ticket_id, at)`.
+인덱스: `sessions(user_id)`, `client_members(user_id)`, `project_members(user_id)`, `projects(client_id)`, `tickets(project_id, status, sort_order)`, `tickets(project_id, type)`, `tickets(assignee_id)`, `tickets(due_at)`, `comments(entity_type, entity_id)`, `files(entity_type, entity_id)`, `pending_uploads(ticket_id)`, `pending_uploads(expires_at)`, `ticket_activities(ticket_id, at)`, `agent_event_log(at)`, `agent_event_log(id)`(tail).
+
+정본 필드·REST 초안: [agent/gateway/reference/event-log-schema.md](agent/gateway/reference/event-log-schema.md). 마이그레이션·구현은 ROADMAP A1.
 
 ## 4. REST API
 
@@ -203,6 +223,14 @@ at TEXT NOT NULL
 | POST | `/api/tickets/:id/files/confirm` | 업로드 완료 후 D1 메타 저장 |
 | GET | `/api/files/:id` | Worker R2 스트림 프록시 |
 | DELETE | `/api/files/:id` | 업로더 또는 owner; R2 객체도 삭제 |
+
+### Agent outbox (A1 planned)
+
+| Method | Path | 비고 |
+| --- | --- | --- |
+| GET | `/api/agent/events` | query `after_id`, `limit`. gateway가 세션으로 pull. Worker→agent push 없음. |
+
+티켓/코멘트 mutate 성공 시 Worker가 `agent_event_log`에 append한다. 라우팅·prompt는 gateway; 상세는 [agent/gateway/](agent/gateway/).
 
 ## 5. 첨부 업로드 흐름
 

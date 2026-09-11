@@ -9,6 +9,7 @@
 - [AGENTS.md](AGENTS.md) — 에이전트/기여자 워크플로
 - [deploy/SETUP.md](deploy/SETUP.md) — 배포·시크릿
 - [backend/DESIGN.md](backend/DESIGN.md) · [frontend/DESIGN.md](frontend/DESIGN.md) · [frontend/ia/](frontend/ia/) — 컴포넌트 설계·IA
+- [agent/gateway/](agent/gateway/) · [agent/cursor/](agent/cursor/) — 코딩 agent(배달 / runtime) 설계
 
 ## Quickstart
 
