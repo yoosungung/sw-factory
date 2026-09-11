@@ -123,7 +123,7 @@ IA 구조는 [overview.md](overview.md), 메뉴는 [menus.md](menus.md), 화면�
   2. 부드러운 서피스 일러스트/아이콘 (48px Slate-400)
   3. 명확한 상태 제목 (예: "등록된 타임라인 일정이 없습니다")
   4. 구체적인 안내 문구 (예: "티켓에 시작일과 마감일을 지정하면 간트 차트로 한눈에 일정을 관리할 수 있습니다.")
-  5. 즉시 액션 버튼 (예: `[+ 일정 티켓 만들기]`)
+  5. 즉시 액션 버튼 — **의미 있는 next step이 있을 때만.** Board/Backlog/Timeline의 in-view 티켓 생성은 보류(탑바 **Create**만). Timeline·Backlog empty는 제목+안내만. Your work Assigned/Created/Viewed도 CTA 생략. "Go to projects" 같은 자리채우기 링크는 넣지 않는다.
 
 ### 3.6 Issue Panel: Non-modal Inspector vs Centered Modal
 - **Non-modal Inspector (기본):**

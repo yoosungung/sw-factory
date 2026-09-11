@@ -1407,41 +1407,6 @@ select {
 }
 
 /* —— Board / backlog extras —— */
-.create-in-col {
-  border: none;
-  background: transparent;
-  color: var(--ds-text-subtle);
-  text-align: left;
-  padding: 8px 10px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-weight: 500;
-}
-
-.create-in-col:hover {
-  background: var(--color-bg-surface-active);
-  color: var(--ds-text);
-}
-
-.inline-create {
-  display: grid;
-  gap: 8px;
-  padding: 4px;
-}
-
-.inline-create.pad {
-  padding: 8px 12px 12px;
-}
-
-.inline-create input {
-  height: 36px;
-  border: none;
-  border-radius: var(--radius-md);
-  background: var(--ds-surface);
-  box-shadow: inset 0 0 0 2px var(--ds-link);
-  padding: 0 10px;
-}
-
 .backlog {
   display: grid;
   gap: 16px;

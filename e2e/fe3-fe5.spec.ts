@@ -1,12 +1,12 @@
 import { expect, test } from "@playwright/test";
 import {
   clickEl,
+  createIssue,
   createSoftwareProject,
   createSpace,
   fillField,
   loginAsAdmin,
   register,
-  submitForm,
 } from "./helpers";
 
 test("FE3: your-work, search, account", async ({ page }) => {
@@ -14,14 +14,10 @@ test("FE3: your-work, search, account", async ({ page }) => {
   await createSpace(page, "FE3 Space");
   await createSoftwareProject(page, "FE3 Proj");
 
-  await clickEl(page.getByRole("button", { name: "+ Create" }).first());
   const title = `SearchableNeedle ${Date.now()}`;
-  await fillField(page.getByPlaceholder("What needs to be done?"), title);
-  await submitForm(page.locator("form.inline-create"));
-  await expect(page.getByText(title)).toBeVisible({ timeout: 15000 });
+  await createIssue(page, title);
 
   // Assign to me via issue panel so Your work shows it
-  await clickEl(page.getByText(title));
   const panel = page.getByRole("dialog");
   await expect(panel).toBeVisible();
   await panel.locator("select").first().evaluate((el) => {
@@ -79,12 +75,8 @@ test("FE6: history tab on issue", async ({ page }) => {
   await createSpace(page, "FE6 Space");
   await createSoftwareProject(page, "FE6 Proj");
 
-  await clickEl(page.getByRole("button", { name: "+ Create" }).first());
   const title = `History ${Date.now()}`;
-  await fillField(page.getByPlaceholder("What needs to be done?"), title);
-  await submitForm(page.locator("form.inline-create"));
-  await expect(page.getByText(title)).toBeVisible();
-  await clickEl(page.getByText(title));
+  await createIssue(page, title);
 
   const panel = page.getByRole("dialog");
   await clickEl(panel.locator(".status-picker").getByRole("button", { name: /status/i }));

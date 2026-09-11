@@ -1,4 +1,4 @@
-import { createContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import type { Client, Project, Ticket, User } from "../../api";
 import { initials } from "../issue/IssuePanel";
@@ -6,8 +6,6 @@ import { APP_NAME, BrandMark } from "../../lib/brand";
 import type { ViewMode } from "../../lib/view-mode";
 import { useClickOutside, useEscape } from "../../hooks/useDom";
 import { CreateIssueDialog } from "../create/CreateDialogs";
-
-export const OpenCreateCtx = createContext<(() => void) | null>(null);
 
 export function MenuDropdown({
   label,
@@ -330,7 +328,6 @@ export function AppChrome({
   const openCreate = () => setCreateIssue(true);
 
   return (
-    <OpenCreateCtx.Provider value={openCreate}>
     <div className="app-shell">
       <TopNav user={user} onLogout={onLogout} onCreateIssue={openCreate} />
       <div className={`shell-body ${showSidebar ? "" : "no-sidebar"}`.trim()}>
@@ -364,6 +361,5 @@ export function AppChrome({
         />
       )}
     </div>
-    </OpenCreateCtx.Provider>
   );
 }

@@ -1,4 +1,4 @@
-import { useContext, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { client, type Client, type Member, type Project, type Ticket, type User } from "../api";
 import {
@@ -11,7 +11,7 @@ import {
   type IssueOpenMode,
 } from "../components/issue/IssuePanel";
 import { EmptyState } from "../components/EmptyState";
-import { AppChrome, OpenCreateCtx } from "../components/chrome/AppChrome";
+import { AppChrome } from "../components/chrome/AppChrome";
 import { dueClass } from "../lib/due";
 import type { ViewMode } from "../lib/view-mode";
 import { useAllProjects, useClients } from "../hooks/useSession";
@@ -44,11 +44,8 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
   const [issueMode, setIssueMode] = useState<IssueOpenMode>(
     issueUiParam === "modal" ? "modal" : "sidebar",
   );
-  const openCreate = useContext(OpenCreateCtx);
   const [boardMenu, setBoardMenu] = useState(false);
   const [fullscreen, setFullscreen] = useState(false);
-  const [inlineCreate, setInlineCreate] = useState<Ticket["status"] | null>(null);
-  const [inlineTitle, setInlineTitle] = useState("");
   const [dragId, setDragId] = useState<string | null>(null);
   const [includeArchived, setIncludeArchived] = useState(false);
   const [listTickets, setListTickets] = useState<Ticket[]>([]);
@@ -164,14 +161,6 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
   function closeIssue() {
     setSelected(null);
     navigate(`/projects/${id}?view=${view}`, { replace: true });
-  }
-
-  async function submitInline(status: Ticket["status"]) {
-    if (!inlineTitle.trim()) return;
-    await client.createTicket(id, { title: inlineTitle.trim(), type: "task", status });
-    setInlineTitle("");
-    setInlineCreate(null);
-    await refresh();
   }
 
   if (!project) {
@@ -350,45 +339,6 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
                       </div>
                     </article>
                   ))}
-                  {inlineCreate === status ? (
-                    <form
-                      className="inline-create"
-                      onSubmit={(e) => {
-                        e.preventDefault();
-                        void submitInline(status);
-                      }}
-                    >
-                      <input
-                        value={inlineTitle}
-                        onChange={(e) => setInlineTitle(e.target.value)}
-                        placeholder="What needs to be done?"
-                        autoFocus
-                      />
-                      <div className="row-gap">
-                        <button className="btn-primary" type="submit">
-                          Create
-                        </button>
-                        <button
-                          type="button"
-                          className="btn-subtle"
-                          onClick={() => setInlineCreate(null)}
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    </form>
-                  ) : (
-                    <button
-                      type="button"
-                      className="create-in-col"
-                      onClick={() => {
-                        setInlineCreate(status);
-                        setInlineTitle("");
-                      }}
-                    >
-                      + Create
-                    </button>
-                  )}
                 </div>
               </section>
             ))}
@@ -428,42 +378,8 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
             {(columns.backlog ?? []).length === 0 && (
               <EmptyState
                 title="Backlog is empty"
-                description="Create work items here to plan what comes next on the board."
-                actionLabel="+ Create issue"
-                onAction={() => openCreate?.()}
+                description="Work items you create show up here so you can plan what comes next on the board."
               />
-            )}
-            {inlineCreate === "backlog" ? (
-              <form
-                className="inline-create pad"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  void submitInline("backlog");
-                }}
-              >
-                <input
-                  value={inlineTitle}
-                  onChange={(e) => setInlineTitle(e.target.value)}
-                  placeholder="What needs to be done?"
-                  autoFocus
-                />
-                <div className="row-gap">
-                  <button className="btn-primary" type="submit">
-                    Create
-                  </button>
-                  <button type="button" className="btn-subtle" onClick={() => setInlineCreate(null)}>
-                    Cancel
-                  </button>
-                </div>
-              </form>
-            ) : (
-              <button
-                type="button"
-                className="create-in-col"
-                onClick={() => setInlineCreate("backlog")}
-              >
-                + Create
-              </button>
             )}
           </div>
           <div className="backlog-panel">
@@ -497,8 +413,6 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
                 <EmptyState
                   title="등록된 타임라인 일정이 없습니다"
                   description="티켓에 시작일과 마감일을 지정하면 간트 차트로 한눈에 일정을 관리할 수 있습니다."
-                  actionLabel="+ 일정 티켓 만들기"
-                  onAction={() => openCreate?.()}
                 />
               );
             }

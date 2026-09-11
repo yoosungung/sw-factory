@@ -150,8 +150,6 @@ export function YourWorkPage({
               <EmptyState
                 title="No issues assigned to you"
                 description="When someone assigns you work, it will show up here."
-                actionLabel="Go to projects"
-                actionHref="/projects"
               />
             )}
           </div>
@@ -176,8 +174,6 @@ export function YourWorkPage({
               <EmptyState
                 title="No issues created by you"
                 description="Issues you create will show up here."
-                actionLabel="Go to projects"
-                actionHref="/projects"
               />
             )}
           </div>
@@ -195,8 +191,6 @@ export function YourWorkPage({
               <EmptyState
                 title="Nothing viewed yet"
                 description="Open an issue to see it in your recently viewed list."
-                actionLabel="Go to projects"
-                actionHref="/projects"
               />
             )}
           </div>

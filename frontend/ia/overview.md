@@ -9,7 +9,7 @@
 | 데이터 | backend REST + 세션 쿠키만 |
 | 권한 UI | 플랫폼 `is_admin`(Space 생성·계정 목록) + Space/Project `owner` \| `member` |
 
-사용성: Create anywhere → 보드 드래그·인라인 생성 → 이슈와 보드 동시(논모달 인스펙터) → Esc/바깥 클릭 → 최근·검색·멤버 관리까지 한 제품 흐름.  
+사용성: 탑바 Create → 보드 드래그 → 이슈와 보드 동시(논모달 인스펙터) → Esc/바깥 클릭 → 최근·검색·멤버 관리까지 한 제품 흐름. Board/Backlog/Timeline in-view 생성은 보류.  
 디자인 시스템·토큰·인터랙션 표준: [design-system.md](design-system.md).
 
 ## 2. 공통 크롬

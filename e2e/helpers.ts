@@ -84,3 +84,12 @@ export async function createSoftwareProject(page: Page, name: string) {
   await expect(page).toHaveURL(/\/projects\//);
   await expect(page.getByRole("heading", { name: "Board" })).toBeVisible();
 }
+
+export async function createIssue(page: Page, title: string) {
+  await clickEl(page.locator(".top-nav .btn-create"));
+  const dialog = page.locator("form.create-dialog");
+  await fillField(dialog.getByPlaceholder("What needs to be done?"), title);
+  await submitForm(dialog);
+  await expect(dialog).toHaveCount(0);
+  await expect(page.getByText(title).first()).toBeVisible();
+}

@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { clickEl, createSoftwareProject, createSpace, fillField, loginAsAdmin, submitForm } from "./helpers";
+import { clickEl, createIssue, createSoftwareProject, createSpace, loginAsAdmin } from "./helpers";
 
 test.describe("happy path", () => {
   test("space → project → create issue on board", async ({ page }) => {
@@ -10,13 +10,8 @@ test.describe("happy path", () => {
     await createSpace(page, space);
     await createSoftwareProject(page, project);
 
-    await clickEl(page.getByRole("button", { name: "+ Create" }).first());
     const title = `Issue ${Date.now()}`;
-    await fillField(page.getByPlaceholder("What needs to be done?"), title);
-    await submitForm(page.locator("form.inline-create"));
-
-    await expect(page.getByText(title)).toBeVisible();
-    await clickEl(page.getByText(title));
+    await createIssue(page, title);
 
     const panel = page.getByRole("dialog");
     await expect(panel).toBeVisible();

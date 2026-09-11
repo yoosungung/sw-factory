@@ -14,7 +14,7 @@ frontend/src/
     hooks/useDom.ts · useSession.ts
     components/EmptyState.tsx
     components/issue/IssuePanel.tsx     # F9 · non-modal inspector · 커스텀 픽커
-    components/chrome/AppChrome.tsx     # TopNav · Sidebar · AppChrome · OpenCreateCtx
+    components/chrome/AppChrome.tsx     # TopNav · Sidebar · AppChrome · Quick Create
     components/create/CreateDialogs.tsx # Issue · Space · Project 생성
     pages/Auth.tsx · Home.tsx · ProjectWorkspace.tsx · Misc.tsx
     pages/Settings.tsx · Admin.tsx · Personal.tsx · Directory.tsx

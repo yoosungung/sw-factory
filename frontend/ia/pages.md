@@ -54,7 +54,7 @@
 
 **Layout:** 툴바(타이틀 + 세그먼트 탭 `Board|Backlog|Timeline|List` + 검색·•••) + 4컬럼 + 카드.  
 **카드 규격:** 타입 아이콘 + 키(`MOB-F416`) + 우선순위 뱃지(High/Medium/Low 컬러 태그) + 2줄 말줄임 타이틀 + 마감일 태그 + 우측 정렬된 담당자 아바타.  
-**Behavior:** 드래그 → `PATCH` `{ status, sort_order, version }`; 컬럼 `+ Create`; 카드 클릭 → **논모달 사이드 인스펙터** 오픈; Group by(assignee/milestone/type) **Prod 포함**(클라이언트 그룹핑); 가로 스크롤 페이드 인디케이터.  
+**Behavior:** 드래그 → `PATCH` `{ status, sort_order, version }`; 카드 클릭 → **논모달 사이드 인스펙터** 오픈; Group by(assignee/milestone/type) **Prod 포함**(클라이언트 그룹핑); 가로 스크롤 페이드 인디케이터. 티켓 생성은 탑바 **Create**(F14)만 — 컬럼 인라인 생성은 보류.  
 **API:** `GET …/kanban` (최근 완료건 기본), `POST …/tickets`.  
 **Connections:** → Issue.
 
@@ -62,7 +62,7 @@
 
 ## F6. Backlog — `?view=backlog`
 
-**Layout:** 이슈 리스트(우선순위 뱃지, 키, 타이틀, 담당자, 상태 셀렉트) + 하단 `+ Create` (`status=backlog`) + Board issues 드롭 영역(안내 문구 포함).  
+**Layout:** 이슈 리스트(우선순위 뱃지, 키, 타이틀, 담당자, 상태 셀렉트) + Board issues 드롭 영역(안내 문구 포함). 빈 백로그는 EmptyState(제목+안내, CTA 없음). 티켓 생성은 탑바 **Create**(F14)만.  
 **Behavior:** 행 → issue 인스펙터; 인라인 status 변경. Sprint 섹션은 Defer.  
 **API:** `GET/POST/PATCH …/tickets`.  
 **Connections:** → Issue.
@@ -72,7 +72,7 @@
 ## F7. Timeline — `?view=timeline`
 
 **Layout:** 날짜 축 + `date_from`/`date_to` 간트 바; milestone 강조.  
-**Empty State (필수):** 일정이 등록된 티켓이 없을 때 완전한 공백을 방지하고, 표준 `EmptyState` 컴포넌트(아이콘 + "등록된 일정이 없습니다" + 가이드 문구 + `[+ 일정 티켓 만들기]` CTA 버튼) 노출.  
+**Empty State (필수):** 일정이 등록된 티켓이 없을 때 표준 `EmptyState`(아이콘 + 제목 + 가이드 문구). in-view 생성 CTA는 보류 — 티켓 생성은 탑바 **Create**(F14)만.  
 **Behavior:** 클릭 → issue; 바 드래그로 기간 `PATCH` (**Prod**).  
 **API:** `GET …/timeline`, `PATCH /api/tickets/:id`.  
 **Connections:** → Issue.
