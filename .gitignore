@@ -1,15 +1,38 @@
+# Build / runtime caches
 dist
 frontend/dist
 .wrangler
-.dev.vars
-*.local
-.DS_Store
 .tools
+.tmp-test
 node_modules
 e2e/playwright-report
 e2e/test-results
 e2e/blob-report
 agent/.tmp-test
+.DS_Store
+
+# --- Sample → real env / auth (do not commit) ---
+# .dev.vars.example → .dev.vars
+.dev.vars
+
+# deploy/env.example → deploy/local/.env (and any other .env)
+.env
+.env.*
+!.env.example
+
+# agents.yaml.example / agents.yaml.sample → agents.yaml
 **/agents.yaml
-deploy/local/.env
+
+# persona MCP session cookies (seed / PVC)
+**/session.cookie
+**/workspaces/**/secrets/
+
+# local Docker PVC mount
 deploy/local/.local-data/
+
+# k8s Secret copied from secret.example.yaml
+deploy/k8s/secret.yaml
+**/secret.local.yaml
+
+# misc local overrides
+*.local

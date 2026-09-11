@@ -3,14 +3,21 @@ node_modules
 .git
 .wrangler
 .tools
+.tmp-test
 dist
 frontend/dist
-**/agents.yaml
-deploy/local/.env
-deploy/local/.local-data
 e2e/playwright-report
 e2e/test-results
 e2e/blob-report
 *.local
-.dev.vars
 .DS_Store
+
+# Sample → real env / auth
+.dev.vars
+.env
+.env.*
+**/agents.yaml
+**/session.cookie
+**/workspaces/**/secrets/
+deploy/local/.local-data
+deploy/k8s/secret.yaml
