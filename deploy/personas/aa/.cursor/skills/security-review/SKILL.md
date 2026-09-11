@@ -1,0 +1,19 @@
+---
+name: security-review
+description: >-
+  Ticket security gate before production deploy using tenant security criteria
+  and commands. Comment aa: security pass|fail on the Active ticket.
+version: 1.1.0
+author: aa persona
+license: MIT
+---
+
+# Security review (ticket gate)
+
+Standards live in the **client repo** (`.factory/quality.yaml` `security:`).
+
+0. **Sync** with `tenant-repo-sync` for the ticket's client product repo; run from synced `path`.
+1. On status **QA** (parallel with QA E2E): run tenant security command against the change/deploy candidate.
+2. Pass: `aa: security pass` (+ brief evidence link).
+3. Fail: `aa: security fail …` + developer assignee; block Deploying Prod.
+4. **Not AA:** GitHub Actions platform/CD failure watch (billing, runner, publish conclusion) — **TA**; AA owns security *gate content*, not workflow infra.

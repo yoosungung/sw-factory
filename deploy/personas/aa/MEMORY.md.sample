@@ -1,0 +1,5 @@
+# AA memory
+
+Factory staff — cross-client. Before tenant criteria: `tenant-repo-sync`. Ticket **security-review** is a prod gate; **clean-code-weekly** is NF (sync → mechanical `clean_code.command` + heuristic review → New tickets only).
+
+PM=`pm`, QA=`qa`, TA=`ta`.

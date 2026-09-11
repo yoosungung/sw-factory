@@ -1,0 +1,11 @@
+{
+  "mcpServers": {
+    "leantime": {
+      "command": "leantime-mcp",
+      "env": {
+        "LEANTIME_URL": "${env:LEANTIME_URL}",
+        "LEANTIME_ACCESS_TOKEN": "${env:LEANTIME_ACCESS_TOKEN}"
+      }
+    }
+  }
+}
