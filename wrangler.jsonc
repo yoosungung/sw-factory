@@ -14,7 +14,7 @@
     {
       "binding": "DB",
       "database_name": "sw-factory",
-      "database_id": "local-sw-factory-db",
+      "database_id": "f991c8bf-87d4-42fe-8ef0-c7788bb25a6a",
       "migrations_dir": "backend/migrations"
     }
   ],
@@ -22,6 +22,12 @@
     {
       "binding": "FILES",
       "bucket_name": "sw-factory-files"
+    }
+  ],
+  "routes": [
+    {
+      "pattern": "factory.askwho.net",
+      "custom_domain": true
     }
   ],
   "triggers": {
