@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
-import { client, type Client, type Member, type Project, type User } from "../api";
+import { client, type Client, type Member, type Project, type ProjectStatus, type StatusCategory, type User } from "../api";
 import { initials } from "../components/issue/IssuePanel";
 
 function SettingsNav({
@@ -303,20 +303,26 @@ export function ProjectSettingsPage({
   const [confirmName, setConfirmName] = useState("");
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
+  const [boardStatuses, setBoardStatuses] = useState<ProjectStatus[]>([]);
+  const [boardBusy, setBoardBusy] = useState(false);
+  const [migrateFrom, setMigrateFrom] = useState("");
+  const [migrateTo, setMigrateTo] = useState("");
 
   async function reload() {
     const p = await client.project(id);
     setProject(p.project);
     setName(p.project.name);
     setDescription(p.project.description);
-    const [m, c, cm] = await Promise.all([
+    const [m, c, cm, st] = await Promise.all([
       client.projectMembers(id),
       client.getClient(p.project.client_id),
       client.clientMembers(p.project.client_id),
+      client.projectStatuses(id),
     ]);
     setMembers(m.members);
     setOrg(c.client);
     setClientMembers(cm.members);
+    setBoardStatuses(st.statuses);
   }
 
   useEffect(() => {
@@ -460,18 +466,177 @@ export function ProjectSettingsPage({
           )}
 
           {section === "board" && (
-            <div>
+            <div className="settings-form">
               <h1>Board</h1>
               <p className="muted">
-                Columns are fixed: Backlog, To Do, In Progress, Done. Custom columns are not
-                supported.
+                Customize kanban columns for this project. At least one Backlog and one Done category
+                are required. Removing a column that still has issues needs a migrate target.
               </p>
-              <ul className="board-col-list">
-                <li>Backlog</li>
-                <li>To Do</li>
-                <li>In Progress</li>
-                <li>Done</li>
+              <ul className="board-col-list editable">
+                {boardStatuses.map((s, idx) => (
+                  <li key={`${s.key}-${idx}`} className="board-status-row">
+                    <input
+                      value={s.key}
+                      disabled={!isOwner}
+                      onChange={(e) => {
+                        const key = e.target.value.trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
+                        setBoardStatuses((prev) =>
+                          prev.map((row, i) => (i === idx ? { ...row, key } : row)),
+                        );
+                      }}
+                      placeholder="key"
+                      aria-label="Status key"
+                    />
+                    <input
+                      value={s.label}
+                      disabled={!isOwner}
+                      onChange={(e) => {
+                        const label = e.target.value;
+                        setBoardStatuses((prev) =>
+                          prev.map((row, i) => (i === idx ? { ...row, label } : row)),
+                        );
+                      }}
+                      placeholder="Label"
+                      aria-label="Status label"
+                    />
+                    <select
+                      value={s.category}
+                      disabled={!isOwner}
+                      onChange={(e) => {
+                        const category = e.target.value as StatusCategory;
+                        setBoardStatuses((prev) =>
+                          prev.map((row, i) => (i === idx ? { ...row, category } : row)),
+                        );
+                      }}
+                      aria-label="Status category"
+                    >
+                      <option value="backlog">backlog</option>
+                      <option value="active">active</option>
+                      <option value="done">done</option>
+                    </select>
+                    {isOwner && (
+                      <span className="row-gap">
+                        <button
+                          type="button"
+                          className="btn-subtle sm"
+                          disabled={idx === 0}
+                          onClick={() => {
+                            setBoardStatuses((prev) => {
+                              const next = [...prev];
+                              [next[idx - 1], next[idx]] = [next[idx], next[idx - 1]];
+                              return next.map((row, i) => ({ ...row, sort_order: i }));
+                            });
+                          }}
+                        >
+                          ↑
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-subtle sm"
+                          disabled={idx === boardStatuses.length - 1}
+                          onClick={() => {
+                            setBoardStatuses((prev) => {
+                              const next = [...prev];
+                              [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
+                              return next.map((row, i) => ({ ...row, sort_order: i }));
+                            });
+                          }}
+                        >
+                          ↓
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-subtle sm"
+                          onClick={() =>
+                            setBoardStatuses((prev) =>
+                              prev
+                                .filter((_, i) => i !== idx)
+                                .map((row, i) => ({ ...row, sort_order: i })),
+                            )
+                          }
+                        >
+                          Remove
+                        </button>
+                      </span>
+                    )}
+                  </li>
+                ))}
               </ul>
+              {isOwner && (
+                <>
+                  <button
+                    type="button"
+                    className="btn-subtle"
+                    onClick={() =>
+                      setBoardStatuses((prev) => [
+                        ...prev,
+                        {
+                          key: `custom_${prev.length + 1}`,
+                          label: "New column",
+                          category: "active",
+                          sort_order: prev.length,
+                        },
+                      ])
+                    }
+                  >
+                    Add column
+                  </button>
+                  <div className="migrate-row">
+                    <label>
+                      Migrate from (if deleting a used column)
+                      <input
+                        value={migrateFrom}
+                        onChange={(e) => setMigrateFrom(e.target.value)}
+                        placeholder="old_key"
+                      />
+                    </label>
+                    <label>
+                      to
+                      <input
+                        value={migrateTo}
+                        onChange={(e) => setMigrateTo(e.target.value)}
+                        placeholder="new_key"
+                      />
+                    </label>
+                  </div>
+                  <button
+                    type="button"
+                    className="btn-primary"
+                    disabled={boardBusy}
+                    onClick={() => {
+                      setBoardBusy(true);
+                      setError("");
+                      setMsg("");
+                      const migrate =
+                        migrateFrom.trim() && migrateTo.trim()
+                          ? { [migrateFrom.trim()]: migrateTo.trim() }
+                          : undefined;
+                      void client
+                        .putProjectStatuses(id, {
+                          statuses: boardStatuses.map((s, i) => ({
+                            key: s.key,
+                            label: s.label,
+                            category: s.category,
+                            sort_order: i,
+                          })),
+                          migrate,
+                        })
+                        .then((r) => {
+                          setBoardStatuses(r.statuses);
+                          setMsg("Board columns saved");
+                          setMigrateFrom("");
+                          setMigrateTo("");
+                        })
+                        .catch((err) =>
+                          setError(err instanceof Error ? err.message : "error"),
+                        )
+                        .finally(() => setBoardBusy(false));
+                    }}
+                  >
+                    Save columns
+                  </button>
+                </>
+              )}
             </div>
           )}
 

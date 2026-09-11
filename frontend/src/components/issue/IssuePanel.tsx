@@ -7,18 +7,12 @@ import {
   type FileMeta,
   type Member,
   type Project,
+  type ProjectStatus,
   type Ticket,
   type TicketPriority,
   type User,
 } from "../../api";
 
-const STATUSES: Ticket["status"][] = ["backlog", "todo", "in_progress", "done"];
-const STATUS_LABEL: Record<Ticket["status"], string> = {
-  backlog: "Backlog",
-  todo: "To Do",
-  in_progress: "In Progress",
-  done: "Done",
-};
 const PRIORITIES: TicketPriority[] = ["low", "medium", "high", "urgent"];
 const PRIORITY_LABEL: Record<TicketPriority, string> = {
   low: "Low",
@@ -26,6 +20,18 @@ const PRIORITY_LABEL: Record<TicketPriority, string> = {
   high: "High",
   urgent: "Urgent",
 };
+
+function statusLabel(key: string, map?: Record<string, string>): string {
+  if (map?.[key]) return map[key];
+  return key
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+function labelsFromStatuses(statuses: ProjectStatus[]): Record<string, string> {
+  return Object.fromEntries(statuses.map((s) => [s.key, s.label]));
+}
 
 function initials(name: string) {
   return name
@@ -53,7 +59,7 @@ function useEscape(onClose: () => void, active: boolean) {
   }, [onClose, active]);
 }
 
-function BadgePicker<T extends string>({
+function BadgePicker({
   className,
   label,
   value,
@@ -63,10 +69,10 @@ function BadgePicker<T extends string>({
 }: {
   className: string;
   label: string;
-  value: T;
-  options: T[];
-  labels: Record<T, string>;
-  onChange: (value: T) => void;
+  value: string;
+  options: string[];
+  labels: Record<string, string>;
+  onChange: (value: string) => void;
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -194,7 +200,12 @@ export function IssuePanel({
   const [activities, setActivities] = useState<
     Awaited<ReturnType<typeof client.ticketActivities>>["activities"]
   >([]);
+  const [statuses, setStatuses] = useState<ProjectStatus[]>([]);
   useEscape(onClose, mode !== "page");
+
+  useEffect(() => {
+    void client.projectStatuses(project.id).then((r) => setStatuses(r.statuses));
+  }, [project.id]);
 
   useEffect(() => {
     setTicket(initial);
@@ -212,6 +223,8 @@ export function IssuePanel({
   }, [initial]);
 
   const canDelete = ticket.created_by === user.id || projectRole === "owner";
+  const statusKeys = statuses.map((s) => s.key);
+  const statusLabels = labelsFromStatuses(statuses);
 
   async function save(patch: Parameters<typeof client.patchTicket>[1]) {
     setError("");
@@ -305,8 +318,8 @@ export function IssuePanel({
             className="status-picker"
             label="Status"
             value={ticket.status}
-            options={STATUSES}
-            labels={STATUS_LABEL}
+            options={statusKeys.length ? statusKeys : [ticket.status]}
+            labels={statusKeys.length ? statusLabels : { [ticket.status]: statusLabel(ticket.status) }}
             onChange={(status) => void save({ status })}
           />
 
@@ -317,7 +330,7 @@ export function IssuePanel({
             value={ticket.priority}
             options={PRIORITIES}
             labels={PRIORITY_LABEL}
-            onChange={(priority) => void save({ priority })}
+            onChange={(priority) => void save({ priority: priority as TicketPriority })}
           />
 
           <div className="label">Assignee</div>
@@ -527,4 +540,4 @@ export function IssuePanel({
   );
 }
 
-export { issueKey, initials, STATUS_LABEL, PRIORITY_LABEL, STATUSES, PRIORITIES };
+export { issueKey, initials, statusLabel, PRIORITY_LABEL, PRIORITIES };

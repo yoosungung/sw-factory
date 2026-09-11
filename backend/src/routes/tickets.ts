@@ -1,14 +1,13 @@
 import { Hono } from "hono";
-import type {
-  AppVariables,
-  Env,
-  TicketPriority,
-  TicketStatus,
-  TicketType,
-} from "../env";
-import { TICKET_PRIORITIES, TICKET_STATUSES } from "../env";
+import type { AppVariables, Env, TicketPriority, TicketType } from "../env";
+import { TICKET_PRIORITIES } from "../env";
 import { newId, nowIso } from "../lib/crypto";
 import { appendAgentEvent } from "../lib/agent-events";
+import {
+  defaultTicketStatus,
+  listProjectStatuses,
+  projectHasStatus,
+} from "../lib/statuses";
 import { requireAuth, requireProjectMember } from "../middleware/auth";
 
 type TicketRow = {
@@ -17,7 +16,7 @@ type TicketRow = {
   title: string;
   description: string;
   type: TicketType;
-  status: TicketStatus;
+  status: string;
   priority: TicketPriority;
   sort_order: number;
   milestone_id: string | null;
@@ -122,7 +121,7 @@ ticketRoutes.post("/projects/:projectId/tickets", async (c) => {
     title?: string;
     description?: string;
     type?: TicketType;
-    status?: TicketStatus;
+    status?: string;
     priority?: TicketPriority;
     assignee_id?: string | null;
     due_at?: string | null;
@@ -133,12 +132,20 @@ ticketRoutes.post("/projects/:projectId/tickets", async (c) => {
 
   const title = body.title?.trim();
   const type = body.type ?? "task";
-  const status = body.status ?? "backlog";
   const priority = body.priority ?? "medium";
   if (!title || (type !== "task" && type !== "milestone")) {
     return c.json({ error: "invalid_input" }, 400);
   }
-  if (!TICKET_STATUSES.includes(status) || !isValidPriority(priority)) {
+  if (!isValidPriority(priority)) {
+    return c.json({ error: "invalid_input" }, 400);
+  }
+
+  let status = body.status;
+  if (!status) {
+    const def = await defaultTicketStatus(c.env.DB, projectId);
+    if (!def) return c.json({ error: "invalid_input" }, 400);
+    status = def;
+  } else if (!(await projectHasStatus(c.env.DB, projectId, status))) {
     return c.json({ error: "invalid_input" }, 400);
   }
 
@@ -218,7 +225,7 @@ ticketRoutes.patch("/tickets/:id", async (c) => {
   const body = await c.req.json<{
     title?: string;
     description?: string;
-    status?: TicketStatus;
+    status?: string;
     priority?: TicketPriority;
     sort_order?: number;
     assignee_id?: string | null;
@@ -233,7 +240,10 @@ ticketRoutes.patch("/tickets/:id", async (c) => {
     return c.json({ error: "conflict", current_version: ticket.version }, 409);
   }
 
-  if (body.status !== undefined && !TICKET_STATUSES.includes(body.status)) {
+  if (
+    body.status !== undefined &&
+    !(await projectHasStatus(c.env.DB, ticket.project_id, body.status))
+  ) {
     return c.json({ error: "invalid_input" }, 400);
   }
   if (body.priority !== undefined && !isValidPriority(body.priority)) {
@@ -381,29 +391,32 @@ ticketRoutes.get("/projects/:projectId/kanban", async (c) => {
   const role = await requireProjectMember(c.env.DB, projectId, user.id);
   if (!role) return c.json({ error: "forbidden" }, 403);
 
+  const statuses = await listProjectStatuses(c.env.DB, projectId);
   const includeArchived = c.req.query("include_archived") === "true";
   const cutoff = new Date(Date.now() - 14 * 86400_000).toISOString();
 
   let sql = `SELECT ${TICKET_SELECT} FROM tickets WHERE project_id = ? AND type = 'task'`;
   const binds: string[] = [projectId];
   if (!includeArchived) {
-    sql += ` AND (status != 'done' OR updated_at >= ?)`;
+    sql += ` AND (
+      NOT EXISTS (
+        SELECT 1 FROM project_statuses ps
+        WHERE ps.project_id = tickets.project_id AND ps.key = tickets.status AND ps.category = 'done'
+      )
+      OR updated_at >= ?
+    )`;
     binds.push(cutoff);
   }
   sql += ` ORDER BY sort_order ASC, created_at ASC`;
 
   const { results } = await c.env.DB.prepare(sql).bind(...binds).all<TicketRow>();
 
-  const columns: Record<TicketStatus, TicketRow[]> = {
-    backlog: [],
-    todo: [],
-    in_progress: [],
-    done: [],
-  };
+  const columns: Record<string, TicketRow[]> = {};
+  for (const s of statuses) columns[s.key] = [];
   for (const t of results ?? []) {
     if (columns[t.status]) columns[t.status].push(t);
   }
-  return c.json({ columns });
+  return c.json({ columns, statuses });
 });
 
 ticketRoutes.get("/projects/:projectId/timeline", async (c) => {

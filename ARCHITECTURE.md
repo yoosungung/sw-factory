@@ -79,13 +79,21 @@ user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 role TEXT NOT NULL CHECK (role IN ('owner', 'member')),
 PRIMARY KEY (project_id, user_id)
 
+-- project_statuses (프로젝트별 칸반 컬럼; 생성 시 기본 9개 시드)
+project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+key TEXT NOT NULL,              -- slug (예: backlog, in_progress, done)
+label TEXT NOT NULL,            -- 표시명
+category TEXT NOT NULL CHECK (category IN ('backlog', 'active', 'done')),
+sort_order INTEGER NOT NULL DEFAULT 0,
+PRIMARY KEY (project_id, key)
+
 -- tickets
 id TEXT PRIMARY KEY,
 project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
 title TEXT NOT NULL,
 description TEXT NOT NULL DEFAULT '',
 type TEXT NOT NULL CHECK (type IN ('task', 'milestone')),
-status TEXT NOT NULL,           -- backlog | todo | in_progress | done (칸반 컬럼)
+status TEXT NOT NULL,           -- project_statuses.key (칸반 컬럼)
 priority TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'urgent')),
 sort_order INTEGER NOT NULL DEFAULT 0,
 milestone_id TEXT REFERENCES tickets(id) ON DELETE SET NULL,
@@ -148,7 +156,21 @@ assignee_user_id TEXT,
 payload_json TEXT NOT NULL DEFAULT '{}'
 ```
 
-인덱스: `sessions(user_id)`, `client_members(user_id)`, `project_members(user_id)`, `projects(client_id)`, `tickets(project_id, status, sort_order)`, `tickets(project_id, type)`, `tickets(assignee_id)`, `tickets(due_at)`, `comments(entity_type, entity_id)`, `files(entity_type, entity_id)`, `pending_uploads(ticket_id)`, `pending_uploads(expires_at)`, `ticket_activities(ticket_id, at)`, `agent_event_log(at)`, `agent_event_log(id)`(tail).
+인덱스: `sessions(user_id)`, `client_members(user_id)`, `project_members(user_id)`, `projects(client_id)`, `project_statuses(project_id, sort_order)`, `tickets(project_id, status, sort_order)`, `tickets(project_id, type)`, `tickets(assignee_id)`, `tickets(due_at)`, `comments(entity_type, entity_id)`, `files(entity_type, entity_id)`, `pending_uploads(ticket_id)`, `pending_uploads(expires_at)`, `ticket_activities(ticket_id, at)`, `agent_event_log(at)`, `agent_event_log(id)`(tail).
+
+기본 `project_statuses` (프로젝트 생성 시 시드; owner가 커스텀 가능):
+
+| key | label | category |
+| --- | --- | --- |
+| `backlog` | Backlog | backlog |
+| `in_progress` | In Progress | active |
+| `review` | Review | active |
+| `deploying_test` | Deploying Test | active |
+| `qa` | QA | active |
+| `deploying_prod` | Deploying Prod | active |
+| `done` | Done | done |
+| `blocked` | Blocked | active |
+| `waiting_for_approval` | Waiting for Approval | active |
 
 정본 필드·REST: [agent/gateway/reference/event-log-schema.md](agent/gateway/reference/event-log-schema.md).
 
@@ -195,6 +217,8 @@ payload_json TEXT NOT NULL DEFAULT '{}'
 | GET | `/api/projects/:id/members` | 소속 프로젝트 멤버 목록 |
 | POST | `/api/projects/:id/members` | `{ user_id?, email?, role }` — project owner만 추가 (client 멤버여야 함). `user_id` 또는 `email` |
 | DELETE | `/api/projects/:id/members/:userId` | project owner만 멤버 제거 (마지막 owner 제거 불가) |
+| GET | `/api/projects/:id/statuses` | 멤버; `{ statuses: [{ key, label, category, sort_order }] }` 정렬순 |
+| PUT | `/api/projects/:id/statuses` | **owner**; `{ statuses, migrate? }` 전체 교체. `category=backlog`·`done` 각 ≥1. 사라진 key에 티켓이 있으면 `migrate[oldKey]=newKey` 필수 |
 
 ### Tickets (task + milestone)
 
@@ -206,7 +230,7 @@ payload_json TEXT NOT NULL DEFAULT '{}'
 | PATCH | `/api/tickets/:id` | body에 `{ status, sort_order, priority, assignee_id, due_at, version? }` 포함. 버전 전달 시 불일치하면 `409 Conflict`; 성공 시 `version` 증가 및 변경 필드 `ticket_activities` 기록 |
 | DELETE | `/api/tickets/:id` | **작성자(`created_by`) 또는 project owner만 삭제 가능** |
 | GET | `/api/tickets/:id/activities` | 티켓 변경 이력 (최신순) |
-| GET | `/api/projects/:id/kanban` | status별 tickets 그룹 (기본: 최근 완료건만 포함, query `include_archived=true`) |
+| GET | `/api/projects/:id/kanban` | `{ columns, statuses }` — 컬럼 키=project statuses 순서. `category=done` 중 `updated_at` 오래된 건 기본 제외(`include_archived=true`로 포함) |
 | GET | `/api/projects/:id/timeline` | date_from/date_to 있는 항목 |
 
 ### Search
@@ -248,8 +272,8 @@ payload_json TEXT NOT NULL DEFAULT '{}'
 
 ## 6. 칸반·타임라인 및 데이터 관리
 
-- 칸반 컬럼 = `status` 고정 집합: `backlog`, `todo`, `in_progress`, `done`.
+- 칸반 컬럼 = 해당 프로젝트 `project_statuses`(정렬순). 티켓 `status`는 그 `key` 중 하나여야 한다. 기본 생성 status = 첫 `category=backlog`.
 - 드래그 저장 = `PATCH /api/tickets/:id` with `{ status, sort_order, version }`.
-- 완료 티켓 관리: `done` 중 `updated_at`이 14일 초과인 건은 기본 칸반에서 제외. `include_archived=true`로 포함.
+- 완료 티켓 관리: `category=done` 이고 `updated_at`이 14일 초과인 건은 기본 칸반에서 제외. `include_archived=true`로 포함.
 - 타임라인 = `date_from`/`date_to`가 null이 아닌 ticket/milestone 목록.
 - 만료 세션은 Cron(`0 * * * *`) `scheduled` 핸들러가 `sessions.expires_at < now` 행을 삭제한다.

@@ -1,6 +1,12 @@
 import { Hono } from "hono";
 import type { Env, AppVariables } from "../env";
 import { newId, nowIso } from "../lib/crypto";
+import {
+  listProjectStatuses,
+  normalizeStatusList,
+  seedStatusStatements,
+  type StatusInput,
+} from "../lib/statuses";
 import { resolveUserId } from "../lib/users";
 import {
   getClientMembership,
@@ -57,6 +63,7 @@ projectRoutes.post("/projects", async (c) => {
     c.env.DB.prepare(
       `INSERT INTO project_members (project_id, user_id, role) VALUES (?, ?, 'owner')`,
     ).bind(id, user.id),
+    ...seedStatusStatements(c.env.DB, id),
   ]);
 
   return c.json(
@@ -147,6 +154,69 @@ projectRoutes.delete("/projects/:id", async (c) => {
 
   await c.env.DB.prepare(`DELETE FROM projects WHERE id = ?`).bind(id).run();
   return c.json({ ok: true });
+});
+
+projectRoutes.get("/projects/:id/statuses", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const role = await requireProjectMember(c.env.DB, id, user.id);
+  if (!role) return c.json({ error: "forbidden" }, 403);
+
+  const statuses = await listProjectStatuses(c.env.DB, id);
+  return c.json({ statuses });
+});
+
+projectRoutes.put("/projects/:id/statuses", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const role = await requireProjectMember(c.env.DB, id, user.id);
+  if (!role) return c.json({ error: "forbidden" }, 403);
+  if (role !== "owner") return c.json({ error: "forbidden" }, 403);
+
+  const body = await c.req.json<{
+    statuses?: StatusInput[];
+    migrate?: Record<string, string>;
+  }>();
+  const normalized = normalizeStatusList(body.statuses);
+  if (!normalized.ok) return c.json({ error: normalized.error }, 400);
+
+  const nextKeys = new Set(normalized.statuses.map((s) => s.key));
+  const current = await listProjectStatuses(c.env.DB, id);
+  const removed = current.map((s) => s.key).filter((k) => !nextKeys.has(k));
+  const migrate = body.migrate ?? {};
+
+  const stmts: D1PreparedStatement[] = [];
+  for (const oldKey of removed) {
+    const count = await c.env.DB.prepare(
+      `SELECT COUNT(*) AS n FROM tickets WHERE project_id = ? AND status = ?`,
+    )
+      .bind(id, oldKey)
+      .first<{ n: number }>();
+    if ((count?.n ?? 0) > 0) {
+      const target = migrate[oldKey];
+      if (!target || !nextKeys.has(target)) {
+        return c.json({ error: "migrate_required", key: oldKey }, 400);
+      }
+      stmts.push(
+        c.env.DB.prepare(
+          `UPDATE tickets SET status = ? WHERE project_id = ? AND status = ?`,
+        ).bind(target, id, oldKey),
+      );
+    }
+  }
+
+  stmts.push(c.env.DB.prepare(`DELETE FROM project_statuses WHERE project_id = ?`).bind(id));
+  for (const s of normalized.statuses) {
+    stmts.push(
+      c.env.DB.prepare(
+        `INSERT INTO project_statuses (project_id, key, label, category, sort_order)
+         VALUES (?, ?, ?, ?, ?)`,
+      ).bind(id, s.key, s.label, s.category, s.sort_order),
+    );
+  }
+  await c.env.DB.batch(stmts);
+
+  return c.json({ statuses: await listProjectStatuses(c.env.DB, id) });
 });
 
 projectRoutes.get("/projects/:id/members", async (c) => {

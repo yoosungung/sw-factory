@@ -13,7 +13,7 @@ macOS + Chromium 조합에서 Playwright 기본 `fill`/`click`이 hang 되는 �
 | `nav.spec.ts` | UX0 라이트 크롬 토큰 · Top nav 직접 링크 (Spaces · Projects · Your work) · 프로젝트 목록→보드 |
 | `ux-nav.spec.ts` | UX1: view-segment 단일 소스 · space switcher · settings hideSidebar |
 | `ux-polish.spec.ts` | UX2 Backlog/Timeline/List EmptyState 동일 형태(CTA 없음) · UX3 non-modal inspector · UX4 mobile hamburger |
-| `fe3-fe5.spec.ts` | Your work · Search · Account · Filters · History |
+| `fe3-fe5.spec.ts` | Your work · Search · Account · Filters · History · Board Settings 커스텀 컬럼 |
 | `admin.spec.ts` | 시드 admin `/admin` · Space 생성 · 이메일 초대 |
 
 API 단위 테스트는 `npm test`(Vitest). E2E는 브라우저 플로우만.

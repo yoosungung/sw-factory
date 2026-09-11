@@ -52,19 +52,19 @@
 
 ## F5. Board — `/projects/:id?view=board`
 
-**Layout:** 툴바(타이틀 + 세그먼트 탭 `Board|Backlog|Timeline|List` + 검색·•••) + 4컬럼 + 카드.  
+**Layout:** 툴바(타이틀 + 세그먼트 탭 `Board|Backlog|Timeline|List` + 검색·•••) + **프로젝트 statuses 순서** 컬럼 + 카드.  
 **카드 규격:** 타입 아이콘 + 키(`MOB-F416`) + 우선순위 뱃지(High/Medium/Low 컬러 태그) + 2줄 말줄임 타이틀 + 마감일 태그 + 우측 정렬된 담당자 아바타.  
 **Behavior:** 드래그 → `PATCH` `{ status, sort_order, version }`; 카드 클릭 → **논모달 사이드 인스펙터** 오픈; Group by(assignee/milestone/type) **Prod 포함**(클라이언트 그룹핑); 가로 스크롤 페이드 인디케이터. 티켓 생성은 탑바 **Create**(F14)만 — 컬럼 인라인 생성은 보류.  
-**API:** `GET …/kanban` (최근 완료건 기본), `POST …/tickets`.  
-**Connections:** → Issue.
+**API:** `GET …/kanban` (`columns`+`statuses`; `category=done` 최근건 기본), `POST …/tickets`.  
+**Connections:** → Issue · Settings Board.
 
 ---
 
 ## F6. Backlog — `?view=backlog`
 
-**Layout:** 이슈 리스트(우선순위 뱃지, 키, 타이틀, 담당자, 상태 셀렉트) + Board issues 드롭 영역(안내 문구 포함). 빈 백로그는 EmptyState(제목+안내, CTA 없음). 티켓 생성은 탑바 **Create**(F14)만.  
-**Behavior:** 행 → issue 인스펙터; 인라인 status 변경. Sprint 섹션은 Defer.  
-**API:** `GET/POST/PATCH …/tickets`.  
+**Layout:** 좌측 = `category=backlog` 이슈 리스트 + 우측 = 나머지 status. 빈 백로그는 EmptyState(제목+안내, CTA 없음). 티켓 생성은 탑바 **Create**(F14)만.  
+**Behavior:** 행 → issue 인스펙터; 인라인 status 변경(프로젝트 statuses). Sprint 섹션은 Defer.  
+**API:** `GET …/kanban` 또는 tickets + statuses.  
 **Connections:** → Issue.
 
 ---

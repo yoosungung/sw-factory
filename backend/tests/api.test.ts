@@ -169,7 +169,7 @@ describe("projects and tickets", () => {
       `/api/projects/${projectId}/tickets`,
       {
         method: "POST",
-        body: JSON.stringify({ title: "Task 1", type: "task", status: "todo" }),
+        body: JSON.stringify({ title: "Task 1", type: "task", status: "backlog" }),
       },
       a.cookie,
     );
@@ -198,7 +198,7 @@ describe("projects and tickets", () => {
         body: JSON.stringify({
           title: "M1",
           type: "milestone",
-          status: "todo",
+          status: "backlog",
           date_from: "2026-09-01",
           date_to: "2026-09-30",
         }),
@@ -207,9 +207,26 @@ describe("projects and tickets", () => {
     );
     expect(ms.status).toBe(201);
 
+    const statuses = await request(`/api/projects/${projectId}/statuses`, {}, a.cookie);
+    expect(statuses.status).toBe(200);
+    expect((statuses.json.statuses as Json[]).map((s) => s.key)).toEqual([
+      "backlog",
+      "in_progress",
+      "review",
+      "deploying_test",
+      "qa",
+      "deploying_prod",
+      "done",
+      "blocked",
+      "waiting_for_approval",
+    ]);
+
     const kanban = await request(`/api/projects/${projectId}/kanban`, {}, a.cookie);
     expect(kanban.status).toBe(200);
     expect(kanban.json.columns).toBeTruthy();
+    expect((kanban.json.statuses as Json[]).length).toBe(9);
+    expect((kanban.json.columns as Record<string, Json[]>).backlog).toBeDefined();
+    expect((kanban.json.columns as Record<string, Json[]>).review).toBeDefined();
 
     const timeline = await request(`/api/projects/${projectId}/timeline`, {}, a.cookie);
     expect(timeline.status).toBe(200);
@@ -462,7 +479,7 @@ describe("M7 scale and durability", () => {
         `/api/projects/${projectId}/tickets`,
         {
           method: "POST",
-          body: JSON.stringify({ title: `T${i}`, type: "task", status: "todo" }),
+          body: JSON.stringify({ title: `T${i}`, type: "task", status: "backlog" }),
         },
         cookie,
       );
@@ -615,7 +632,7 @@ describe("M8 concurrency and history", () => {
     const projectId = (proj.json.project as Json).id as string;
     const created = await request(
       `/api/projects/${projectId}/tickets`,
-      { method: "POST", body: JSON.stringify({ title: "V1", type: "task", status: "todo" }) },
+      { method: "POST", body: JSON.stringify({ title: "V1", type: "task", status: "backlog" }) },
       cookie,
     );
     const ticketId = (created.json.ticket as Json).id as string;
@@ -826,7 +843,7 @@ describe("A1 agent event log", () => {
       `/api/tickets/${ticketId}`,
       {
         method: "PATCH",
-        body: JSON.stringify({ status: "todo", version: 1 }),
+        body: JSON.stringify({ status: "in_progress", version: 1 }),
       },
       cookie,
     );
@@ -971,5 +988,115 @@ describe("platform admin", () => {
     );
     expect(demote.status).toBe(400);
     expect(demote.json.error).toBe("last_admin");
+  });
+});
+
+describe("M10 project statuses", () => {
+  it("allows owner to customize columns with migrate", async () => {
+    const owner = await register("StatusOwner", { admin: true });
+    const member = await register("StatusMember");
+    const clientId = await createClient(owner.cookie, "StatusCo");
+    await request(
+      `/api/clients/${clientId}/members`,
+      {
+        method: "POST",
+        body: JSON.stringify({ user_id: member.userId, role: "member" }),
+      },
+      owner.cookie,
+    );
+    const proj = await request(
+      "/api/projects",
+      { method: "POST", body: JSON.stringify({ name: "Board", client_id: clientId }) },
+      owner.cookie,
+    );
+    const projectId = (proj.json.project as Json).id as string;
+    await request(
+      `/api/projects/${projectId}/members`,
+      {
+        method: "POST",
+        body: JSON.stringify({ user_id: member.userId, role: "member" }),
+      },
+      owner.cookie,
+    );
+
+    const ticket = await request(
+      `/api/projects/${projectId}/tickets`,
+      {
+        method: "POST",
+        body: JSON.stringify({ title: "In review lane", type: "task", status: "review" }),
+      },
+      owner.cookie,
+    );
+    expect(ticket.status).toBe(201);
+
+    const memberPut = await request(
+      `/api/projects/${projectId}/statuses`,
+      {
+        method: "PUT",
+        body: JSON.stringify({
+          statuses: [
+            { key: "backlog", label: "Backlog", category: "backlog" },
+            { key: "done", label: "Done", category: "done" },
+          ],
+        }),
+      },
+      member.cookie,
+    );
+    expect(memberPut.status).toBe(403);
+
+    const missingMigrate = await request(
+      `/api/projects/${projectId}/statuses`,
+      {
+        method: "PUT",
+        body: JSON.stringify({
+          statuses: [
+            { key: "backlog", label: "Backlog", category: "backlog" },
+            { key: "done", label: "Done", category: "done" },
+          ],
+        }),
+      },
+      owner.cookie,
+    );
+    expect(missingMigrate.status).toBe(400);
+    expect(missingMigrate.json.error).toBe("migrate_required");
+
+    const put = await request(
+      `/api/projects/${projectId}/statuses`,
+      {
+        method: "PUT",
+        body: JSON.stringify({
+          statuses: [
+            { key: "backlog", label: "Ideas", category: "backlog", sort_order: 0 },
+            { key: "building", label: "Building", category: "active", sort_order: 1 },
+            { key: "done", label: "Shipped", category: "done", sort_order: 2 },
+          ],
+          migrate: { review: "building" },
+        }),
+      },
+      owner.cookie,
+    );
+    expect(put.status).toBe(200);
+    expect((put.json.statuses as Json[]).map((s) => s.key)).toEqual([
+      "backlog",
+      "building",
+      "done",
+    ]);
+    expect((put.json.statuses as Json[])[0].label).toBe("Ideas");
+
+    const kanban = await request(`/api/projects/${projectId}/kanban`, {}, owner.cookie);
+    expect(kanban.status).toBe(200);
+    const cols = kanban.json.columns as Record<string, Json[]>;
+    expect(cols.building?.some((t) => t.title === "In review lane")).toBe(true);
+    expect(cols.review).toBeUndefined();
+
+    const badStatus = await request(
+      `/api/projects/${projectId}/tickets`,
+      {
+        method: "POST",
+        body: JSON.stringify({ title: "Nope", type: "task", status: "review" }),
+      },
+      owner.cookie,
+    );
+    expect(badStatus.status).toBe(400);
   });
 });

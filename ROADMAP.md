@@ -23,6 +23,7 @@
 | **M7** | **대규모 데이터 & 인프라 내구성**: 티켓 Cursor 페이징, 칸반 완료(Done) 티켓 기간 필터/아카이빙, R2 Presigned Direct Upload, 만료 세션 정기 삭제 Scheduled Worker (Cron) | 페이징/대용량 업로드/세션 정리 테스트 green | done |
 | **M8** | **동시성 & 이력 무결성**: 칸반/티켓 낙관적 락 (`version` 필드 및 409 충돌 처리), 티켓 변경 이력(`ticket_activities`) 추적 | 동시성 충돌 검증 및 이력 로그 조회 테스트 green | done |
 | **M9** | **플랫폼 admin**: `users.is_admin`, 시드 admin, Space 생성 admin-only, `GET/PATCH /api/admin/users`, 멤버 초대 `email` | 비admin `POST /api/clients` 403 · admin 시드/목록 테스트 green | done |
+| **M10** | **프로젝트 status 보드**: `project_statuses` + 기본 v1 단계(Backlog→…→Done + Blocked/Waiting), `GET/PUT …/statuses`, 티켓·칸반이 프로젝트 컬럼을 따름 | statuses CRUD·마이그레이션·칸반 테스트 green | done |
 
 ## Frontend 마일스톤
 
@@ -34,10 +35,11 @@
 | **FE1** | **Space·작업 뷰 코어**: F2 Projects, F4 Space hub, F5–F8 Board/Backlog/Timeline/List, F14 Quick Create, F15 Create Space·Project | `/projects` · `/clients/:id` · `/projects/:id?view=` + Create 모달 동작 | M3–M5 | done |
 | **FE2** | **Issue 협업**: F9 Issue (`?issue=` / `/browse/:ticketId`) — assignee·due·priority, Comments·Files, 삭제 가드 UI | 협업 필드 인라인 저장·첨부·삭제 권한 반영 (History 탭은 FE6) | M6 | done |
 | **FE3** | **개인·검색·계정**: F3 Your work(홈 `/`), F13 Search, Account (`/account`) — 메뉴 stub 제거 | `/` · `/search` · `/account` 실데이터 | M6 | done |
-| **FE4** | **관리**: Space/Project settings (Details · People · Danger · Board 고정 컬럼 안내) | owner 가드·멤버 초대/역할/제거 UI; 빈 stub 없음 | M6 | done |
+| **FE4** | **관리**: Space/Project settings (Details · People · Danger · Board) | owner 가드·멤버 초대/역할/제거 UI; 빈 stub 없음 | M6 | done |
 | **FE5** | **디렉터리·저장 뷰**: F10 Filters, F12 Teams (Search/Space People에서 연결) | 실데이터 또는 local→서버 경로 명시·동작 (설계 승격 전 local 허용) | overview §5 승격 항목 | done |
 | **FE6** | **규모·동시성 UX**: List/Board 커서 페이징·Done 기간 필터, Presigned 업로드, `version` 409 처리, Issue History 탭 | M7/M8 API에 맞춘 UI 검증 | M7, M8 | done |
 | **FE7** | **플랫폼 Admin**: `/admin` 계정 목록·is_admin, Create space 가드, People 이메일 초대 | admin만 Space 생성·Users 관리; 비admin Create space 숨김 | M9 | done |
+| **FE8** | **동적 Board 컬럼**: 프로젝트 statuses로 Board/Backlog/Issue/Create 셀렉트; Settings Board에서 추가·이름·순서·삭제 | 커스텀 컬럼 보드 반영 E2E green | M10 | done |
 
 권장 순서: **FE0 → FE1 → FE2 → FE4 → FE3 → FE5**, FE6은 M7/M8과 병행.
 
@@ -81,7 +83,6 @@
 ## 후순위 (Defer — 미결정)
 
 - Sprints (도메인·UI)
-- 커스텀 status labels (고정 4컬럼 유지)
 - 계정별 CRUD 매트릭스 / 전역 permission scheme (`owner`\|`member` + `is_admin` 한 비트만)
 - 고급 리포트; Issue History는 M8 승격 전 UI에 넣지 않음
 

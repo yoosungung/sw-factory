@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { client, type Client, type Project, type Ticket, type User } from "../api";
-import { STATUS_LABEL } from "../components/issue/IssuePanel";
+import { statusLabel } from "../components/issue/IssuePanel";
 import {
   deleteFilter,
   listFilters,
@@ -174,9 +174,14 @@ export function FiltersPage({
                 >
                   <option value="">Any</option>
                   <option value="backlog">Backlog</option>
-                  <option value="todo">To Do</option>
                   <option value="in_progress">In Progress</option>
+                  <option value="review">Review</option>
+                  <option value="deploying_test">Deploying Test</option>
+                  <option value="qa">QA</option>
+                  <option value="deploying_prod">Deploying Prod</option>
                   <option value="done">Done</option>
+                  <option value="blocked">Blocked</option>
+                  <option value="waiting_for_approval">Waiting for Approval</option>
                 </select>
               </label>
               <label>
@@ -227,7 +232,7 @@ export function FiltersPage({
                   <Link key={t.id} to={`/browse/${t.id}`} className="list-row linkish">
                     <span>{t.title}</span>
                     <span className="muted">{t.project?.name}</span>
-                    <span className="muted">{STATUS_LABEL[t.status]}</span>
+                    <span className="muted">{statusLabel(t.status)}</span>
                   </Link>
                 ))}
                 {results.length === 0 && <div className="empty">No matching issues.</div>}

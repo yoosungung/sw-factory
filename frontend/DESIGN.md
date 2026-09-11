@@ -26,12 +26,12 @@ frontend/src/
 - Top nav (직접 링크): Spaces(`/spaces`) / Projects(`/projects`) / Your work(`/`) / Search(⌘K) / Account / Create. Filters·Teams는 Top nav에 없음.
 - Issue: assignee · due · priority 인라인 `PATCH`(+`version` 409), Comments/History/Files, 작성자·owner 삭제
 - `/browse/:ticketId` 전체 페이지; 보드 `?issue=` sidebar/modal
-- Space/Project settings: Details · People · (Board) · Danger
+- Space/Project settings: Details · People · Board(statuses CRUD) · Danger
 - `/admin`: 플랫폼 admin 계정 목록 · Space 생성
 - Your work: Assigned / Created by me / Recently viewed / Recent projects
 - Search: `GET /api/search`
 - Filters: localStorage 메타 + tickets API
-- List: cursor Load more · Board: Include archived Done
+- List: cursor Load more · Board: 프로젝트 statuses 컬럼 · Include archived Done
 
 ## Commands
 

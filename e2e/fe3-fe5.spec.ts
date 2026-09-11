@@ -80,7 +80,36 @@ test("FE6: history tab on issue", async ({ page }) => {
 
   const panel = page.getByRole("dialog");
   await clickEl(panel.locator(".status-picker").getByRole("button", { name: /status/i }));
+  await expect(panel.locator(".status-picker").getByRole("option", { name: /In Progress/i })).toBeVisible({
+    timeout: 10000,
+  });
   await clickEl(panel.locator(".status-picker").getByRole("option", { name: /In Progress/i }));
   await clickEl(panel.getByRole("button", { name: "History" }));
   await expect(panel.getByText(/status/i).first()).toBeVisible({ timeout: 10000 });
+});
+
+test("FE8: board settings custom column appears on board", async ({ page }) => {
+  await loginAsAdmin(page);
+  await createSpace(page, "FE8 Space");
+  await createSoftwareProject(page, "FE8 Proj");
+
+  await expect(page.locator(".board-col").filter({ has: page.getByRole("heading", { name: "Review" }) })).toBeVisible();
+
+  await clickEl(page.getByRole("link", { name: "Project settings" }));
+  await clickEl(page.getByRole("link", { name: "Board" }));
+  await expect(page.getByRole("heading", { name: "Board" })).toBeVisible();
+
+  await clickEl(page.getByRole("button", { name: "Add column" }));
+  const rows = page.locator(".board-status-row");
+  const last = rows.last();
+  await fillField(last.locator('input[aria-label="Status key"]'), "staging");
+  await fillField(last.locator('input[aria-label="Status label"]'), "Staging");
+  await last.locator('select[aria-label="Status category"]').selectOption("active");
+  await clickEl(page.getByRole("button", { name: "Save columns" }));
+  await expect(page.getByText("Board columns saved")).toBeVisible({ timeout: 10000 });
+
+  await clickEl(page.getByRole("link", { name: "← Back to project" }));
+  await expect(
+    page.locator(".board-col").filter({ has: page.getByRole("heading", { name: "Staging" }) }),
+  ).toBeVisible({ timeout: 10000 });
 });

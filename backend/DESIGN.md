@@ -33,7 +33,7 @@ npm run dev
 | REST `/api/{resource}` | SPA·캐시·HTTP 의미에 맞음 |
 | 세션 쿠키 + D1 `sessions` | 브라우저 1st-party UI 우선 (계약 §2) |
 | D1 TEXT UUID PK | 분산·병합·클라이언트 생성에 유리 |
-| `status` 문자열 고정 집합 | 보드 UX와 1:1; 커스텀 라벨은 후순위 |
+| `project_statuses` (프로젝트별 key/label/category) | 보드 UX와 1:1; 프로젝트별 커스텀 |
 | `entity_type` + `entity_id` | 코멘트·파일 폴리모픽 첨부 |
 | R2 + `files` 메타 | 계약 §5; D1에 blob 금지 |
 | `client_members` N:M | 멀티 클라이언트 |
@@ -106,19 +106,20 @@ erDiagram
 | `sessions` | opaque cookie `id`, `user_id`, `expires_at` |
 | `clients` | `name`, `description`, `created_by` + `client_members`(role) |
 | `projects` | `client_id` NOT NULL + `project_members`(role ∈ {owner, member}) |
-| `tickets` | `type` task\|milestone; `status` backlog\|todo\|in_progress\|done; `priority`; `sort_order`; `milestone_id`; `assignee_id`; `due_at`; `date_from`/`date_to`; `version`; `created_by` |
+| `project_statuses` | 프로젝트별 칸반 컬럼 (`key`/`label`/`category` backlog\|active\|done / `sort_order`); 생성 시 v1 기본 9개 시드 |
+| `tickets` | `type` task\|milestone; `status` = `project_statuses.key`; `priority`; `sort_order`; `milestone_id`; `assignee_id`; `due_at`; `date_from`/`date_to`; `version`; `created_by` |
 | `comments` | `entity_type`+`entity_id` (MVP: ticket), `body`, `author_id` |
 | `files` | `entity_type`+`entity_id`, `r2_key`, `filename`/`mime`/`size`, `uploaded_by` |
 | `ticket_activities` | 티켓 필드 변경 로그 |
 | `agent_event_log` | agent wake outbox (티켓/코멘트 mutate append; `ticket_id` FK 없음) |
 
-칸반: 컬럼 = `status` 값. Done은 기본 최근 N일 필터.  
+칸반: 컬럼 = `project_statuses` 정렬순. `category=done`은 기본 최근 N일 필터.  
 타임라인: `date_from`/`date_to` NOT NULL (`GET …/timeline`).
 
 ### 3.3 Exclude / Defer
 
 **Exclude:** timesheets, calendar, notifications, canvas/ideas/wiki/goals, plugins, 전역 settings, PAT, 계정별 CRUD 매트릭스·전역 audit.  
-**Defer:** sprints, 커스텀 status labels, 코멘트 스레드.
+**Defer:** sprints, 코멘트 스레드.
 
 ### 3.4 인덱스 (설계)
 
@@ -161,9 +162,10 @@ erDiagram
 
 | REST | 비고 |
 | --- | --- |
-| `GET/POST /api/projects`, `GET/PATCH/DELETE /api/projects/:id` | 생성 시 `client_id`+멤버십; 삭제=owner |
+| `GET/POST /api/projects`, `GET/PATCH/DELETE /api/projects/:id` | 생성 시 `client_id`+멤버십+기본 statuses 시드; 삭제=owner |
 | `GET/POST /api/projects/:id/members` | POST `{ user_id?, email?, role }` — project owner; client 멤버여야 함 |
 | `DELETE /api/projects/:id/members/:userId` | 마지막 owner 보호 |
+| `GET/PUT /api/projects/:id/statuses` | 칸반 컬럼; PUT=owner (`migrate`로 티켓 재매핑) |
 
 ### 4.4 Tickets
 
@@ -173,7 +175,7 @@ erDiagram
 | `POST /api/projects/:id/tickets` | title, type, … |
 | `PATCH /api/tickets/:id` | status/sort/priority/assignee/due/`version` → 409 |
 | `GET /api/projects/:id/tickets` | type, status, assignee_id, created_by, limit, cursor |
-| `GET /api/projects/:id/kanban` | status 그룹; 기본 최근 14일 Done |
+| `GET /api/projects/:id/kanban` | `{ columns, statuses }`; 기본 최근 14일 `category=done` |
 | `GET …/timeline` | |
 | `DELETE /api/tickets/:id` | 작성자 또는 project owner |
 | `GET /api/tickets/:id/activities` | 이력 |
@@ -260,8 +262,8 @@ backend/src/
 | `version` 409 · `ticket_activities` | **구현됨** | M8 |
 | `agent_event_log` · `GET /api/agent/events` | **구현됨** | A1 |
 | 플랫폼 admin · Space 생성 가드 | **구현됨** | M9 |
+| `project_statuses` · 동적 칸반 | **구현됨** | M10 |
 | timesheets, calendar, notifications, canvas/ideas/wiki/goals, plugins, PAT | **Exclude** | — |
-| 커스텀 status labels | Exclude | — |
 
 범위 변경 시: 이 문서 §2–§4 → ARCHITECTURE 승격 → TDD.
 

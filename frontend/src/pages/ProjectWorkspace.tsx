@@ -1,13 +1,20 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
-import { client, type Client, type Member, type Project, type Ticket, type User } from "../api";
+import {
+  client,
+  type Client,
+  type Member,
+  type Project,
+  type ProjectStatus,
+  type Ticket,
+  type User,
+} from "../api";
 import {
   IssuePanel,
   issueKey,
   initials,
-  STATUS_LABEL,
+  statusLabel,
   PRIORITY_LABEL,
-  STATUSES,
   type IssueOpenMode,
 } from "../components/issue/IssuePanel";
 import { EmptyState } from "../components/EmptyState";
@@ -30,12 +37,8 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
   const allProjects = useAllProjects();
   const [project, setProject] = useState<Project | null>(null);
   const [org, setOrg] = useState<Client | null>(null);
-  const [columns, setColumns] = useState<Record<Ticket["status"], Ticket[]>>({
-    backlog: [],
-    todo: [],
-    in_progress: [],
-    done: [],
-  });
+  const [statuses, setStatuses] = useState<ProjectStatus[]>([]);
+  const [columns, setColumns] = useState<Record<string, Ticket[]>>({});
   const [timeline, setTimeline] = useState<Ticket[]>([]);
   const [milestones, setMilestones] = useState<Ticket[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
@@ -52,10 +55,23 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
   const [listCursor, setListCursor] = useState<string | null>(null);
   const [listLoading, setListLoading] = useState(false);
 
+  const statusLabels = useMemo(
+    () => Object.fromEntries(statuses.map((s) => [s.key, s.label])),
+    [statuses],
+  );
+  const statusKeys = useMemo(() => statuses.map((s) => s.key), [statuses]);
+  const backlogKeys = useMemo(
+    () => statuses.filter((s) => s.category === "backlog").map((s) => s.key),
+    [statuses],
+  );
+  const boardIssueKeys = useMemo(
+    () => statuses.filter((s) => s.category !== "backlog").map((s) => s.key),
+    [statuses],
+  );
+
   useEffect(() => {
     if (issueUiParam === "modal") setIssueMode("modal");
     else if (issueUiParam === "sidebar" || issueUiParam === null) {
-      /* keep unless explicitly modal in URL */
       if (issueUiParam === "sidebar") setIssueMode("sidebar");
     }
   }, [issueUiParam]);
@@ -79,6 +95,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
     ]);
     setProject(p.project);
     touchRecentProject(p.project.id);
+    setStatuses(k.statuses);
     setColumns(k.columns);
     setTimeline(t.items);
     setMilestones(m.tickets);
@@ -130,16 +147,16 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
   const filteredColumns = useMemo(() => {
     const q = filter.trim().toLowerCase();
     if (!q) return columns;
-    const next = { ...columns };
-    for (const s of STATUSES) {
+    const next: Record<string, Ticket[]> = {};
+    for (const s of statusKeys) {
       next[s] = (columns[s] ?? []).filter((t) => t.title.toLowerCase().includes(q));
     }
     return next;
-  }, [columns, filter]);
+  }, [columns, filter, statusKeys]);
 
-  async function move(ticketId: string, status: Ticket["status"]) {
+  async function move(ticketId: string, status: string) {
     const ticket =
-      STATUSES.flatMap((s) => columns[s] ?? []).find((t) => t.id === ticketId) ?? null;
+      statusKeys.flatMap((s) => columns[s] ?? []).find((t) => t.id === ticketId) ?? null;
     await client.patchTicket(ticketId, {
       status,
       sort_order: (columns[status] ?? []).length,
@@ -163,6 +180,10 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
     navigate(`/projects/${id}?view=${view}`, { replace: true });
   }
 
+  function labelFor(key: string) {
+    return statusLabel(key, statusLabels);
+  }
+
   if (!project) {
     return (
       <AppChrome user={user} onLogout={onLogout} clients={clients} projects={allProjects} view={view}>
@@ -172,6 +193,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
   }
 
   const projectRole = (project.role ?? "member") as "owner" | "member";
+  const backlogTickets = backlogKeys.flatMap((k) => columns[k] ?? []);
 
   const shell = (
     <>
@@ -289,23 +311,23 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
       {view === "board" && (
         <div className="board-scroll">
           <div className="board">
-            {STATUSES.map((status) => (
+            {statuses.map((st) => (
               <section
-                key={status}
+                key={st.key}
                 className="board-col"
                 onDragOver={(e) => e.preventDefault()}
                 onDrop={(e) => {
                   e.preventDefault();
-                  if (dragId) void move(dragId, status);
+                  if (dragId) void move(dragId, st.key);
                   setDragId(null);
                 }}
               >
                 <div className="board-col-head">
-                  <h3>{STATUS_LABEL[status]}</h3>
-                  <span className="count">{(filteredColumns[status] ?? []).length}</span>
+                  <h3>{st.label}</h3>
+                  <span className="count">{(filteredColumns[st.key] ?? []).length}</span>
                 </div>
                 <div className="board-col-body">
-                  {(filteredColumns[status] ?? []).map((t) => (
+                  {(filteredColumns[st.key] ?? []).map((t) => (
                     <article
                       key={t.id}
                       className="issue-card"
@@ -351,9 +373,9 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
           <div className="backlog-panel">
             <div className="backlog-head">
               <strong>Backlog</strong>
-              <span className="count">{(columns.backlog ?? []).length}</span>
+              <span className="count">{backlogTickets.length}</span>
             </div>
-            {(columns.backlog ?? [])
+            {backlogTickets
               .filter((t) => t.title.toLowerCase().includes(filter.toLowerCase()))
               .map((t) => (
                 <div key={t.id} className="backlog-row" onClick={() => openIssue(t)}>
@@ -365,17 +387,17 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
                   <select
                     value={t.status}
                     onClick={(e) => e.stopPropagation()}
-                    onChange={(e) => void move(t.id, e.target.value as Ticket["status"])}
+                    onChange={(e) => void move(t.id, e.target.value)}
                   >
-                    {STATUSES.map((s) => (
-                      <option key={s} value={s}>
-                        {STATUS_LABEL[s]}
+                    {statuses.map((s) => (
+                      <option key={s.key} value={s.key}>
+                        {s.label}
                       </option>
                     ))}
                   </select>
                 </div>
               ))}
-            {(columns.backlog ?? []).length === 0 && (
+            {backlogTickets.length === 0 && (
               <EmptyState
                 title="Backlog is empty"
                 description="Work items you create show up here so you can plan what comes next on the board."
@@ -386,7 +408,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
             <div className="backlog-head">
               <strong>Board issues</strong>
             </div>
-            {(["todo", "in_progress", "done"] as const).flatMap((s) =>
+            {boardIssueKeys.flatMap((s) =>
               (columns[s] ?? []).map((t) => (
                 <div key={t.id} className="backlog-row" onClick={() => openIssue(t)}>
                   <span className="issue-key">
@@ -394,7 +416,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
                     {issueKey(project.name, t.id)}
                   </span>
                   <span className="grow">{t.title}</span>
-                  <span className="muted">{STATUS_LABEL[t.status]}</span>
+                  <span className="muted">{labelFor(t.status)}</span>
                 </div>
               )),
             )}
@@ -422,7 +444,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
                   {item.date_from ?? "—"} → {item.date_to ?? "—"}
                 </span>
                 <span>{item.title}</span>
-                <span className="muted">{STATUS_LABEL[item.status]}</span>
+                <span className="muted">{labelFor(item.status)}</span>
               </div>
             ));
           })()}
@@ -460,7 +482,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
                       {issueKey(project.name, t.id)}
                     </span>
                     <span>{t.title}</span>
-                    <span className="muted">{STATUS_LABEL[t.status]}</span>
+                    <span className="muted">{labelFor(t.status)}</span>
                     <span className="muted">{memberName(t.assignee_id) ?? "—"}</span>
                     <span className="muted">{t.due_at ?? "—"}</span>
                     <span className="muted">{PRIORITY_LABEL[t.priority]}</span>

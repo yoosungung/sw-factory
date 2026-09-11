@@ -89,8 +89,8 @@ Space People와 동일 UX. 초대는 해당 Space 멤버만(이메일/`user_id`)
 
 ### 4.3 Board — `.../board`
 
-**Layout:** 고정 컬럼 4개 설명(Backlog/To Do/In Progress/Done). 커스텀 컬럼 **없음**(Exclude).  
-**Behavior:** 안내만; 저장 버튼 없음 또는 “Reset card open mode” 로컬 설정.
+**Layout:** 프로젝트 status 목록 편집(label · category · 순서). 기본 9컬럼(Backlog→…→Done + Blocked/Waiting).  
+**Behavior:** owner만 추가·이름변경·순서변경·삭제 후 Save → `PUT /api/projects/:id/statuses` (`migrate`로 티켓 재매핑). 멤버는 읽기 전용.
 
 ### 4.4 Danger zone — `.../danger`
 

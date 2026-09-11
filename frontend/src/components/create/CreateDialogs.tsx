@@ -1,6 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { client, type Client, type Member, type Project, type Ticket, type TicketPriority } from "../../api";
-import { PRIORITY_LABEL, PRIORITIES, STATUS_LABEL, STATUSES } from "../issue/IssuePanel";
+import {
+  client,
+  type Client,
+  type Member,
+  type Project,
+  type ProjectStatus,
+  type Ticket,
+  type TicketPriority,
+} from "../../api";
+import { PRIORITY_LABEL, PRIORITIES } from "../issue/IssuePanel";
 import { useEscape } from "../../hooks/useDom";
 
 export function CreateIssueDialog({
@@ -18,7 +26,7 @@ export function CreateIssueDialog({
   projects: Project[];
   defaultProjectId?: string;
   defaultClientId?: string;
-  defaultStatus?: Ticket["status"];
+  defaultStatus?: string;
   docked: boolean;
   onDock: () => void;
   onClose: () => void;
@@ -28,7 +36,8 @@ export function CreateIssueDialog({
     defaultProjectId ?? projects[0]?.id ?? "",
   );
   const [type, setType] = useState<Ticket["type"]>("task");
-  const [status, setStatus] = useState<Ticket["status"]>(defaultStatus ?? "backlog");
+  const [status, setStatus] = useState(defaultStatus ?? "backlog");
+  const [statuses, setStatuses] = useState<ProjectStatus[]>([]);
   const [summary, setSummary] = useState("");
   const [description, setDescription] = useState("");
   const [dateFrom, setDateFrom] = useState("");
@@ -50,10 +59,22 @@ export function CreateIssueDialog({
   useEffect(() => {
     if (!projectId) {
       setMembers([]);
+      setStatuses([]);
       return;
     }
     void client.projectMembers(projectId).then((r) => setMembers(r.members));
-  }, [projectId]);
+    void client.projectStatuses(projectId).then((r) => {
+      setStatuses(r.statuses);
+      const backlog = r.statuses.find((s) => s.category === "backlog");
+      if (defaultStatus && r.statuses.some((s) => s.key === defaultStatus)) {
+        setStatus(defaultStatus);
+      } else if (backlog) {
+        setStatus(backlog.key);
+      } else if (r.statuses[0]) {
+        setStatus(r.statuses[0].key);
+      }
+    });
+  }, [projectId, defaultStatus]);
 
   const filteredProjects = useMemo(() => {
     if (!defaultClientId) return projects;
@@ -191,13 +212,10 @@ export function CreateIssueDialog({
               </label>
               <label>
                 Status
-                <select
-                  value={status}
-                  onChange={(e) => setStatus(e.target.value as Ticket["status"])}
-                >
-                  {STATUSES.map((s) => (
-                    <option key={s} value={s}>
-                      {STATUS_LABEL[s]}
+                <select value={status} onChange={(e) => setStatus(e.target.value)}>
+                  {statuses.map((s) => (
+                    <option key={s.key} value={s.key}>
+                      {s.label}
                     </option>
                   ))}
                 </select>

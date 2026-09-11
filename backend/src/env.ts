@@ -18,16 +18,8 @@ export type User = {
 
 export type MemberRole = "owner" | "member";
 
-export type TicketStatus = "backlog" | "todo" | "in_progress" | "done";
 export type TicketType = "task" | "milestone";
 export type TicketPriority = "low" | "medium" | "high" | "urgent";
-
-export const TICKET_STATUSES: TicketStatus[] = [
-  "backlog",
-  "todo",
-  "in_progress",
-  "done",
-];
 
 export const TICKET_PRIORITIES: TicketPriority[] = [
   "low",

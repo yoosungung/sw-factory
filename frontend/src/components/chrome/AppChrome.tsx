@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import type { Client, Project, Ticket, User } from "../../api";
+import type { Client, Project, User } from "../../api";
 import { initials } from "../issue/IssuePanel";
 import { APP_NAME, BrandMark } from "../../lib/brand";
 import type { ViewMode } from "../../lib/view-mode";
@@ -317,7 +317,7 @@ export function AppChrome({
   activeProject?: Project | null;
   view: ViewMode;
   children: React.ReactNode;
-  createDefaultStatus?: Ticket["status"];
+  createDefaultStatus?: string;
   hideSidebar?: boolean;
 }) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);

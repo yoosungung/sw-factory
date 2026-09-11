@@ -34,13 +34,22 @@ export type Project = {
 
 export type TicketPriority = "low" | "medium" | "high" | "urgent";
 
+export type StatusCategory = "backlog" | "active" | "done";
+
+export type ProjectStatus = {
+  key: string;
+  label: string;
+  category: StatusCategory;
+  sort_order: number;
+};
+
 export type Ticket = {
   id: string;
   project_id: string;
   title: string;
   description: string;
   type: "task" | "milestone";
-  status: "backlog" | "todo" | "in_progress" | "done";
+  status: string;
   priority: TicketPriority;
   sort_order: number;
   milestone_id: string | null;
@@ -172,6 +181,19 @@ export const client = {
     }),
   removeProjectMember: (id: string, userId: string) =>
     api<{ ok: boolean }>(`/api/projects/${id}/members/${userId}`, { method: "DELETE" }),
+  projectStatuses: (id: string) =>
+    api<{ statuses: ProjectStatus[] }>(`/api/projects/${id}/statuses`),
+  putProjectStatuses: (
+    id: string,
+    body: {
+      statuses: Array<{ key: string; label: string; category: StatusCategory; sort_order?: number }>;
+      migrate?: Record<string, string>;
+    },
+  ) =>
+    api<{ statuses: ProjectStatus[] }>(`/api/projects/${id}/statuses`, {
+      method: "PUT",
+      body: JSON.stringify(body),
+    }),
 
   tickets: (
     projectId: string,
@@ -215,7 +237,7 @@ export const client = {
   ticketActivities: (id: string) =>
     api<{ activities: TicketActivity[] }>(`/api/tickets/${id}/activities`),
   kanban: (projectId: string, includeArchived = false) =>
-    api<{ columns: Record<Ticket["status"], Ticket[]> }>(
+    api<{ columns: Record<string, Ticket[]>; statuses: ProjectStatus[] }>(
       `/api/projects/${projectId}/kanban${includeArchived ? "?include_archived=true" : ""}`,
     ),
   timeline: (projectId: string) =>

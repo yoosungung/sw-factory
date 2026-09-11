@@ -89,12 +89,21 @@ flowchart TB
 
 ## 4. status · type
 
-| UI | `status` |
-| --- | --- |
-| Backlog | `backlog` |
-| To Do | `todo` |
-| In Progress | `in_progress` |
-| Done | `done` |
+칸반 `status`는 **프로젝트별** `project_statuses.key`(고정 enum 아님). 기본 시드:
+
+| UI | `key` | `category` |
+| --- | --- | --- |
+| Backlog | `backlog` | backlog |
+| In Progress | `in_progress` | active |
+| Review | `review` | active |
+| Deploying Test | `deploying_test` | active |
+| QA | `qa` | active |
+| Deploying Prod | `deploying_prod` | active |
+| Done | `done` | done |
+| Blocked | `blocked` | active |
+| Waiting for Approval | `waiting_for_approval` | active |
+
+owner는 Project settings → Board에서 추가·이름·순서·삭제(`PUT …/statuses`).
 
 | UI | `type` |
 | --- | --- |
@@ -119,6 +128,7 @@ Prod UI가 요구하는 항목의 백엔드 승격 현황:
 | 전역 검색 | `GET /api/search` | **구현됨** (FE3) |
 | Account 프로필·비밀번호 | `PATCH /api/users/me`, `POST /api/auth/password` | **구현됨** (FE3) |
 | 플랫폼 Admin | `users.is_admin`, `GET/PATCH /api/admin/users`, Space 생성 가드 | **구현됨** (M9/FE7) |
+| 프로젝트 칸반 컬럼 커스텀 | `project_statuses`, `GET/PUT …/statuses` | **구현됨** (M10/FE8) |
 | Sprints 섹션 | sprints 도메인 | Defer |
 
 Exclude 도메인 API는 만들지 않는다.

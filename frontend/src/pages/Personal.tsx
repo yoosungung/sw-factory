@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { client, type Client, type Project, type Ticket, type User } from "../api";
-import { initials, STATUS_LABEL } from "../components/issue/IssuePanel";
+import { initials, statusLabel } from "../components/issue/IssuePanel";
 import { EmptyState } from "../components/EmptyState";
 import { recentProjectIds, recentTicketIds } from "../lib/recent";
 
@@ -142,7 +142,7 @@ export function YourWorkPage({
               <Link key={t.id} to={`/browse/${t.id}`} className="list-row linkish">
                 <span>{t.title}</span>
                 <span className="muted">{t.project?.name}</span>
-                <span className="muted">{STATUS_LABEL[t.status]}</span>
+                <span className="muted">{statusLabel(t.status)}</span>
                 <span className="muted">{t.due_at ?? "—"}</span>
               </Link>
             ))}
@@ -166,7 +166,7 @@ export function YourWorkPage({
               <Link key={t.id} to={`/browse/${t.id}`} className="list-row linkish">
                 <span>{t.title}</span>
                 <span className="muted">{t.project?.name}</span>
-                <span className="muted">{STATUS_LABEL[t.status]}</span>
+                <span className="muted">{statusLabel(t.status)}</span>
                 <span className="muted">{t.due_at ?? "—"}</span>
               </Link>
             ))}
@@ -184,7 +184,7 @@ export function YourWorkPage({
               <Link key={t.id} to={`/browse/${t.id}`} className="list-row linkish">
                 <span>{t.title}</span>
                 <span className="muted">{t.project?.name}</span>
-                <span className="muted">{STATUS_LABEL[t.status]}</span>
+                <span className="muted">{statusLabel(t.status)}</span>
               </Link>
             ))}
             {viewed.length === 0 && (
@@ -418,7 +418,7 @@ export function SearchPage({
               {results.tickets.map((t) => (
                 <Link key={t.id} to={`/browse/${t.id}`} className="list-row linkish">
                   <span>{t.title}</span>
-                  <span className="muted">{STATUS_LABEL[t.status]}</span>
+                  <span className="muted">{statusLabel(t.status)}</span>
                 </Link>
               ))}
               {results.tickets.length === 0 && (
