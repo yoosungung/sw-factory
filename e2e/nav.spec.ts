@@ -40,7 +40,6 @@ test("top nav maps to API screens in one click", async ({ page }) => {
   await expect(nav.getByRole("link", { name: "Projects", exact: true })).toBeVisible();
   await expect(nav.getByRole("link", { name: "Your work", exact: true })).toBeVisible();
   await expect(nav.getByRole("button", { name: "Filters" })).toHaveCount(0);
-  await expect(nav.getByRole("button", { name: "Dashboards" })).toHaveCount(0);
   await expect(nav.getByRole("button", { name: "Teams" })).toHaveCount(0);
 
   await clickEl(nav.getByRole("link", { name: "Spaces", exact: true }));
@@ -48,14 +47,14 @@ test("top nav maps to API screens in one click", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Spaces" })).toBeVisible();
 
   await clickEl(nav.getByRole("link", { name: "Projects", exact: true }));
-  await expect(page).toHaveURL(/\/$/);
+  await expect(page).toHaveURL(/\/projects$/);
   await expect(page.getByRole("heading", { name: "Projects" })).toBeVisible();
 
   await clickEl(nav.getByRole("link", { name: "Your work", exact: true }));
-  await expect(page).toHaveURL(/\/your-work/);
+  await expect(page).toHaveURL(/\/$/);
   await expect(page.getByRole("heading", { name: "Your work" })).toBeVisible();
 
-  await page.goto("/");
+  await page.goto("/projects");
   await createSpace(page, "Nav Space");
   await createSoftwareProject(page, "Nav Proj");
 

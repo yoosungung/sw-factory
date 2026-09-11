@@ -40,7 +40,7 @@ export async function register(
   await fillField(page.getByLabel("Email"), email);
   await fillField(page.getByLabel("Password"), password);
   await submitForm(page.locator("form.auth-card"));
-  await expect(page.getByRole("heading", { name: "Projects" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your work" })).toBeVisible();
   return { name, email, password };
 }
 
@@ -50,7 +50,7 @@ export async function login(page: Page, email: string, password: string) {
   await fillField(page.getByLabel("Email"), email);
   await fillField(page.getByLabel("Password"), password);
   await submitForm(page.locator("form.auth-card"));
-  await expect(page.getByRole("heading", { name: "Projects" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your work" })).toBeVisible();
 }
 
 export const ADMIN_EMAIL = process.env.E2E_ADMIN_EMAIL ?? "admin@localhost";
@@ -68,6 +68,7 @@ export async function logout(page: Page) {
 }
 
 export async function createSpace(page: Page, name: string) {
+  await page.goto("/projects");
   await clickEl(page.getByRole("button", { name: "Create space" }).first());
   const dialog = page.locator(".create-dialog").filter({ hasText: "Create space" });
   await fillField(dialog.getByLabel(/Name/), name);

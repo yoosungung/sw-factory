@@ -175,12 +175,20 @@ export const client = {
 
   tickets: (
     projectId: string,
-    query?: { type?: string; status?: string; assignee_id?: string; cursor?: string; limit?: number },
+    query?: {
+      type?: string;
+      status?: string;
+      assignee_id?: string;
+      created_by?: string;
+      cursor?: string;
+      limit?: number;
+    },
   ) => {
     const q = new URLSearchParams();
     if (query?.type) q.set("type", query.type);
     if (query?.status) q.set("status", query.status);
     if (query?.assignee_id) q.set("assignee_id", query.assignee_id);
+    if (query?.created_by) q.set("created_by", query.created_by);
     if (query?.cursor) q.set("cursor", query.cursor);
     if (query?.limit) q.set("limit", String(query.limit));
     const qs = q.toString();

@@ -33,8 +33,10 @@ test("FE3: your-work, search, account", async ({ page }) => {
   });
   await clickEl(panel.getByRole("button", { name: "✕" }));
 
-  await page.goto("/your-work");
+  await page.goto("/");
   await expect(page.getByRole("heading", { name: "Your work" })).toBeVisible();
+  await clickEl(page.getByRole("button", { name: "Created by me" }));
+  await expect(page.getByText(title)).toBeVisible();
   await clickEl(page.getByRole("button", { name: "Recent projects" }));
   await expect(page.getByText("FE3 Proj")).toBeVisible();
 
@@ -59,7 +61,7 @@ test("FE3: registered user can update password", async ({ page }) => {
   await expect(page.getByText("Password updated.")).toBeVisible();
 });
 
-test("FE5: filters and dashboards", async ({ page }) => {
+test("FE5: filters", async ({ page }) => {
   await loginAsAdmin(page);
   await createSpace(page, "FE5 Space");
   await createSoftwareProject(page, "FE5 Proj");
@@ -70,11 +72,6 @@ test("FE5: filters and dashboards", async ({ page }) => {
   await expect(page).toHaveURL(/\/filters\//);
   await fillField(page.getByLabel("Name"), "My open");
   await expect(page.getByLabel("Name")).toHaveValue("My open");
-
-  await page.goto("/dashboards");
-  await expect(page.getByRole("heading", { name: "Dashboards" })).toBeVisible();
-  await expect(page.getByText("My open issues")).toBeVisible();
-  await expect(page.getByText("Projects I can access")).toBeVisible();
 });
 
 test("FE6: history tab on issue", async ({ page }) => {

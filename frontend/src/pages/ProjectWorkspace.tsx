@@ -189,7 +189,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
       {!fullscreen && (
         <div className="page-header">
           <div className="breadcrumb">
-            <Link to="/">Projects</Link>
+            <Link to="/projects">Projects</Link>
             <span>/</span>
             {org && (
               <>

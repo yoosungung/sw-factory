@@ -1796,12 +1796,6 @@ select {
 .active-row {
   background: var(--ds-background-selected, #deebff);
 }
-.dash-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 12px;
-  padding: 0 16px 16px;
-}
 .history-list .list-row {
   font-size: 13px;
 }

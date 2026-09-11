@@ -10,11 +10,11 @@
 **Layout:** 중앙 폼 (email, password, register 시 name).  
 **Behavior:** 성공 → `/` (또는 `?next=`). 실패 인라인.  
 **API:** `POST /api/auth/login|register`, `GET /api/auth/me`.  
-**Connections:** → Projects.
+**Connections:** → Your work.
 
 ---
 
-## F2. Projects — `/`
+## F2. Projects — `/projects`
 
 **Layout:** Top nav(사이드바 없음) + 제목 Projects + Create space · Create project + 테이블 (Name, Space, Role).  
 **Behavior:** 행 → `/projects/:id?view=board` (Space hub 생략). Create space → `POST /api/clients` 후 hub (**admin만**); Create project → space 선택 후 `POST /api/projects`. 비admin·무멤버십 빈 화면: admin 초대 안내.  
@@ -32,12 +32,12 @@
 
 ---
 
-## F3. Your work — `/your-work`
+## F3. Your work — `/` (alias `/your-work` → `/`)
 
-**Layout:** 탭 또는 섹션 — Assigned to me | Recently viewed | Recent projects.  
+**Layout:** 탭 또는 섹션 — Assigned to me | Created by me | Recently viewed | Recent projects.  
 **Behavior:** 이슈 행 → `/browse/:id` 또는 프로젝트 보드+`?issue=`; 프로젝트 카드 → Board.  
-**API:** `GET /api/projects`; tickets by `assignee_id=me` (ARCHITECTURE §4); recent은 클라이언트 저장.  
-**Connections:** → Issue · Project board. Top nav **Your work**. Dashboard는 이 화면에서 연결.
+**API:** `GET /api/projects`; tickets by `assignee_id=me` / `created_by=me` (ARCHITECTURE §4); recent은 클라이언트 저장.  
+**Connections:** → Issue · Project board. Top nav **Your work**. 로그인·로고 홈.
 
 ---
 
@@ -120,15 +120,6 @@
 
 ---
 
-## F11. Dashboards — `/dashboards`, `/dashboards/:id`
-
-**Layout:** 위젯 그리드 (리사이즈·배치 Prod). 위젯 예: My open issues, Projects I own, Issues by status(선택한 project).  
-**Behavior:** 위젯 추가/제거; 클릭 → Your work / Board / List.  
-**Data:** 사용자당 대시보드 메타 localStorage (`lt_saved_dashboards`) + 위젯은 tickets/projects API.  
-**Connections:** → Your work · Board · List. Top nav에는 없음 — Your work에서 **Dashboard**로 진입.
-
----
-
 ## F12. Teams — `/teams`
 
 **Layout:** People 테이블 (name, email, Spaces/Projects 소속 요약). 검색.  
@@ -185,7 +176,6 @@ flowchart LR
   F3 --> F9
   F13 --> F10
   F10 --> F9
-  F3 --> F11
   F13 --> F9
   F4 --> AdminS[Space settings]
   F5 --> AdminP[Project settings]

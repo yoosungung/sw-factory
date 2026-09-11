@@ -8,7 +8,7 @@ import { BrowseIssuePage, TeamsPage } from "./pages/Misc";
 import { ClientSettingsPage, ProjectSettingsPage } from "./pages/Settings";
 import { AdminPage } from "./pages/Admin";
 import { AccountPage, SearchPage, YourWorkPage } from "./pages/Personal";
-import { DashboardsPage, FiltersPage } from "./pages/Directory";
+import { FiltersPage } from "./pages/Directory";
 import { useAuth, useAllProjects, useClients } from "./hooks/useSession";
 
 export function App() {
@@ -89,12 +89,13 @@ export function App() {
     <Routes>
       <Route path="/login" element={<Navigate to="/" replace />} />
       <Route path="/register" element={<Navigate to="/" replace />} />
-      <Route path="/" element={<ProjectsHome user={user} onLogout={onLogout} />} />
-      <Route path="/spaces" element={<SpacesPage user={user} onLogout={onLogout} />} />
       <Route
-        path="/your-work"
+        path="/"
         element={<YourWorkPage user={user} onLogout={onLogout} chrome={pageChrome} />}
       />
+      <Route path="/your-work" element={<Navigate to="/" replace />} />
+      <Route path="/projects" element={<ProjectsHome user={user} onLogout={onLogout} />} />
+      <Route path="/spaces" element={<SpacesPage user={user} onLogout={onLogout} />} />
       <Route
         path="/account"
         element={
@@ -121,14 +122,6 @@ export function App() {
       <Route
         path="/filters/:id"
         element={<FiltersPage user={user} onLogout={onLogout} chrome={pageChrome} />}
-      />
-      <Route
-        path="/dashboards"
-        element={<DashboardsPage user={user} onLogout={onLogout} chrome={pageChrome} />}
-      />
-      <Route
-        path="/dashboards/:id"
-        element={<DashboardsPage user={user} onLogout={onLogout} chrome={pageChrome} />}
       />
       <Route path="/clients/:id" element={<ClientPage user={user} onLogout={onLogout} />} />
       <Route

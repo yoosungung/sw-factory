@@ -1,15 +1,11 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { client, type Client, type Project, type Ticket, type User } from "../api";
-import { initials, STATUS_LABEL } from "../components/issue/IssuePanel";
+import { STATUS_LABEL } from "../components/issue/IssuePanel";
 import {
-  deleteDashboard,
   deleteFilter,
-  listDashboards,
   listFilters,
-  type SavedDashboard,
   type SavedFilter,
-  upsertDashboard,
   upsertFilter,
 } from "../lib/savedViews";
 import type { ChromeFn } from "./Personal";
@@ -244,162 +240,6 @@ export function FiltersPage({
   });
 }
 
-export function DashboardsPage({
-  user,
-  onLogout,
-  chrome,
-}: {
-  user: User;
-  onLogout: () => void;
-  chrome: ChromeFn;
-}) {
-  const { id } = useParams();
-  const navigate = useNavigate();
-  const clients = useClients();
-  const projects = useAllProjects();
-  const [dashes, setDashes] = useState(listDashboards);
-  const active = dashes.find((d) => d.id === (id ?? "default")) ?? dashes[0] ?? null;
-  const [myOpen, setMyOpen] = useState<Ticket[]>([]);
-  const [byStatus, setByStatus] = useState<Record<string, number>>({});
-
-  useEffect(() => {
-    void (async () => {
-      const lists = await Promise.all(
-        projects.map(async (p) => {
-          const r = await client.tickets(p.id, { assignee_id: "me" });
-          return r.tickets.filter((t) => t.status !== "done");
-        }),
-      );
-      const open = lists.flat();
-      setMyOpen(open);
-      const counts: Record<string, number> = {
-        backlog: 0,
-        todo: 0,
-        in_progress: 0,
-        done: 0,
-      };
-      for (const p of projects) {
-        const r = await client.tickets(p.id, { limit: 100 });
-        for (const t of r.tickets) counts[t.status] = (counts[t.status] ?? 0) + 1;
-      }
-      setByStatus(counts);
-    })();
-  }, [projects]);
-
-  function createDash() {
-    const d: SavedDashboard = {
-      id: newId(),
-      name: "New dashboard",
-      widgets: ["my_open", "projects"],
-      created_at: new Date().toISOString(),
-    };
-    setDashes(upsertDashboard(d));
-    navigate(`/dashboards/${d.id}`);
-  }
-
-  return chrome({
-    user,
-    onLogout,
-    clients,
-    projects,
-    view: "list",
-    children: (
-      <>
-        <div className="page-header">
-          <h1>Dashboards</h1>
-          <button type="button" className="btn-primary" onClick={createDash}>
-            Create dashboard
-          </button>
-        </div>
-        <p className="muted pad">Layout stored locally; widgets use live API data.</p>
-        <div className="activity-tabs pad">
-          {dashes.map((d) => (
-            <Link
-              key={d.id}
-              className={`chip ${active?.id === d.id ? "active" : ""}`}
-              to={`/dashboards/${d.id}`}
-            >
-              {d.name}
-            </Link>
-          ))}
-        </div>
-        {active && (
-          <div className="content-panel settings-form">
-            <label>
-              Name
-              <input
-                value={active.name}
-                onChange={(e) => {
-                  const next = { ...active, name: e.target.value };
-                  setDashes(upsertDashboard(next));
-                }}
-              />
-            </label>
-            {active.id !== "default" && (
-              <button
-                type="button"
-                className="btn-danger"
-                onClick={() => {
-                  deleteDashboard(active.id);
-                  setDashes(listDashboards());
-                  navigate("/dashboards/default");
-                }}
-              >
-                Delete
-              </button>
-            )}
-          </div>
-        )}
-        <div className="dash-grid">
-          {active?.widgets.includes("my_open") && (
-            <section className="content-panel">
-              <h2 className="section-title">My open issues</h2>
-              {myOpen.slice(0, 8).map((t) => (
-                <Link key={t.id} to={`/browse/${t.id}`} className="list-row linkish">
-                  <span>{t.title}</span>
-                  <span className="muted">{STATUS_LABEL[t.status]}</span>
-                </Link>
-              ))}
-              {myOpen.length === 0 && <div className="empty">No open issues.</div>}
-              <Link className="menu-item" to="/your-work">
-                Go to Your work
-              </Link>
-            </section>
-          )}
-          {active?.widgets.includes("projects") && (
-            <section className="content-panel">
-              <h2 className="section-title">Projects I can access</h2>
-              {projects.slice(0, 8).map((p) => (
-                <Link key={p.id} to={`/projects/${p.id}?view=board`} className="list-row linkish">
-                  <span className="name-cell">
-                    <span className="project-icon sm">{initials(p.name)}</span>
-                    {p.name}
-                  </span>
-                </Link>
-              ))}
-            </section>
-          )}
-          {active?.widgets.includes("by_status") && (
-            <section className="content-panel">
-              <h2 className="section-title">Issues by status</h2>
-              {Object.entries(byStatus).map(([status, count]) => (
-                <div key={status} className="list-row">
-                  <span>{STATUS_LABEL[status as Ticket["status"]] ?? status}</span>
-                  <span className="muted">{count}</span>
-                </div>
-              ))}
-            </section>
-          )}
-        </div>
-      </>
-    ),
-  });
-}
-
 export function starredFilters() {
   return listFilters().filter((f) => f.starred);
-}
-
-export function dashboardSummaries() {
-  return listDashboards();
 }

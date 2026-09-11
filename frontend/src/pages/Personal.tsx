@@ -43,8 +43,9 @@ export function YourWorkPage({
 }) {
   const clients = useClients();
   const projects = useAllProjects();
-  const [tab, setTab] = useState<"assigned" | "viewed" | "projects">("assigned");
+  const [tab, setTab] = useState<"assigned" | "created" | "viewed" | "projects">("assigned");
   const [assigned, setAssigned] = useState<Array<Ticket & { project?: Project }>>([]);
+  const [created, setCreated] = useState<Array<Ticket & { project?: Project }>>([]);
   const [viewed, setViewed] = useState<Array<Ticket & { project?: Project }>>([]);
 
   const recentProjects = useMemo(() => {
@@ -63,6 +64,18 @@ export function YourWorkPage({
         }),
       );
       setAssigned(lists.flat());
+    })();
+  }, [projects]);
+
+  useEffect(() => {
+    void (async () => {
+      const lists = await Promise.all(
+        projects.map(async (p) => {
+          const r = await client.tickets(p.id, { created_by: "me" });
+          return r.tickets.map((t) => ({ ...t, project: p }));
+        }),
+      );
+      setCreated(lists.flat());
     })();
   }, [projects]);
 
@@ -97,15 +110,11 @@ export function YourWorkPage({
       <>
         <div className="page-header">
           <h1>Your work</h1>
-          <div className="row-gap">
-            <Link className="btn-subtle" to="/dashboards">
-              Dashboard
-            </Link>
-          </div>
           <div className="activity-tabs">
             {(
               [
                 ["assigned", "Assigned to me"],
+                ["created", "Created by me"],
                 ["viewed", "Recently viewed"],
                 ["projects", "Recent projects"],
               ] as const
@@ -142,7 +151,33 @@ export function YourWorkPage({
                 title="No issues assigned to you"
                 description="When someone assigns you work, it will show up here."
                 actionLabel="Go to projects"
-                actionHref="/"
+                actionHref="/projects"
+              />
+            )}
+          </div>
+        )}
+        {tab === "created" && (
+          <div className="content-panel tableish">
+            <div className="list-row head">
+              <span>Issue</span>
+              <span>Project</span>
+              <span>Status</span>
+              <span>Due</span>
+            </div>
+            {created.map((t) => (
+              <Link key={t.id} to={`/browse/${t.id}`} className="list-row linkish">
+                <span>{t.title}</span>
+                <span className="muted">{t.project?.name}</span>
+                <span className="muted">{STATUS_LABEL[t.status]}</span>
+                <span className="muted">{t.due_at ?? "—"}</span>
+              </Link>
+            ))}
+            {created.length === 0 && (
+              <EmptyState
+                title="No issues created by you"
+                description="Issues you create will show up here."
+                actionLabel="Go to projects"
+                actionHref="/projects"
               />
             )}
           </div>
@@ -161,7 +196,7 @@ export function YourWorkPage({
                 title="Nothing viewed yet"
                 description="Open an issue to see it in your recently viewed list."
                 actionLabel="Go to projects"
-                actionHref="/"
+                actionHref="/projects"
               />
             )}
           </div>

@@ -172,7 +172,7 @@ erDiagram
 | `GET /api/tickets/:id` | |
 | `POST /api/projects/:id/tickets` | title, type, … |
 | `PATCH /api/tickets/:id` | status/sort/priority/assignee/due/`version` → 409 |
-| `GET /api/projects/:id/tickets` | type, status, assignee_id, limit, cursor |
+| `GET /api/projects/:id/tickets` | type, status, assignee_id, created_by, limit, cursor |
 | `GET /api/projects/:id/kanban` | status 그룹; 기본 최근 14일 Done |
 | `GET …/timeline` | |
 | `DELETE /api/tickets/:id` | 작성자 또는 project owner |

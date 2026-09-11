@@ -201,7 +201,7 @@ export function ClientPage({ user, onLogout }: { user: User; onLogout: () => voi
     >
       <div className="page-header">
         <div className="breadcrumb">
-          <Link to="/">Projects</Link>
+          <Link to="/projects">Projects</Link>
           <span>/</span>
           <span>{org.name}</span>
         </div>

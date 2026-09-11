@@ -389,12 +389,32 @@ describe("M6 collaboration", () => {
     expect(mine.status).toBe(200);
     expect((mine.json.tickets as Json[]).some((t) => t.id === ticketId)).toBe(true);
 
+    const createdByMember = await request(
+      `/api/projects/${projectId}/tickets?created_by=me`,
+      {},
+      member.cookie,
+    );
+    expect(createdByMember.status).toBe(200);
+    expect(
+      (createdByMember.json.tickets as Json[]).some((t) => t.id === ticketId),
+    ).toBe(false);
+
     const memberTicket = await request(
       `/api/projects/${projectId}/tickets`,
       { method: "POST", body: JSON.stringify({ title: "Mine", type: "task" }) },
       member.cookie,
     );
     const memberTicketId = (memberTicket.json.ticket as Json).id as string;
+
+    const createdByMe = await request(
+      `/api/projects/${projectId}/tickets?created_by=me`,
+      {},
+      member.cookie,
+    );
+    expect(createdByMe.status).toBe(200);
+    expect(
+      (createdByMe.json.tickets as Json[]).some((t) => t.id === memberTicketId),
+    ).toBe(true);
 
     const memberDeleteOwn = await request(
       `/api/tickets/${memberTicketId}`,

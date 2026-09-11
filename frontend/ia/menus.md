@@ -20,17 +20,17 @@
 | 메뉴 | 경로 | API |
 | --- | --- | --- |
 | Spaces | `/spaces` | `GET /api/clients` |
-| Projects | `/` | `GET /api/projects` |
-| Your work | `/your-work` | `GET /api/projects` + `…/tickets?assignee_id=me` |
+| Projects | `/projects` | `GET /api/projects` |
+| Your work | `/` (`/your-work` → `/`) | `GET /api/projects` + `…/tickets?assignee_id=me` · `…/tickets?created_by=me` |
 | Search | `/search?q=` | `GET /api/search` |
 | Create | Quick Create 모달 | `POST /api/projects/:id/tickets` |
 | Avatar | `/account` · `/admin`(admin만) · logout | `GET/PATCH /api/users/me`, `GET /api/admin/users`, `POST /api/auth/logout` |
 
-**Top nav에 두지 않음:** Filters · Dashboards(서버 리소스 없음, [pages F10·F11](pages.md)에서 Search/Your work로 연결) · Teams(전용 API 없음 — People은 Space/Project settings).
+**Top nav에 두지 않음:** Filters(서버 리소스 없음, [pages F10](pages.md)에서 Search로 연결) · Teams(전용 API 없음 — People은 Space/Project settings).
 
 ---
 
-## 2. Projects home (`/`) · Spaces (`/spaces`)
+## 2. Projects home (`/projects`) · Spaces (`/spaces`)
 
 페이지 툴바(메뉴가 아님):
 
@@ -61,7 +61,7 @@ Space hub 컨텍스트.
 ## 4. Project sidebar (`/projects/:id`)
 
 ```
-[ ← Back to projects ]     → `/` 또는 `/clients/:clientId`
+[ ← Back to projects ]     → `/projects` 또는 `/clients/:clientId`
 [ Space Switcher ▾ ]       → 드롭다운 스위처 (사이드바 하단 전역 덤프 금지)
 [ Icon · Project name ]
 ──────────── Work
@@ -114,8 +114,8 @@ Space hub 컨텍스트.
 | Spaces | clients | Adopt |
 | Projects | projects | Adopt |
 | Planning views / Issue | tickets, comments, files | Adopt |
-| Your work | tickets `assignee_id=me` | Adopt |
+| Your work | tickets `assignee_id=me` · `created_by=me` | Adopt |
 | Search | `GET /api/search` | Adopt |
 | People (settings) | client_members, project_members | Adopt |
-| Filters / Dashboards | local + tickets 조합 (Top nav 없음) | FE5 local |
+| Filters | local + tickets 조합 (Top nav 없음) | FE5 local |
 | Calendar, Ideas, Timesheets, Notifications, Plugins, Tokens | — | Exclude |

@@ -58,8 +58,8 @@ export function TopNav({
   const closeMobile = () => setMobileOpen(false);
   const path = location.pathname;
   const spacesActive = path === "/spaces" || path.startsWith("/clients/");
-  const projectsActive = path === "/" || path.startsWith("/projects/");
-  const workActive = path === "/your-work";
+  const projectsActive = path === "/projects" || path.startsWith("/projects/");
+  const workActive = path === "/" || path === "/your-work";
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -95,10 +95,10 @@ export function TopNav({
         <Link to="/spaces" className={navItemClass(spacesActive)}>
           Spaces
         </Link>
-        <Link to="/" className={navItemClass(projectsActive)}>
+        <Link to="/projects" className={navItemClass(projectsActive)}>
           Projects
         </Link>
-        <Link to="/your-work" className={navItemClass(workActive)}>
+        <Link to="/" className={navItemClass(workActive)}>
           Your work
         </Link>
         <button type="button" className="btn-create" onClick={onCreateIssue}>
@@ -171,10 +171,10 @@ export function TopNav({
             <Link to="/spaces" className="mobile-nav-item" onClick={closeMobile}>
               Spaces
             </Link>
-            <Link to="/" className="mobile-nav-item" onClick={closeMobile}>
+            <Link to="/projects" className="mobile-nav-item" onClick={closeMobile}>
               Projects
             </Link>
-            <Link to="/your-work" className="mobile-nav-item" onClick={closeMobile}>
+            <Link to="/" className="mobile-nav-item" onClick={closeMobile}>
               Your work
             </Link>
             <button
@@ -227,7 +227,7 @@ export function Sidebar({
   return (
     <aside className="sidebar">
       <div className="sidebar-top">
-        <Link to="/" className="back-link">
+        <Link to="/projects" className="back-link">
           ← Back to projects
         </Link>
         <button type="button" className="icon-btn" onClick={onToggle} title="Collapse sidebar">

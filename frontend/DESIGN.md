@@ -23,14 +23,14 @@ frontend/src/
 
 ## 사용 흐름
 
-- Top nav (직접 링크): Spaces(`/spaces`) / Projects(`/`) / Your work / Search(⌘K) / Account / Create. Filters·Dashboards·Teams는 Top nav에 없음.
+- Top nav (직접 링크): Spaces(`/spaces`) / Projects(`/projects`) / Your work(`/`) / Search(⌘K) / Account / Create. Filters·Teams는 Top nav에 없음.
 - Issue: assignee · due · priority 인라인 `PATCH`(+`version` 409), Comments/History/Files, 작성자·owner 삭제
 - `/browse/:ticketId` 전체 페이지; 보드 `?issue=` sidebar/modal
 - Space/Project settings: Details · People · (Board) · Danger
 - `/admin`: 플랫폼 admin 계정 목록 · Space 생성
-- Your work: Assigned / Recently viewed / Recent projects
+- Your work: Assigned / Created by me / Recently viewed / Recent projects
 - Search: `GET /api/search`
-- Filters·Dashboards: localStorage 메타 + tickets API
+- Filters: localStorage 메타 + tickets API
 - List: cursor Load more · Board: Include archived Done
 
 ## Commands
