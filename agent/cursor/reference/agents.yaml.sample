@@ -1,8 +1,6 @@
-# agents.yaml.sample
+# Sample agents.yaml (copy to gitignored agents.yaml for real accounts).
+# type: sessions only are gateway delivery targets. workspace paths match PVC contract.
 
-단일 컨테이너용. 실계정은 gitignore된 `agents.yaml`에만 둔다.
-
-```yaml
 factory_base_url: https://factory.askwho.net
 
 settings:
@@ -12,6 +10,7 @@ settings:
   max_active_per_persona: 1
   max_queue_per_persona: 32
   cursor_listen: 127.0.0.1:8080
+  poll_interval_ms: 3000
 
 prompts:
   ticket_created: "Ticket {ticket_id} created. Read via MCP then act. Active ticket_id={ticket_id}"
@@ -56,6 +55,3 @@ agents:
     persona: aa
     type: sessions
     workspace: /data/workspaces/aa
-```
-
-`type: sessions`만 gateway 배달 대상. `workspace`는 PVC 경로 계약과 일치해야 한다.

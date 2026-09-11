@@ -46,4 +46,7 @@ agent/cursor/
 # from repo root
 npm run test:agent
 npm test
+npm run agent:cursor -- --config agent/cursor/reference/agents.yaml.sample --mock
 ```
+
+`CURSOR_API_KEY` + `@cursor/sdk` 설치 시 실 local agent; 아니면 mock.

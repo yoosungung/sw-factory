@@ -4,7 +4,11 @@ import { defineConfig } from "vitest/config";
 export default defineConfig({
   root: path.join(__dirname),
   test: {
-    include: ["gateway/tests/**/*.test.ts", "cursor/tests/**/*.test.ts"],
+    include: [
+      "gateway/tests/**/*.test.ts",
+      "cursor/tests/**/*.test.ts",
+      "tests/**/*.test.ts",
+    ],
     environment: "node",
     testTimeout: 15_000,
   },

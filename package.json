@@ -8,6 +8,8 @@
     "preview": "vite preview",
     "test": "vitest run && vitest run --config agent/vitest.config.ts",
     "test:agent": "vitest run --config agent/vitest.config.ts",
+    "agent:gateway": "tsx agent/gateway/src/cli.ts",
+    "agent:cursor": "tsx agent/cursor/src/cli.ts",
     "test:watch": "vitest",
     "test:e2e": "PLAYWRIGHT_BROWSERS_PATH=\"${PLAYWRIGHT_BROWSERS_PATH:-$HOME/Library/Caches/ms-playwright}\" playwright test -c e2e/playwright.config.ts",
     "test:e2e:headed": "PLAYWRIGHT_BROWSERS_PATH=\"${PLAYWRIGHT_BROWSERS_PATH:-$HOME/Library/Caches/ms-playwright}\" playwright test -c e2e/playwright.config.ts --headed",
@@ -17,10 +19,12 @@
     "deploy": "npm run build && wrangler deploy -c dist/sw_factory_workers/wrangler.json"
   },
   "dependencies": {
+    "@hono/node-server": "^2.1.1",
     "hono": "^4.7.2",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router-dom": "^7.2.0"
+    "react-router-dom": "^7.2.0",
+    "yaml": "^2.9.0"
   },
   "devDependencies": {
     "@cloudflare/vite-plugin": "^1.54.6",
@@ -30,6 +34,7 @@
     "@types/react": "^19.0.10",
     "@types/react-dom": "^19.0.4",
     "@vitejs/plugin-react": "^4.3.4",
+    "tsx": "^4.23.13",
     "typescript": "^5.8.2",
     "vite": "^6.2.0",
     "vitest": "~3.2.0",

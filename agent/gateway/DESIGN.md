@@ -44,4 +44,8 @@ agent/gateway/
 # from repo root
 npm run test:agent          # gateway(+cursor) node tests
 npm test                    # backend workers + agent
+npm run agent:cursor -- --config agent/cursor/reference/agents.yaml.sample --data-dir /tmp/swf-data --mock
+npm run agent:gateway -- --config agent/cursor/reference/agents.yaml.sample --data-dir /tmp/swf-data/gateway
 ```
+
+환경: `GATEWAY_SESSION_COOKIE`, 선택 `FACTORY_BASE_URL`, `CURSOR_API_KEY`(실 SDK; 없으면/`--mock`이면 mock).
