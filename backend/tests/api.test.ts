@@ -669,6 +669,32 @@ describe("M8 concurrency and history", () => {
 });
 
 describe("account profile and password", () => {
+  it("searches users by name or email for typeahead", async () => {
+    const a = await register("AliceSearch");
+    const b = await register("BobSearch");
+    const short = await request("/api/users/search?q=a", {}, a.cookie);
+    expect(short.status).toBe(400);
+
+    const byName = await request("/api/users/search?q=BobS", {}, a.cookie);
+    expect(byName.status).toBe(200);
+    const nameHits = byName.json.users as Json[];
+    expect(nameHits.some((u) => u.id === b.userId)).toBe(true);
+    expect(nameHits.every((u) => "email" in u && "name" in u && "id" in u)).toBe(true);
+    expect(nameHits.every((u) => !("is_admin" in u))).toBe(true);
+
+    const emailPrefix = b.email.slice(0, 8);
+    const byEmail = await request(
+      `/api/users/search?q=${encodeURIComponent(emailPrefix)}`,
+      {},
+      a.cookie,
+    );
+    expect(byEmail.status).toBe(200);
+    expect((byEmail.json.users as Json[]).some((u) => u.id === b.userId)).toBe(true);
+
+    const anon = await request("/api/users/search?q=Bob");
+    expect(anon.status).toBe(401);
+  });
+
   it("patches name/email and changes password", async () => {
     const { cookie, email } = await register("Pat");
     const patch = await request(

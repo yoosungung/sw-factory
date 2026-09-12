@@ -133,6 +133,10 @@ export const client = {
     api<{ user: User }>("/api/users/me", { method: "PATCH", body: JSON.stringify(body) }),
   changePassword: (body: { current_password: string; new_password: string }) =>
     api<{ ok: boolean }>("/api/auth/password", { method: "POST", body: JSON.stringify(body) }),
+  searchUsers: (q: string, limit = 10) =>
+    api<{ users: Array<{ id: string; email: string; name: string }> }>(
+      `/api/users/search?q=${encodeURIComponent(q)}&limit=${limit}`,
+    ),
   search: (q: string, limit = 20) =>
     api<{ clients: Client[]; projects: Project[]; tickets: Ticket[] }>(
       `/api/search?q=${encodeURIComponent(q)}&limit=${limit}`,

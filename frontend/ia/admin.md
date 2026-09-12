@@ -46,12 +46,13 @@ Space/사이트 관리 축소.
 
 ### 3.2 People — `.../people`
 
-**Layout:** 멤버 테이블 (name, email, role), Add people, role 셀렉트 (`owner`\|`member`), Remove.  
-**Behavior:** **가입된 계정 이메일**(또는 `user_id`)로 추가; 마지막 owner 제거 금지; 본인 owner 강등 시 경고.  
+**Layout:** 멤버 테이블 (name, email, role), Add people(검색→선택), role 셀렉트 (`owner`\|`member`), Remove.  
+**Behavior:** name/email **검색 타입어헤드**로 가입 계정을 골라 `user_id`로 추가(미가입·미매칭은 결과 없음); 마지막 owner 제거 금지; 본인 owner 강등 시 경고.  
 **API(ARCHITECTURE §4 / M6·M9):**
 
 | Method | Path |
 | --- | --- |
+| GET | `/api/users/search?q=` | 후보 검색 (`q` ≥ 2) |
 | GET | `/api/clients/:id/members` |
 | POST | `/api/clients/:id/members` `{ user_id?, email?, role }` |
 | DELETE | `/api/clients/:id/members/:userId` |
@@ -151,7 +152,7 @@ ARCHITECTURE·[backend/DESIGN.md](../../backend/DESIGN.md) 승격 현황:
 3. 티켓 삭제 권한 가드 (작성자 or owner) — **승격 완료** (ARCHITECTURE §1.7 / M6)
 4. `PATCH /api/users/me`, password change — **구현됨**
 5. 플랫폼 `is_admin` · Space 생성 가드 · `/api/admin/users` — **구현됨** (M9)
-6. People 초대 `email` — **구현됨** (M9)
+6. People 초대 `email`/`user_id` + `GET /api/users/search` 타입어헤드 — **구현됨**
 7. People 디렉터리 `GET /api/people` — 설계 검토
 
 Exclude: 플러그인 마켓, 시스템 settings 키-값, PAT 발급 UI, 계정별 CRUD 매트릭스.

@@ -89,7 +89,7 @@ Space hub 컨텍스트.
 | 항목 | 경로 | 권한 |
 | --- | --- | --- |
 | Details | `.../settings/details` | member 조회, member 수정 |
-| People | `.../settings/people` | owner: 초대·역할·제거 |
+| People | `.../settings/people` | owner: 검색·추가·역할·제거 |
 | Board | `.../settings/board` | 컬럼 라벨 고정 안내(커스텀 컬럼 Exclude) |
 | Danger zone | `.../settings/danger` | owner: 삭제 |
 

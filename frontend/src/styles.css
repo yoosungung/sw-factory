@@ -735,6 +735,10 @@ select {
   overflow: hidden;
 }
 
+.content-panel.tableish {
+  overflow: visible;
+}
+
 .list-row {
   display: grid;
   grid-template-columns: 160px 1fr 120px;
@@ -2087,6 +2091,65 @@ select {
   padding: 8px 10px;
   border: 2px solid var(--ds-border);
   border-radius: var(--radius-md);
+}
+.user-search {
+  position: relative;
+  min-width: 0;
+}
+.user-search input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--radius-md);
+  background: var(--ds-surface);
+}
+.user-search.selected {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 1px solid var(--ds-border);
+  border-radius: var(--radius-md);
+  background: var(--ds-surface-sunken);
+}
+.user-search-menu {
+  position: absolute;
+  z-index: 20;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  background: var(--ds-surface);
+  border: 1px solid var(--ds-border);
+  border-radius: var(--radius-md);
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--ds-ink) 12%, transparent);
+  max-height: 240px;
+  overflow: auto;
+}
+.user-search-menu li {
+  margin: 0;
+}
+.user-search-menu li.muted {
+  padding: 8px 12px;
+  font-size: 13px;
+}
+.user-search-menu button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 8px 12px;
+  border: 0;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+.user-search-menu button:hover {
+  background: var(--ds-surface-sunken);
 }
 .settings-layout {
   display: grid;

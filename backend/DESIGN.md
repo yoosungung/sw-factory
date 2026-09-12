@@ -145,6 +145,7 @@ erDiagram
 | `POST /api/auth/logout` | |
 | `GET /api/auth/me`, `PATCH /api/users/me` | name/email. `user.is_admin` |
 | `POST /api/auth/password` | `{ current_password, new_password }` |
+| `GET /api/users/search?q=` | name/email 타입어헤드. `q` ≥ 2, `limit` ≤ 20 |
 | `GET /api/admin/users`, `PATCH /api/admin/users/:id` | 플랫폼 admin만. `{ is_admin }` |
 | `GET /api/search?q=` | 멤버십 범위 Issues/Projects/Spaces |
 

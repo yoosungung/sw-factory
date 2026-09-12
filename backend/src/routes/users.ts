@@ -16,6 +16,28 @@ function publicUser(u: User) {
   };
 }
 
+userRoutes.get("/search", async (c) => {
+  const q = (c.req.query("q") ?? "").trim();
+  if (q.length < 2) return c.json({ error: "invalid_input" }, 400);
+
+  let limit = Number(c.req.query("limit") ?? 10);
+  if (!Number.isFinite(limit) || limit < 1) limit = 10;
+  if (limit > 20) limit = 20;
+
+  const like = `%${q.replace(/%/g, "\\%").replace(/_/g, "\\_")}%`;
+  const rows = await c.env.DB.prepare(
+    `SELECT id, email, name
+     FROM users
+     WHERE email LIKE ? ESCAPE '\\' OR name LIKE ? ESCAPE '\\'
+     ORDER BY name COLLATE NOCASE
+     LIMIT ?`,
+  )
+    .bind(like, like, limit)
+    .all<{ id: string; email: string; name: string }>();
+
+  return c.json({ users: rows.results ?? [] });
+});
+
 userRoutes.patch("/me", async (c) => {
   const body = await c.req.json<{ name?: string; email?: string }>();
   const user = c.get("user");

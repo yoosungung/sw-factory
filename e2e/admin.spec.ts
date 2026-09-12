@@ -11,7 +11,7 @@ import {
   uniqueEmail,
 } from "./helpers";
 
-test("admin can open /admin, create a space, and invite by email", async ({ page }) => {
+test("admin can open /admin, create a space, and invite by search", async ({ page }) => {
   const memberEmail = uniqueEmail("invitee");
   const memberName = "Invitee User";
   await register(page, { name: memberName, email: memberEmail, password: "password123" });
@@ -31,7 +31,8 @@ test("admin can open /admin, create a space, and invite by email", async ({ page
 
   await clickEl(page.getByRole("link", { name: "People" }));
   await expect(page.getByRole("heading", { name: "People" })).toBeVisible();
-  await fillField(page.getByPlaceholder("Email to invite"), memberEmail);
+  await fillField(page.getByPlaceholder("Search name or email…"), memberEmail);
+  await clickEl(page.getByRole("option", { name: new RegExp(memberName) }));
   await submitForm(page.locator("form.list-row"));
   await expect(page.getByText(memberName)).toBeVisible();
 });

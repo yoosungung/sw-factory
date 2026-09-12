@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { client, type Client, type Member, type Project, type ProjectStatus, type StatusCategory, type User } from "../api";
 import { initials } from "../components/issue/IssuePanel";
+import { UserSearchField, type UserHit } from "../components/UserSearchField";
 
 function SettingsNav({
   base,
@@ -109,7 +110,7 @@ export function ClientSettingsPage({
   const [members, setMembers] = useState<Member[]>([]);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [inviteUserId, setInviteUserId] = useState("");
+  const [inviteUser, setInviteUser] = useState<UserHit | null>(null);
   const [inviteRole, setInviteRole] = useState<"owner" | "member">("member");
   const [confirmName, setConfirmName] = useState("");
   const [error, setError] = useState("");
@@ -215,21 +216,20 @@ export function ClientSettingsPage({
                     className="list-row"
                     onSubmit={(e) => {
                       e.preventDefault();
+                      if (!inviteUser) return;
                       void client
-                        .addClientMember(id, { email: inviteUserId.trim(), role: inviteRole })
+                        .addClientMember(id, { user_id: inviteUser.id, role: inviteRole })
                         .then(() => {
-                          setInviteUserId("");
+                          setInviteUser(null);
                           return reload();
                         })
                         .catch((err) => setError(err instanceof Error ? err.message : "error"));
                     }}
                   >
-                    <input
-                      type="email"
-                      placeholder="Email to invite"
-                      value={inviteUserId}
-                      onChange={(e) => setInviteUserId(e.target.value)}
-                      required
+                    <UserSearchField
+                      excludeIds={members.map((m) => m.user_id)}
+                      value={inviteUser}
+                      onChange={setInviteUser}
                     />
                     <select
                       value={inviteRole}
@@ -238,7 +238,7 @@ export function ClientSettingsPage({
                       <option value="member">member</option>
                       <option value="owner">owner</option>
                     </select>
-                    <button className="btn-primary" type="submit">
+                    <button className="btn-primary" type="submit" disabled={!inviteUser}>
                       Add people
                     </button>
                     <span />

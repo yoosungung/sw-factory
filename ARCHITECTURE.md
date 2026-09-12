@@ -188,6 +188,7 @@ payload_json TEXT NOT NULL DEFAULT '{}'
 | GET | `/api/auth/me` | `{ user }` (`id`, `email`, `name`, `created_at`, `is_admin`) |
 | POST | `/api/auth/password` | `{ current_password, new_password }` → `{ ok: true }` (세션 필요; `new_password` ≥ 8자) |
 | PATCH | `/api/users/me` | `{ name?, email? }` → `{ user }` (email 변경 시 UNIQUE 충돌 → 409). `is_admin` 변경 불가 |
+| GET | `/api/users/search?q=` | 세션 필요. name/email 부분일치. `q` ≥ 2자, `limit` 기본 10·최대 20. `{ users: [{ id, email, name }] }` — 전량 목록 없음 |
 | GET | `/api/admin/users` | 플랫폼 admin만. `{ users: [{ id, email, name, is_admin, created_at }] }` |
 | PATCH | `/api/admin/users/:id` | `{ is_admin }` — 플랫폼 admin만. 마지막 admin 강등 → 400 `last_admin` |
 
