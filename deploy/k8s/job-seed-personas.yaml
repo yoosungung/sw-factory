@@ -1,0 +1,64 @@
+# One-shot Job: factory login cookies + personas bundle + ensureRepos.
+# Prefer after first apply when PVC is empty. Repo-only refresh = Pod restart
+# (entrypoint ENSURE_REPOS=1) without this Job.
+#
+#   kubectl -n sw-factory apply -f job-seed-personas.yaml
+#   kubectl -n sw-factory logs -f job/sw-factory-seed-personas
+#
+# Requires Secret keys: PERSONA_PASSWORD (or per-persona), optional GH_TOKEN.
+# Image must match Deployment.
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: sw-factory-seed-personas
+  namespace: sw-factory
+  labels:
+    app: sw-factory-agent
+spec:
+  ttlSecondsAfterFinished: 86400
+  backoffLimit: 1
+  template:
+    metadata:
+      labels:
+        app: sw-factory-seed-personas
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: seed
+          image: sw-factory-agent:local
+          imagePullPolicy: IfNotPresent
+          command: ["npx", "tsx", "agent/cursor/src/seed-cli.ts"]
+          args:
+            - --config
+            - /config/agents.yaml
+            - --data-dir
+            - /data
+            - --personas-root
+            - /app/deploy/personas
+          env:
+            - name: FACTORY_BASE_URL
+              value: https://factory.askwho.net
+            - name: PERSONA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sw-factory-agent
+                  key: PERSONA_PASSWORD
+            - name: GH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: sw-factory-agent
+                  key: GH_TOKEN
+                  optional: true
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: agents
+              mountPath: /config
+              readOnly: true
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: sw-factory-agent-data
+        - name: agents
+          configMap:
+            name: sw-factory-agents

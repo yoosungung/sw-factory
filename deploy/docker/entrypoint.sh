@@ -36,6 +36,16 @@ trap term SIGTERM SIGINT
 
 cd /app
 
+# PVC repos: clone-if-missing / fetch (agents.yaml repos[] + primary_repo/repo_ids).
+# Skip: ENSURE_REPOS=0. Private: GH_TOKEN or GITHUB_TOKEN.
+if [[ "${ENSURE_REPOS:-1}" != "0" ]]; then
+  echo "{\"msg\":\"ensure_repos_start\",\"config\":\"$AGENTS_YAML\"}"
+  npx tsx agent/cursor/src/ensure-repos-cli.ts \
+    --config "$AGENTS_YAML" \
+    --data-dir "$DATA_DIR"
+  echo "{\"msg\":\"ensure_repos_done\"}"
+fi
+
 cursor_cmd=(npx tsx agent/cursor/src/cli.ts "${CURSOR_ARGS[@]}")
 if [[ "${AGENT_BACKEND:-}" == "mock" ]]; then
   cursor_cmd+=(--mock)

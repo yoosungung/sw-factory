@@ -10,6 +10,6 @@ cd deploy/docker
 
 | 파일 | 역할 |
 |------|------|
-| `Dockerfile` | gateway+cursor 단일 이미지 |
-| `entrypoint.sh` | cursor listen → gateway poll |
+| `Dockerfile` | gateway+cursor 단일 이미지 (`git` 포함 · `deploy/personas` 동봉) |
+| `entrypoint.sh` | ensure-repos → cursor listen → gateway poll |
 | `build.sh` | `docker build` (context = repo root) |

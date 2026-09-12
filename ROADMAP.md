@@ -70,12 +70,14 @@
 | **A4** | factory-mcp + personas 시드 | 세션 쿠키로 티켓 읽기/코멘트; sample agents.yaml | done |
 | **A5** | 로컬 실행 하네스 (agents.yaml · gateway poll · cursor listen · SDK/mock backend) | `npm run agent:cursor`+`agent:gateway`로 mock E2E; yaml 로드·listen 테스트 green | done |
 | **A6** | `deploy/personas` MEMORY·skills 번들 + TS merge/seed | pm 번들에 default+persona MEMORY·`factory-collab`; MEMORY seed-once(재시드 시 미덮어씀); 테스트 green | done |
+| **A7** | agents.yaml `repos[]` + seed ensureRepos (clone-if-missing) | `primary_repo`/`repo_ids` → `workspaces/*/repos/*`; registry 기록; ensure 테스트 green | done |
+| **A8** | gateway `schedules[]` (로컬 cron → 티켓리스 prompt) | v1 동등 checkpoint/weekly wake; load-config + gateway 실행 | planned |
 
 ## 범위 밖 (Exclude)
 
 - Dashboards (Your work / Projects로 충분; 고급 리포트는 Defer)
 - timesheets, calendar / notifications
-- canvas / ideas / wiki / goals
+- canvas / ideas / wiki / goals — **제품 SPA·Workers 도메인 UI/스키마** (에이전트용 외부 **org-wiki** git·`ORG_WIKI_URL`·km librarian은 유지; [deploy/personas](deploy/personas/) `org-knowledge`)
 - plugins / settings, access_tokens (PAT)
 - LDAP / OIDC, Hyperdrive / 외부 MySQL
 - 전역 audit (Wiki/Canvas 배제로 불필요; 티켓 전용 이력은 M8·FE6)

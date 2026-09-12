@@ -5,7 +5,7 @@
 
 | 디렉터리 | 역할 |
 |----------|------|
-| `_default/` | 공통 MEMORY·rules·skills (`factory-collab`, `git-ship`, …) |
-| `pm`/`ta`/`qa`/`aa`/`km` | persona overlay |
+| `_default/` | 공통 MEMORY·rules·skills (`factory-collab`, `org-knowledge`, `git-ship`, …) |
+| `pm`/`ta`/`qa`/`aa`/`km` | persona overlay (`km` = org-wiki librarian) |
 
 로컬 시드: [../local/seed-personas.sh](../local/seed-personas.sh).

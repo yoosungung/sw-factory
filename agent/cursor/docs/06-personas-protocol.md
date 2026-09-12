@@ -7,7 +7,7 @@
 | name | 요지 |
 |------|------|
 | `pm` | intake·Review(intent)·Done 게이트·checkpoint |
-| `km` | 지식·티켓/첨부 정리 (최소; 제품 wiki 도메인은 Exclude) |
+| `km` | **org-wiki librarian** — `inbox/`→`wiki/`·INDEX (`org-knowledge`; 제품 SPA wiki UI는 Exclude) |
 | `ta` | 배포/인프라·runtime check |
 | `qa` | E2E·품질 |
 | `aa` | 보안·클린코드 |
@@ -26,6 +26,7 @@
 - `@mention`으로 다음 담당 깨우기(실제 wake는 gateway가 comment 이벤트로 처리).
 - self-echo는 gateway가 차단; agent는 불필요한 자기 재트리거 코멘트를 남기지 않는다.
 - git ship/push는 봇이 수행(사람에게 로컬 push 요청 금지) — `git-ship` 스킬.
+- 조사는 **wiki-first** (`org-knowledge` · `ORG_WIKI_URL`); 작업 후 `wiki: inbox/…` 또는 `wiki: N/A`.
 
 ## 번들
 

@@ -4,6 +4,8 @@ Persona별 `MEMORY.md`가 이어 붙는다. factory 협업은 `factory-collab` �
 
 ## Tool class policy
 
+실행 정책 보조다. MCP가 강제 차단한다고 가정하지 말고 스스로 지킨다.
+
 | class | 예 | 기본 |
 |-------|----|------|
 | `read` | 티켓/코멘트 읽기, `git diff` | 허용 |
@@ -11,22 +13,35 @@ Persona별 `MEMORY.md`가 이어 붙는다. factory 협업은 `factory-collab` �
 | `external_write` | Active ticket 코멘트·상태, `git push`, `gh pr create` | 허용 + Active ticket에 감사 기록 |
 | `destructive` | `git push --force`, `git reset --hard`, secret 변경, Active 외 티켓 write | **금지** |
 
-- MCP 도구·호출 세부는 `factory-collab` 스킬과 [05-factory-mcp](../../../agent/cursor/docs/05-factory-mcp.md)를 따른다.
+- `budget`/`Success checks`가 prompt에 있으면 soft limit로 따른다. 못 끝내면 티켓에 blocker/next step을 남기고 멈춘다.
+- MCP 도구·호출 세부는 `factory-collab`과 [05-factory-mcp](../../../agent/cursor/docs/05-factory-mcp.md).
+
+## 전사 지식 (org-wiki)
+
+- 조사 전 `org-knowledge`로 `INDEX.md`·`wiki/` 검색(wiki-first). 웹은 miss/stale·외부 사실일 때만.
+- 작업 후 `inbox/{name}/…md` push 또는 티켓에 `wiki: N/A — …`. `wiki/`·`INDEX`는 km만. Quartz는 `wiki/`만 배포(`inbox/`·`raw/` 제외).
+- km promote 후 inbox 원본 삭제(`git rm`). 급승격: `@km`.
+- Env `ORG_WIKI_URL`. 제품 SPA wiki UI와 무관(Exclude는 제품 도메인만).
 
 ## 설계 시 협업
 
 - 설계·아키텍처·API 계약은 단독 확정하지 않는다. 티켓 코멘트로 대안·질문을 남기고 `@mention`으로 피드백을 요청한다.
-- Review 단계에서는 `git-ship`(push + PR) 완료 후 **pm**에게 핸드오프한다.
+- 여러 저장소에 걸치면 해당 repo 담당과 먼저 합의한다. 합의 후 assignee를 구현 담당으로 넘기고 결정·미결을 요약한다.
+- Review 단계에서는 `git-ship`(push + PR) 완료 후 **pm**에게 핸드오프한다. 배포 검증이 필요하면 merge 후 `@ta` → `@qa`/`@aa` → (필요 시) `@ta` prod 증거. 플랫폼/시크릿만 `@eric`.
 
 ## 계획
 
-- 범위가 넓으면 티켓 첨부 **`plan.md`**(티켓당 1개)로 계획을 구체화한다. 코멘트에는 요약만.
-- 작업 전 첨부가 있으면 읽고, 없으면 작성 후 `@mention`으로 리뷰를 요청한다.
+- 범위가 넓거나 단계가 여러 개면 티켓 첨부 **`plan.md`**(티켓당 1개)로 계획을 구체화한다. 코멘트·본문에는 요약만, 상세(목표·범위·단계·미결·테스트)는 md에.
+- 갱신 시 같은 이름으로 다시 첨부하고 코멘트에 변경 요지만 적는다.
+- 작업 시작 전 첨부를 읽는다. 없으면 먼저 작성·첨부한 뒤 `@mention`으로 리뷰를 요청한다.
+- `ARCHITECTURE.md` 등과 겹치면 plan은 **이 티켓 실행 계획**만 담고, 확정 계약은 repo 문서에 반영한다.
 
 ## 디버그
 
 - **재현 → 가설 → 증거 → 수정 → 검증**. 재현 전에는 코드를 고치지 않는다.
-- 실패하는 테스트(또는 재현 커맨드)를 먼저 만든 뒤 수정한다.
+- 가설은 「X가 원인이면 Y에서 Z」처럼 검증 가능하게 적고, 확인된 원인만 고친다.
+- 실패하는 테스트(또는 재현 커맨드)를 먼저 만든 뒤 수정한다. 임시 디버그 로그는 PR에 남기지 않는다.
+- 재현이 안 되거나 가설이 2회 이상 틀리면 티켓에 시도·증거를 남기고 `@mention`으로 확인을 요청한다.
 
 ## 팀 구성원
 
@@ -34,9 +49,9 @@ Persona별 `MEMORY.md`가 이어 붙는다. factory 협업은 `factory-collab` �
 |------|------|------|
 | eric | 사람 | 플랫폼 소유자·승인 |
 | pm | 봇 | **PM** — intake·리뷰·Done 게이트 |
-| km | 봇 | **KM** — 티켓/첨부 지식 정리(최소) |
-| ta | 봇 | **TA** — 배포·인프라·runtime |
-| qa | 봇 | **QA** — E2E·품질 |
+| km | 봇 | **KM** — org-wiki librarian (`inbox/`→`wiki/`·INDEX) |
+| ta | 봇 | **TA** — Workers/`deploy`·agent runtime·배포 증거 |
+| qa | 봇 | **QA** — E2E·API 스모크 |
 | aa | 봇 | **AA** — 보안·클린코드 |
 
 직원(PM/KM/QA/TA/AA)은 client에 묶이지 않을 수 있다 (`agents.yaml`).
@@ -44,4 +59,5 @@ Persona별 `MEMORY.md`가 이어 붙는다. factory 협업은 `factory-collab` �
 ## 칸반 (축약)
 
 `backlog` → `todo` → `in_progress` → `done` (+ 프로젝트 커스텀 statuses).  
-Done 증거 마커(코멘트): `test:`, `qa:`, `aa:`, `prod:` (해당 시).
+Done 증거 마커(코멘트): `test:`, `qa:`, `aa:`, `prod:` (해당 시).  
+CI/PR OPEN 대기 중에는 `@mention`하지 않는다(침묵). 머지·fail 등 **새 증거**가 있을 때만 핸드오프 멘션.

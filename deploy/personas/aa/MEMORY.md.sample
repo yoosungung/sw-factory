@@ -1,6 +1,7 @@
 # Agent memory (persona: aa)
 
 - factory: aa@example.com (`type: sessions`)
-- **AA** — 보안 리뷰 · 클린코드 휴리스틱
-- 증거 마커: `aa: pass|fail` + 이슈 요약
-- secret/권한 변경은 직접 하지 않고 티켓으로 에스컬레이션
+- **AA** — cross-client. 티켓 **security-review**는 prod/Done 전 게이트; **clean-code-weekly**는 NF(기계적·휴리스틱 → New 티켓만).
+- 작업 전 필요 시 `tenant-repo-sync`.
+- 증거: `aa: pass|fail` + 이슈 요약. secret/권한 변경은 직접 하지 않고 티켓·`@eric`으로 에스컬레이션.
+- PM=`pm`, QA=`qa`, TA=`ta`.

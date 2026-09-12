@@ -15,7 +15,7 @@ sw-factory(Auth, Clients, Projects, Tickets/Milestones, Comments, Files)를 Clou
 7. 티켓 삭제(`DELETE /api/tickets/:id`)는 데이터 유실 방지를 위해 **작성자(`created_by`) 본인 또는 프로젝트 `owner`만** 허용한다. 일반 멤버는 삭제 불가.
 8. 대량 데이터 및 동시성: 티켓 목록은 Cursor 기반 페이징을 지원하며, 칸반은 활성 티켓 중심(완료건은 최근 기간 필터)으로 조회한다. 티켓 수정 시 낙관적 락(Optimistic Concurrency Control, `version` 필드)을 지원한다.
 9. 스키마·REST·권한 규칙을 바꿀 때는 이 문서를 코드와 **함께(또는 먼저)** 갱신한다.
-10. **범위 밖(Exclude):** LDAP/OIDC, Hyperdrive, timesheets, calendar, notifications, canvas/ideas/wiki/goals, plugins, 전역 settings 키-값, access_tokens(PAT/`x-api-key`), 계정별 CRUD 매트릭스(전역 permission scheme). 인증은 세션 쿠키만.
+10. **범위 밖(Exclude):** LDAP/OIDC, Hyperdrive, timesheets, calendar, notifications, canvas/ideas/wiki/goals(**제품 SPA·API 도메인**; 에이전트 **org-wiki** git/`ORG_WIKI_URL`·km은 [deploy/personas](deploy/personas/)로 유지), plugins, 전역 settings 키-값, access_tokens(PAT/`x-api-key`), 계정별 CRUD 매트릭스(전역 permission scheme). 인증은 세션 쿠키만.
 11. **Agent wake = pull:** Worker는 내부망 agent로 HTTP push하지 않는다. 티켓 mutate 시 D1 `agent_event_log`에 append하고, 내부망 **[agent/gateway](agent/gateway/)** 가 outbound로 tail한다.
 12. **gateway vs cursor:** gateway는 이벤트→prompt **배달만**(라우팅·self-echo·debounce·retry). **[agent/cursor](agent/cursor/)** 는 localhost runner + **factory-mcp**로 티켓을 읽고 작업한다. gateway는 MCP/티켓 mutate를 하지 않는다.
 13. **단일 컨테이너 병렬:** agent Pod/컨테이너는 기본 1개. cursor는 parent(SDK 미로드) + **공유 SDK worker pool**; `ticket_id` 뮤텍스; 기본 `max_active_per_persona=1`. prompt는 **202** 비차단; gateway `acked_id`는 성공 accept 후에만 전진.

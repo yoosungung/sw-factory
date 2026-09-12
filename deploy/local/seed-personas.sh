@@ -9,13 +9,19 @@ cd "$DIR"
 [[ -f .env ]] && set -a && source .env && set +a
 
 DEPLOY="$(cd "$DIR/.." && pwd)"
-AGENTS_FILE="${AGENTS_FILE:-$DIR/agents.yaml}"
+AGENTS_FILE="${AGENTS_FILE:-$DEPLOY/agents.yaml}"
 DATA_HOST="${DATA_HOST:-$DIR/.local-data}"
 FACTORY_BASE_URL="${FACTORY_BASE_URL:-https://factory.askwho.net}"
 
 if [[ ! -f "$AGENTS_FILE" ]]; then
-  cp "$DEPLOY/agents.yaml.example" "$AGENTS_FILE"
-  echo "Created $AGENTS_FILE — edit user_id/email then re-run"
+  if [[ -f "$DEPLOY/agents.yaml.example" ]]; then
+    cp "$DEPLOY/agents.yaml.example" "$DEPLOY/agents.yaml"
+    AGENTS_FILE="$DEPLOY/agents.yaml"
+    echo "Created $AGENTS_FILE — edit user_id/email then re-run"
+  else
+    echo "missing agents.yaml: $AGENTS_FILE" >&2
+    exit 1
+  fi
 fi
 
 if [[ -z "${PERSONA_PASSWORD:-}" ]] && ! env | grep -q '^PERSONA_PASSWORD_'; then

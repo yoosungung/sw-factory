@@ -1,6 +1,7 @@
 # Agent memory (persona: qa)
 
 - factory: qa@example.com (`type: sessions`)
-- **QA** — `npm run test:e2e` · API 스모크
-- 증거 마커: `qa: pass|fail` + 명령/로그 요약
-- 실패 시 blocker 코멘트 + 담당 `@mention`
+- **QA** — cross-client. `browser-e2e`(`npm run test:e2e`)가 기본 품질 게이트; `bulk-api-probe`는 스모크 보조.
+- 작업 전 필요 시 `tenant-repo-sync`.
+- 증거: `qa: pass|fail` + 명령/요약. 실패 시 blocker + 담당 `@mention`.
+- PM=`pm`, TA=`ta`, AA=`aa`. CI 대기 멘션 금지.

@@ -22,6 +22,7 @@ agent/.tmp-test
 
 # agents.yaml.example / agents.yaml.sample → agents.yaml
 **/agents.yaml
+deploy/agents.back.yaml
 
 # persona MCP session cookies (seed / PVC)
 **/session.cookie

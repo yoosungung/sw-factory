@@ -28,6 +28,9 @@ spec:
               value: /data
             - name: AGENTS_YAML
               value: /config/agents.yaml
+            # 1 (default in entrypoint) = ensureRepos on start; set "0" to skip
+            - name: ENSURE_REPOS
+              value: "1"
             - name: GATEWAY_SESSION_COOKIE
               valueFrom:
                 secretKeyRef:
@@ -38,6 +41,12 @@ spec:
                 secretKeyRef:
                   name: sw-factory-agent
                   key: CURSOR_API_KEY
+                  optional: true
+            - name: GH_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: sw-factory-agent
+                  key: GH_TOKEN
                   optional: true
           volumeMounts:
             - name: data

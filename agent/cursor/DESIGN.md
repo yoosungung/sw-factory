@@ -48,6 +48,9 @@ npm run test:agent
 npm test
 npm run agent:cursor -- --config agent/cursor/reference/agents.yaml.sample --mock
 npx tsx agent/cursor/src/seed-cli.ts --config deploy/local/agents.yaml --data-dir /tmp/swf-data
+# ensures repos from yaml (set GH_TOKEN for private clones)
+npx tsx agent/cursor/src/ensure-repos-cli.ts --config deploy/agents.yaml --data-dir /tmp/swf-data
+# k8s/Docker: entrypoint runs ensure-repos-cli when ENSURE_REPOS≠0 (see deploy/k8s/README.md)
 ```
 
 `CURSOR_API_KEY` + `@cursor/sdk` 설치 시 실 local agent; 아니면 mock.  

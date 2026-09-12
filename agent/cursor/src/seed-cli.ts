@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 /**
- * Seed persona workspaces: login cookie + mcp.json + deploy/personas bundle.
+ * Seed persona workspaces: login cookie + mcp.json + deploy/personas bundle
+ * + ensureRepos from agents.yaml (clone-if-missing).
  * Usage:
  *   npx tsx agent/cursor/src/seed-cli.ts \
  *     --config deploy/local/agents.yaml \
@@ -8,10 +9,12 @@
  *     --password-env PERSONA_PASSWORD
  *
  * Password: PERSONA_PASSWORD_<NAME> or PERSONA_PASSWORD (shared).
+ * GitHub: GH_TOKEN or GITHUB_TOKEN (private repos).
  */
 import path from "node:path";
 import { loadAgentsYaml } from "../../shared/load-config";
 import { seedPersonaWorkspace } from "../mcp/seed";
+import { resolveGhToken } from "./ensure-repos";
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(name);
@@ -38,6 +41,7 @@ async function main() {
   const personasRoot =
     arg("--personas-root") ??
     path.resolve(process.cwd(), "deploy/personas");
+  const ghToken = resolveGhToken();
 
   const sessions = file.agents.filter((a) => a.type === "sessions");
   for (const a of sessions) {
@@ -50,7 +54,7 @@ async function main() {
       );
       process.exit(1);
     }
-    const { cwd } = await seedPersonaWorkspace({
+    const { cwd, reposEnsured } = await seedPersonaWorkspace({
       dataDir,
       factoryBaseUrl,
       personasRoot,
@@ -60,8 +64,22 @@ async function main() {
         password,
         persona: a.persona,
       },
+      agent: a,
+      repos: file.repos ?? [],
+      ghToken,
     });
-    console.log(JSON.stringify({ msg: "seeded", persona: a.persona, cwd }));
+    console.log(
+      JSON.stringify({
+        msg: "seeded",
+        persona: a.persona,
+        cwd,
+        repos: reposEnsured.map((r) => ({
+          id: r.repoId,
+          action: r.action,
+          path: r.path,
+        })),
+      }),
+    );
   }
 }
 

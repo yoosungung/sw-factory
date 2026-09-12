@@ -1,10 +1,11 @@
 # Local / ConfigMap sample. Copy & edit user_id/email to match factory users.
 # type: sessions — gateway delivery targets.
+# repos[] catalog + agent primary_repo / repo_ids → seed ensure (clone-if-missing).
 
-factory_base_url: https://factory.askwho.net
+factory_base_url: https://factory.example.com
 
 settings:
-  model: composer-2.5
+  model: auto
   debounce_ms: 2000
   pool_size: 2
   max_active_per_persona: 1
@@ -20,6 +21,14 @@ prompts:
   mention: "You were mentioned on ticket {ticket_id}. Active ticket_id={ticket_id}"
   handoff: "Handoff on ticket {ticket_id}. Active ticket_id={ticket_id}"
   catch_up: "Catch-up since {lookback_since}. Pick at most one actionable item; if none, exit without writes."
+
+repos:
+  - id: sw-factory
+    git_repo_url: https://github.com/example/sw-factory.git
+  - id: nl2sql
+    git_repo_url: https://github.com/example/nl2sql.git
+  - id: org-wiki
+    git_repo_url: https://github.com/example/wiki.git
 
 agents:
   - name: admin
@@ -41,6 +50,7 @@ agents:
     persona: km
     type: sessions
     workspace: /data/workspaces/km
+    primary_repo: org-wiki
 
   - name: ta
     user_id: "00000000-0000-0000-0000-000000000004"
@@ -48,6 +58,9 @@ agents:
     persona: ta
     type: sessions
     workspace: /data/workspaces/ta
+    repo_ids:
+      - sw-factory
+      - nl2sql
 
   - name: qa
     user_id: "00000000-0000-0000-0000-000000000005"
@@ -62,3 +75,22 @@ agents:
     persona: aa
     type: sessions
     workspace: /data/workspaces/aa
+    repo_ids:
+      - sw-factory
+      - nl2sql
+
+  - name: sw-factory
+    user_id: "00000000-0000-0000-0000-000000000007"
+    email: sw-factory@example.com
+    persona: sw-factory
+    type: sessions
+    workspace: /data/workspaces/sw-factory
+    primary_repo: sw-factory
+
+  - name: nl2sql
+    user_id: "00000000-0000-0000-0000-000000000008"
+    email: nl2sql@example.com
+    persona: nl2sql
+    type: sessions
+    workspace: /data/workspaces/nl2sql
+    primary_repo: nl2sql

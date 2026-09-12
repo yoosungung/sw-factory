@@ -11,8 +11,13 @@ if [[ "$NS" != "sw-factory" ]]; then
 fi
 
 if [[ ! -f "$AGENTS_SRC" ]]; then
-  echo "missing agents yaml: $AGENTS_SRC" >&2
-  exit 1
+  if [[ -f "$DEPLOY/agents.yaml.example" ]]; then
+    echo "missing $AGENTS_SRC — using agents.yaml.example" >&2
+    AGENTS_SRC="$DEPLOY/agents.yaml.example"
+  else
+    echo "missing agents yaml: $AGENTS_SRC" >&2
+    exit 1
+  fi
 fi
 
 kubectl apply -f "$DIR/namespace.yaml"

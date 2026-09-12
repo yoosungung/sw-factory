@@ -2,6 +2,14 @@ import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { loginFactory } from "./client";
 import { applyPersonaBundle } from "../src/persona-bundle";
+import {
+  ensurePersonaRepos,
+  resolveGhToken,
+  writeClientsReposRegistry,
+  type EnsureRepoResult,
+  type GitRunner,
+} from "../src/ensure-repos";
+import type { LoadedPersona, LoadedRepo } from "../../shared/load-config";
 
 export type PersonaSeed = {
   name: string;
@@ -13,6 +21,7 @@ export type PersonaSeed = {
 /**
  * Login as persona user and write session cookie + mcp.json under workspace.
  * Also applies deploy/personas bundle (MEMORY seed-once, skills overwrite).
+ * When `agent` + `repos` are set, ensures git checkouts and writes registry.
  */
 export async function seedPersonaWorkspace(opts: {
   dataDir: string;
@@ -20,7 +29,15 @@ export async function seedPersonaWorkspace(opts: {
   persona: PersonaSeed;
   fetchImpl?: typeof fetch;
   personasRoot?: string;
-}): Promise<{ cwd: string; cookie: string }> {
+  agent?: LoadedPersona;
+  repos?: LoadedRepo[];
+  ghToken?: string;
+  runGit?: GitRunner;
+}): Promise<{
+  cwd: string;
+  cookie: string;
+  reposEnsured: EnsureRepoResult[];
+}> {
   const cwd = path.join(opts.dataDir, "workspaces", opts.persona.persona);
   await mkdir(path.join(cwd, "secrets"), { recursive: true });
   await mkdir(path.join(cwd, ".cursor"), { recursive: true });
@@ -66,5 +83,22 @@ export async function seedPersonaWorkspace(opts: {
     personasRoot,
   });
 
-  return { cwd, cookie };
+  let reposEnsured: EnsureRepoResult[] = [];
+  if (opts.agent && opts.repos) {
+    reposEnsured = await ensurePersonaRepos({
+      dataDir: opts.dataDir,
+      persona: opts.persona.persona,
+      agent: opts.agent,
+      repos: opts.repos,
+      token: opts.ghToken ?? resolveGhToken(),
+      runGit: opts.runGit,
+    });
+    await writeClientsReposRegistry({
+      dataDir: opts.dataDir,
+      persona: opts.persona.persona,
+      entries: reposEnsured,
+    });
+  }
+
+  return { cwd, cookie, reposEnsured };
 }

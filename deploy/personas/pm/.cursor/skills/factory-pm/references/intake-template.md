@@ -1,6 +1,6 @@
-# Intake / architecture / sprint-lite (M8)
+# Intake / architecture (factory-pm)
 
-제품 vision·스프린트 도구는 테넌트/Leantime 보드에 둔다. 공장 ROADMAP에 제품 기능을 적지 않는다. 테넌트 repo의 `ROADMAP.md`는 `repos[].roadmap.enabled`일 때 pm `pm-roadmap-sync`가 **current 마일스톤 1개만** 티켓화하고, current가 모두 `[x]`이면 **pass-gate** 위임 후 승인 시에만 다음 마일스톤 티켓을 연다(`references/roadmap-sync.md`).
+제품 vision은 Space/프로젝트 보드에 둔다. 공장 `ROADMAP.md`에 임의 제품 기능을 적지 않는다. repo `ROADMAP`이 있으면 pm `roadmap-sync`가 **current 마일스톤 1개만** 티켓화할 수 있다(`references/roadmap-sync.md`).
 
 ## Intent hierarchy (SoR)
 
@@ -14,7 +14,7 @@
 
 ## Intake (부모 티켓 필수 섹션)
 
-티켓 본문 또는 첫 PM 코멘트에 아래를 **모두** 채운 뒤에만 구현 서브태스크를 In Progress로 둔다.
+티켓 본문 또는 첫 PM 코멘트에 아래를 **모두** 채운 뒤에만 구현을 `in_progress`로 둔다.
 
 ```text
 ## Derived from

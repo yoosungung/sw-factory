@@ -1,5 +1,6 @@
 # Sample agents.yaml (copy to gitignored agents.yaml for real accounts).
 # type: sessions only are gateway delivery targets. workspace paths match PVC contract.
+# Seed ensureRepos: repos[] + agent primary_repo / repo_ids (GH_TOKEN for private).
 
 factory_base_url: https://factory.askwho.net
 
@@ -21,6 +22,12 @@ prompts:
   handoff: "Handoff on ticket {ticket_id}. Active ticket_id={ticket_id}"
   catch_up: "Catch-up since {lookback_since}. Pick at most one actionable item; if none, exit without writes."
 
+repos:
+  - id: sw-factory
+    git_repo_url: https://github.com/yoosungung/sw-factory.git
+  - id: nl2sql
+    git_repo_url: https://github.com/yoosungung/nl2sql.git
+
 agents:
   - name: admin
     user_id: "00000000-0000-0000-0000-000000000001"
@@ -41,6 +48,9 @@ agents:
     persona: ta
     type: sessions
     workspace: /data/workspaces/ta
+    repo_ids:
+      - sw-factory
+      - nl2sql
 
   - name: qa
     user_id: "00000000-0000-0000-0000-000000000005"
@@ -55,3 +65,6 @@ agents:
     persona: aa
     type: sessions
     workspace: /data/workspaces/aa
+    repo_ids:
+      - sw-factory
+      - nl2sql

@@ -31,13 +31,28 @@ describe("persona-bundle", () => {
     const memory = bundle["MEMORY.md"];
     expect(memory).toBeTruthy();
     expect(memory!).toContain("factory-collab");
+    expect(memory!).toContain("org-knowledge");
     expect(memory!).toContain("persona: pm");
     expect(bundle[".cursor/skills/factory-collab/SKILL.md"]).toContain(
       "get_ticket",
     );
+    expect(bundle[".cursor/skills/org-knowledge/SKILL.md"]).toContain(
+      "ORG_WIKI_URL",
+    );
     expect(bundle[".cursor/skills/factory-pm/SKILL.md"]).toContain("PM");
     expect(Object.keys(bundle).some((k) => k.endsWith(".sample"))).toBe(false);
     expect(bundle[".cursor/mcp.json"]).toBeUndefined();
+  });
+
+  it("buildPersonaBundle(km) includes promote and researcher", async () => {
+    const bundle = await buildPersonaBundle("km", personasRoot);
+    expect(bundle["MEMORY.md"]).toContain("org-wiki");
+    expect(bundle[".cursor/skills/knowledge-promote/SKILL.md"]).toContain(
+      "wiki/",
+    );
+    expect(bundle[".cursor/skills/km-researcher/SKILL.md"]).toContain(
+      "Inbox drain",
+    );
   });
 
   it("applyPersonaBundle seed-once MEMORY and overwrites skills", async () => {

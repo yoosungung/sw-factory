@@ -10,7 +10,7 @@ cd "$DIR"
 IMAGE="${IMAGE:-sw-factory-agent:local}"
 NAME="${CONTAINER_NAME:-sw-factory-agent}"
 FACTORY_BASE_URL="${FACTORY_BASE_URL:-https://factory.askwho.net}"
-AGENTS_FILE="${AGENTS_FILE:-$DIR/agents.yaml}"
+AGENTS_FILE="${AGENTS_FILE:-$DEPLOY/agents.yaml}"
 DATA_HOST="${DATA_HOST:-$DIR/.local-data}"
 BUILD_SH="$DEPLOY/docker/build.sh"
 
@@ -25,8 +25,14 @@ if [[ -z "${GATEWAY_SESSION_COOKIE:-}${FACTORY_SESSION_COOKIE:-}" ]]; then
 fi
 
 if [[ ! -f "$AGENTS_FILE" ]]; then
-  cp "$DEPLOY/agents.yaml.example" "$AGENTS_FILE"
-  echo "Created $AGENTS_FILE from deploy/agents.yaml.example — edit user_id/email"
+  if [[ -f "$DEPLOY/agents.yaml.example" ]]; then
+    cp "$DEPLOY/agents.yaml.example" "$DEPLOY/agents.yaml"
+    AGENTS_FILE="$DEPLOY/agents.yaml"
+    echo "Created $AGENTS_FILE from agents.yaml.example — edit user_id/email"
+  else
+    echo "missing agents.yaml: $AGENTS_FILE" >&2
+    exit 1
+  fi
 fi
 
 mkdir -p "$DATA_HOST"

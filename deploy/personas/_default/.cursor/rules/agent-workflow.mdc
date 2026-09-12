@@ -7,7 +7,7 @@ alwaysApply: true
 
 - Responses must always be written in Korean, concise (within three paragraphs), and intuitive.
 - Prioritize documentation updates during the development process and strictly adhere to TDD (Test-Driven Development).
-- Research: **ticket/code first** (`factory-collab` · repo docs) then web search for external facts only.
+- Research: **wiki-first** (`org-knowledge`) then ticket/code; web search only on wiki miss/stale/external fact. After work: inbox contribute or `wiki: N/A — reason` on the Active ticket.
 - Use virtual environments (.venv) when running Python code.
 
 ## Coding Principles
@@ -24,6 +24,6 @@ Tools: Remote ship = `git-ship`, Ticket = `factory-collab`
 | Sequence | Task | Completion Condition |
 |------|------|-----------|
 | 1 | Commit → Push → Open PR (agent; never ask a human to push) | Remote commit + PR URL, or blocking comment + `@eric` |
-| 2 | PR summary + verification; ticket comment with **test evidence** or `test: N/A — reason` | Ticket, commit, PR align |
+| 2 | PR summary + verification; ticket comment with **test evidence** or `test: N/A — reason`. Also `wiki: inbox/...` or `wiki: N/A — reason` (`org-knowledge`). | Ticket, commit, PR align |
 | 3 | Status → review intent; assignee → **pm**; `@pm` once | Handoff complete |
 | 4 | Stop additional implementation | CI wait = silence — no remount/@pm spam |
