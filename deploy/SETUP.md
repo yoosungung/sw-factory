@@ -80,9 +80,11 @@ npm run dev
 ## Agent (Docker / k8s)
 
 - 이미지: [docker/README.md](docker/README.md)
-- 로컬 실행: [local/README.md](local/README.md)
+- 로컬 실행: [local/README.md](local/README.md) — **`user_id` 등록**(`register-agent-users.sh`) · seed · run
 - 클러스터 (`NS=sw-factory`): [k8s/README.md](k8s/README.md)
 - 프로덕션 Worker URL 기본값: `https://factory.askwho.net`
+
+Agent `user_id` = factory `users.id`. 봇은 `POST /api/auth/register`로 만들고 yaml에 UUID를 넣는다. 상세: [local/README.md](local/README.md#agent-user_id-등록).
 
 ## 참고
 

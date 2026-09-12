@@ -18,6 +18,8 @@
 # 정본: deploy/agents.yaml (없으면 example에서 복사)
 cd deploy/local
 cp ../env.example .env
+# PERSONA_PASSWORD 설정 후:
+./register-agent-users.sh   # factory user 생성 → user_id 기입 (상세: local/README.md)
 ./obtain-cookie.sh   # 선택
 ./run-local.sh
 ```

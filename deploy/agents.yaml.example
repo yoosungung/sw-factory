@@ -1,4 +1,7 @@
-# Local / ConfigMap sample. Copy & edit user_id/email to match factory users.
+# Local / ConfigMap sample. Copy to ../agents.yaml & edit.
+# user_id = factory users.id (UUID). Create bots:
+#   cd deploy/local && set PERSONA_PASSWORD in .env && ./register-agent-users.sh
+# See local/README.md «Agent user_id 등록».
 # type: sessions — gateway delivery targets.
 # repos[] catalog + agent primary_repo / repo_ids → seed ensure (clone-if-missing).
 
