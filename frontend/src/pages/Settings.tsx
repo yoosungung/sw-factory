@@ -349,7 +349,7 @@ export function ProjectSettingsPage({
     children: (
       <div className="settings-layout">
         <aside className="settings-side">
-          <Link to={`/projects/${id}?view=board`} className="back-link">
+          <Link to={`/projects/${id}`} className="back-link">
             ← Back to project
           </Link>
           <h2>Project settings</h2>

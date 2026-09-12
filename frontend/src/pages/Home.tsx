@@ -59,7 +59,7 @@ export function ProjectsHome({ user, onLogout }: { user: User; onLogout: () => v
           <span>Role</span>
         </div>
         {shown.map((p) => (
-          <Link key={p.id} to={`/projects/${p.id}?view=board`} className="list-row linkish">
+          <Link key={p.id} to={`/projects/${p.id}`} className="list-row linkish">
             <span className="name-cell">
               <span className="project-icon sm">{initials(p.name)}</span>
               {p.name}
@@ -197,7 +197,7 @@ export function ClientPage({ user, onLogout }: { user: User; onLogout: () => voi
       clients={clients}
       projects={allProjects}
       activeClient={org}
-      view="list"
+      view="overview"
     >
       <div className="page-header">
         <div className="breadcrumb">
@@ -208,17 +208,12 @@ export function ClientPage({ user, onLogout }: { user: User; onLogout: () => voi
         <div className="page-title-row">
           <h1>{org.name}</h1>
           <div className="row-gap">
-            <Link className="btn-subtle" to={`/clients/${id}/settings/people`}>
-              People
-            </Link>
-            <Link className="btn-subtle" to={`/clients/${id}/settings/details`} title="Space settings">
-              ⚙️ Settings
-            </Link>
             <button type="button" className="btn-primary" onClick={() => setCreateOpen(true)}>
               Create project
             </button>
           </div>
         </div>
+        <p className="overview-desc">{org.description?.trim() ? org.description : "No description yet."}</p>
       </div>
       <div className="content-panel tableish">
         <div className="list-row head">
@@ -233,7 +228,7 @@ export function ClientPage({ user, onLogout }: { user: User; onLogout: () => voi
               {p.name}
             </span>
             <span className="muted">Project</span>
-            <span className="muted">Open board</span>
+            <span className="muted">Open</span>
           </Link>
         ))}
         {projects.length === 0 && <div className="empty">No projects yet.</div>}

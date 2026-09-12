@@ -1488,6 +1488,25 @@ select {
 }
 
 /* —— Sidebar extras —— */
+.overview-desc {
+  margin: 8px 0 0;
+  color: var(--ds-text-subtlest);
+  font-size: 14px;
+  line-height: 1.5;
+  max-width: 48rem;
+  white-space: pre-wrap;
+}
+
+.overview-section {
+  padding: 8px 0 24px;
+}
+
+.overview-section h2 {
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0 0 12px;
+}
+
 .space-switcher {
   position: relative;
   padding: 0 8px 8px;
@@ -1664,6 +1683,7 @@ select {
 .list-row.linkish {
   color: inherit !important;
   text-decoration: none !important;
+  cursor: pointer;
 }
 
 .name-cell {

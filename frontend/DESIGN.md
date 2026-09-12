@@ -9,7 +9,7 @@ API 설계: [backend/DESIGN.md](../backend/DESIGN.md) · 계약: [ARCHITECTURE.m
 ```
 frontend/src/
     api.ts
-    styles.css                          # UX0–UX4 토큰 · 보드/패널 · 모바일
+    styles.css                          # UX0–UX5 토큰 · 보드/패널 · 모바일
     lib/brand.tsx · due.ts · view-mode.ts · recent.ts · savedViews.ts
     hooks/useDom.ts · useSession.ts
     components/EmptyState.tsx
@@ -31,7 +31,7 @@ frontend/src/
 - Your work: Assigned / Created by me / Recently viewed / Recent projects
 - Search: `GET /api/search`
 - Filters: localStorage 메타 + tickets API
-- List: cursor Load more · Board: 프로젝트 statuses 컬럼 · Include archived Done
+- Space hub: Space Switcher + Space settings(좌측). Project: Overview(이름·설명·수행 중) / Tickets(Board|Backlog|Timeline|List)
 
 ## Commands
 

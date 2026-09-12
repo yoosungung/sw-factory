@@ -20,7 +20,7 @@ import {
 import { EmptyState } from "../components/EmptyState";
 import { AppChrome } from "../components/chrome/AppChrome";
 import { dueClass } from "../lib/due";
-import type { ViewMode } from "../lib/view-mode";
+import { isTicketsView, parseViewMode } from "../lib/view-mode";
 import { useAllProjects, useClients } from "../hooks/useSession";
 import { touchRecentProject, touchRecentTicket } from "../lib/recent";
 
@@ -29,7 +29,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
   const location = useLocation();
   const navigate = useNavigate();
   const qs = new URLSearchParams(location.search);
-  const view = (qs.get("view") as ViewMode) || "board";
+  const view = parseViewMode(qs.get("view"));
   const issueId = qs.get("issue");
   const issueUiParam = qs.get("issueUi");
 
@@ -194,6 +194,10 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
 
   const projectRole = (project.role ?? "member") as "owner" | "member";
   const backlogTickets = backlogKeys.flatMap((k) => columns[k] ?? []);
+  const ticketsView = isTicketsView(view);
+  const activeTickets = statuses
+    .filter((s) => s.category === "active")
+    .flatMap((s) => columns[s.key] ?? []);
 
   const shell = (
     <>
@@ -212,58 +216,68 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
           </div>
           <div className="page-title-row">
             <h1>
-              {view === "board"
-                ? "Board"
-                : view === "backlog"
-                  ? "Backlog"
-                  : view === "timeline"
-                    ? "Timeline"
-                    : "List"}
+              {view === "overview"
+                ? project.name
+                : view === "board"
+                  ? "Board"
+                  : view === "backlog"
+                    ? "Backlog"
+                    : view === "timeline"
+                      ? "Timeline"
+                      : "List"}
             </h1>
-            <div className="menu menu-right">
-              <button type="button" className="btn-subtle" onClick={() => setBoardMenu((v) => !v)}>
-                •••
-              </button>
-              {boardMenu && (
-                <div className="menu-panel">
-                  <button
-                    type="button"
-                    className="menu-item btn-as-item"
-                    onClick={() => {
-                      applyIssueMode("sidebar");
-                      setBoardMenu(false);
-                    }}
-                  >
-                    Open work items in sidebar {issueMode === "sidebar" ? "✓" : ""}
-                  </button>
-                  <button
-                    type="button"
-                    className="menu-item btn-as-item"
-                    onClick={() => {
-                      applyIssueMode("modal");
-                      setBoardMenu(false);
-                    }}
-                  >
-                    Open work items in modal {issueMode === "modal" ? "✓" : ""}
-                  </button>
-                  <div className="menu-sep" />
-                  <button
-                    type="button"
-                    className="menu-item btn-as-item"
-                    onClick={() => {
-                      setFullscreen(true);
-                      setBoardMenu(false);
-                    }}
-                  >
-                    Enter full screen
-                  </button>
-                </div>
-              )}
-            </div>
+            {ticketsView && (
+              <div className="menu menu-right">
+                <button type="button" className="btn-subtle" onClick={() => setBoardMenu((v) => !v)}>
+                  •••
+                </button>
+                {boardMenu && (
+                  <div className="menu-panel">
+                    <button
+                      type="button"
+                      className="menu-item btn-as-item"
+                      onClick={() => {
+                        applyIssueMode("sidebar");
+                        setBoardMenu(false);
+                      }}
+                    >
+                      Open work items in sidebar {issueMode === "sidebar" ? "✓" : ""}
+                    </button>
+                    <button
+                      type="button"
+                      className="menu-item btn-as-item"
+                      onClick={() => {
+                        applyIssueMode("modal");
+                        setBoardMenu(false);
+                      }}
+                    >
+                      Open work items in modal {issueMode === "modal" ? "✓" : ""}
+                    </button>
+                    <div className="menu-sep" />
+                    <button
+                      type="button"
+                      className="menu-item btn-as-item"
+                      onClick={() => {
+                        setFullscreen(true);
+                        setBoardMenu(false);
+                      }}
+                    >
+                      Enter full screen
+                    </button>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
+          {view === "overview" && (
+            <p className="overview-desc">
+              {project.description?.trim() ? project.description : "No description yet."}
+            </p>
+          )}
         </div>
       )}
 
+      {ticketsView && (
       <div className="toolbar">
         <div className="view-segment" role="tablist" aria-label="Project views">
           {(
@@ -307,6 +321,32 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
           </button>
         )}
       </div>
+      )}
+
+      {view === "overview" && (
+        <section className="overview-section">
+          <h2>In progress</h2>
+          {activeTickets.length === 0 ? (
+            <EmptyState
+              title="Nothing in progress"
+              description="Tickets in an active status show up here."
+            />
+          ) : (
+            <div className="content-panel tableish">
+              {activeTickets.map((t) => (
+                <div key={t.id} className="list-row linkish" onClick={() => openIssue(t)}>
+                  <span className="issue-key">
+                    <span className={`type-icon ${t.type}`}>{t.type === "task" ? "✓" : "◆"}</span>
+                    {issueKey(project.name, t.id)}
+                  </span>
+                  <span>{t.title}</span>
+                  <span className="muted">{labelFor(t.status)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
 
       {view === "board" && (
         <div className="board-scroll">

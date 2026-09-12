@@ -196,6 +196,7 @@ export function Sidebar({
   clients,
   activeClient,
   activeProject,
+  view,
   collapsed,
   onToggle,
 }: {
@@ -263,16 +264,12 @@ export function Sidebar({
         )}
       </div>
 
-      {(activeProject || activeClient) && (
+      {activeProject && (
         <div className="sidebar-project">
-          <div className={`project-icon ${activeProject ? "" : "client"}`}>
-            {initials((activeProject ?? activeClient)!.name)}
-          </div>
+          <div className="project-icon">{initials(activeProject.name)}</div>
           <div className="meta">
-            <div className="name">{(activeProject ?? activeClient)!.name}</div>
-            <div className="sub">
-              {activeProject ? "Project" : "Space"} · Member access
-            </div>
+            <div className="name">{activeProject.name}</div>
+            <div className="sub">Project · Member access</div>
           </div>
         </div>
       )}
@@ -281,14 +278,31 @@ export function Sidebar({
         <>
           <div className="side-section">Work</div>
           <nav className="side-nav">
-            <Link className="side-link active" to={`${base}?view=board`}>
+            <Link className={`side-link${view === "overview" ? " active" : ""}`} to={base}>
               <span className="side-ico">▦</span> Overview
+            </Link>
+            <Link
+              className={`side-link${view !== "overview" ? " active" : ""}`}
+              to={`${base}?view=board`}
+            >
+              <span className="side-ico">☰</span> Tickets
             </Link>
           </nav>
           <div className="side-section">Settings</div>
           <nav className="side-nav">
             <Link className="side-link" to={`/projects/${activeProject.id}/settings/details`}>
               Project settings
+            </Link>
+          </nav>
+        </>
+      )}
+
+      {activeClient && !activeProject && (
+        <>
+          <div className="side-section">Settings</div>
+          <nav className="side-nav">
+            <Link className="side-link" to={`/clients/${activeClient.id}/settings/details`}>
+              Space settings
             </Link>
           </nav>
         </>

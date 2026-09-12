@@ -18,13 +18,13 @@
 ┌─ Top nav (전역, 48px 클린 라이트 크롬) ──────────────────────────┐
 │ Logo │ Spaces │ Projects │ Your work │ [Create] [Search ⌘K] [Avatar ▾] │
 ├─ (Space/Project 진입 시 Side) ──────┬─ Main ────────────────────────┤
-│ Back · Project (Space Switcher)    │ Title [Board|Backlog|Time|List]│
-│ Settings · Members                 │ Filter/Search                  │
-│                                    │ view content / issue inspector │
+│ Back · Space Switcher              │ Overview: 이름·설명·수행 중  │
+│ Overview · Tickets                │ Tickets: [Board|Backlog|…]    │
+│ Space/Project settings              │ Filter/Search                  │
 └────────────────────────────────────┴────────────────────────────────┘
 ```
 
-- **단일 뷰 전환 (Single Source of Truth):** 4대 뷰(`Board | Backlog | Timeline | List`)는 작업 화면 상단 툴바의 세그먼트 탭으로 단일화하며 사이드바에 중복 배치하지 않는다.
+- **Overview vs Tickets:** Overview는 프로젝트 랜딩(이름·설명·수행 중 티켓). 4대 뷰(`Board | Backlog | Timeline | List`)는 Tickets 툴바 세그먼트만 — 사이드바에 4뷰를 두지 않는다.
 - **스페이스 스위처:** 프로젝트 사이드바에 모든 전역 스페이스를 덤프하지 않고, 사이드바 상단 콤보박스 스위처로 압축한다.
 - **설정 전용 셸:** `/projects/:id/settings/*` 진입 시 이중 사이드바 병렬 노출을 방지하고 설정 전용 단일 사이드바/전환 레이아웃을 사용한다.
 - **전역 화면:** (`/`, `/projects`, `/spaces`, `/search`, `/account`, `/admin`)에는 프로젝트 사이드바를 두지 않는다.
@@ -41,8 +41,8 @@ flowchart TB
   Spaces["/spaces"]
   Space["/clients/:id"]
   SpaceSet["/clients/:id/settings/*"]
-  Proj["/projects/:id"]
-  Views["?view=board|backlog|timeline|list"]
+  Proj["/projects/:id Overview"]
+  Views["?view=board|backlog|timeline|list Tickets"]
   PSet["/projects/:id/settings/*"]
   Filters["/filters · /filters/:id"]
   Teams["/teams"]
@@ -77,7 +77,8 @@ flowchart TB
 | `/spaces` | Spaces 목록 (`GET /api/clients`) | F2b |
 | `/clients/:id` | Space hub | F4 |
 | `/clients/:id/settings/*` | Space 관리 | admin |
-| `/projects/:id` + `?view=` | 작업 뷰 | F5–F8 |
+| `/projects/:id` | Project Overview | F4b |
+| `/projects/:id` + `?view=` | Tickets 작업 뷰 | F5–F8 |
 | `/projects/:id/settings/*` | Project 관리 | admin |
 | `/browse/:ticketId` | Issue 전체 페이지 | F9 |
 | `?issue=` | Issue sidebar/modal | F9 |

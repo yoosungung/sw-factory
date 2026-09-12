@@ -115,7 +115,7 @@ Space People와 동일 UX. 초대는 해당 Space 멤버만(이메일/`user_id`)
 
 ## 6. Teams 디렉터리와의 관계
 
-`/teams`([pages F12](pages.md))는 **조회·점프** 허브(Top nav 없음). Space hub **People**이 진입점.  
+`/teams`([pages F12](pages.md))는 **조회·점프** 허브(Top nav 없음). Space settings **People**이 진입점.  
 실제 권한 변경은 항상 Space/Project **People** 설정에서 수행(프로젝트 단위 위임). 플랫폼 계정 목록은 `/admin`.
 
 ---

@@ -62,5 +62,5 @@ test("top nav maps to API screens in one click", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "Projects" })).toBeVisible();
   await clickEl(page.getByRole("link", { name: /Nav Proj/ }).first());
   await expect(page).toHaveURL(/\/projects\//);
-  await expect(page.getByRole("heading", { name: "Board" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Nav Proj/ })).toBeVisible();
 });

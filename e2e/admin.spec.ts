@@ -29,6 +29,7 @@ test("admin can open /admin, create a space, and invite by search", async ({ pag
   await page.goto("/");
   await createSpace(page, space);
 
+  await clickEl(page.locator(".sidebar").getByRole("link", { name: "Space settings" }));
   await clickEl(page.getByRole("link", { name: "People" }));
   await expect(page.getByRole("heading", { name: "People" })).toBeVisible();
   await fillField(page.getByPlaceholder("Search name or email…"), memberEmail);

@@ -76,13 +76,23 @@ export async function createSpace(page: Page, name: string) {
   await expect(page.getByRole("heading", { name })).toBeVisible();
 }
 
-export async function createSoftwareProject(page: Page, name: string) {
+export async function openTickets(page: Page) {
+  await clickEl(page.locator(".sidebar").getByRole("link", { name: "Tickets" }));
+  await expect(page.getByRole("heading", { name: "Board" })).toBeVisible();
+}
+
+export async function createSoftwareProject(
+  page: Page,
+  name: string,
+  opts: { tickets?: boolean } = {},
+) {
   await clickEl(page.getByRole("button", { name: "Create project" }));
   const dialog = page.locator(".create-dialog").filter({ hasText: "Create project" });
   await fillField(dialog.getByLabel(/Name/), name);
   await submitForm(dialog);
   await expect(page).toHaveURL(/\/projects\//);
-  await expect(page.getByRole("heading", { name: "Board" })).toBeVisible();
+  await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();
+  if (opts.tickets !== false) await openTickets(page);
 }
 
 export async function createIssue(page: Page, title: string) {

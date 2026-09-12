@@ -41,20 +41,24 @@
 
 ## 3. Space sidebar / 헤더 (`/clients/:id`)
 
+Space switcher와 본문 제목이 같은 이름을 두 번 쓰지 않는다. 설정은 프로젝트와 같이 **좌측 사이드바**.
+
 ```
-Breadcrumb: Projects / {Space}
-[ Space name ] [ Create project ] [ ⚙️ Space settings ]
-테이블: projects
+[ ← Back to projects ]
+[ Space Switcher ▾ ]
+──────────── Settings
+  Space settings → /clients/:id/settings/details
+본문: 이름 · 설명 · [ Create project ] · 프로젝트 테이블
 ```
 
 | 메뉴 | 경로 |
 | --- | --- |
-| Space settings ▾ 또는 ⚙️ | `/clients/:id/settings/details` |
+| Space settings | `/clients/:id/settings/details` |
 | → Details | `.../settings/details` |
 | → People | `.../settings/people` |
 | → Delete | `.../settings/danger` (owner) |
 
-Space hub 컨텍스트.
+헤더 People/⚙️는 두지 않는다. People은 Space settings.
 
 ---
 
@@ -65,18 +69,20 @@ Space hub 컨텍스트.
 [ Space Switcher ▾ ]       → 드롭다운 스위처 (사이드바 하단 전역 덤프 금지)
 [ Icon · Project name ]
 ──────────── Work
-  Overview / Board 랜딩    → `/projects/:id?view=board` (뷰 전환은 툴바 세그먼트만)
+  Overview                 → `/projects/:id` (이름·설명·수행 중 티켓)
+  Tickets                  → `/projects/:id?view=board` (툴바 Board|Backlog|Timeline|List)
 ──────────── Settings
   Project settings → /projects/:id/settings/* (단일 셸 전환, 이중 사이드바 금지)
 ```
 
-- **뷰 전환 일원화:** Board/Backlog/Timeline/List는 **작업 툴바 세그먼트 탭만** 진실 공급원. 사이드바에 4뷰 링크를 두지 않는다.
+- **Overview ≠ Board:** Overview는 프로젝트 랜딩(이름·설명·`category=active` 티켓). Tickets가 작업 뷰.
+- **뷰 전환 일원화:** Board/Backlog/Timeline/List는 **Tickets 툴바 세그먼트만**. 사이드바에 4뷰 링크를 두지 않는다.
 - **전역 스페이스 덤프 금지:** 사이드바 하단에 시스템의 모든 스페이스를 수직 나열하지 않고, 상단 Space Switcher로 압축한다.
 - **설정 셸:** `Project settings` 진입 시 프로젝트 사이드바를 숨기고, 설정 전용 단일 사이드바만 사용한다.
 
 | 구역 | 항목 | 비고 |
 | --- | --- | --- |
-| Work | Board 랜딩 링크 1개 | 4대 뷰 전환은 툴바 세그먼트 |
+| Work | Overview · Tickets | 4대 뷰 전환은 Tickets 툴바 세그먼트 |
 | Settings | Project settings | **단일 셸 관리** — [admin.md](admin.md) |
 | Development | — | 비표시 |
 | Think | Ideas/Wiki/Goals | **Exclude** |

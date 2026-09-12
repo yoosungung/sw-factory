@@ -17,9 +17,9 @@
 ## F2. Projects — `/projects`
 
 **Layout:** Top nav(사이드바 없음) + 제목 Projects + Create space · Create project + 테이블 (Name, Space, Role).  
-**Behavior:** 행 → `/projects/:id?view=board` (Space hub 생략). Create space → `POST /api/clients` 후 hub (**admin만**); Create project → space 선택 후 `POST /api/projects`. 비admin·무멤버십 빈 화면: admin 초대 안내.  
+**Behavior:** 행 → `/projects/:id` (Overview). Create space → `POST /api/clients` 후 hub (**admin만**); Create project → space 선택 후 `POST /api/projects`. 비admin·무멤버십 빈 화면: admin 초대 안내.  
 **API:** `GET /api/projects`, `GET /api/clients`.  
-**Connections:** → Project board. Top nav **Projects**.
+**Connections:** → Project Overview. Top nav **Projects**.
 
 ---
 
@@ -43,16 +43,25 @@
 
 ## F4. Space hub — `/clients/:id`
 
-**Layout:** Breadcrumb, Space 헤더(이름·설명·⚙️), Create project, People, 프로젝트 테이블 (Name, role).  
-**Behavior:** 행 → `/projects/:id?view=board`; ⚙️ → settings; People → `.../settings/people`.  
+**Layout:** 좌측 Space Switcher + Space settings. 본문 Breadcrumb, 이름·설명, Create project, 프로젝트 테이블 (Name, Type).  
+**Behavior:** 행 → `/projects/:id` (Overview). Space settings → `.../settings/details`.  
 **API:** `GET /api/clients/:id`, `GET …/projects`, `POST /api/projects`.  
-**Connections:** → Project views · Space People.
+**Connections:** → Project Overview · Tickets · Space settings.
+
+---
+
+## F4b. Project Overview — `/projects/:id` (`?view=overview` 또는 view 없음)
+
+**Layout:** 프로젝트 이름, 설명(없으면 muted 한 줄), **In progress** (`project_statuses.category=active` 티켓 목록).  
+**Behavior:** 티켓 행 → issue 인스펙터. 사이드바 **Overview** 활성.  
+**API:** `GET /api/projects/:id`, `GET …/kanban`.  
+**Connections:** → Tickets · Issue.
 
 ---
 
 ## F5. Board — `/projects/:id?view=board`
 
-**Layout:** 툴바(타이틀 + 세그먼트 탭 `Board|Backlog|Timeline|List` + 검색·•••) + **프로젝트 statuses 순서** 컬럼 + 카드.  
+**Layout:** Tickets 작업 뷰. 툴바(타이틀 + 세그먼트 탭 `Board|Backlog|Timeline|List` + 검색·•••) + **프로젝트 statuses 순서** 컬럼 + 카드.  
 **카드 규격:** 타입 아이콘 + 키(`MOB-F416`) + 우선순위 뱃지(High/Medium/Low 컬러 태그) + 2줄 말줄임 타이틀 + 마감일 태그 + 우측 정렬된 담당자 아바타.  
 **Behavior:** 드래그 → `PATCH` `{ status, sort_order, version }`; 카드 클릭 → **논모달 사이드 인스펙터** 오픈; Group by(assignee/milestone/type) **Prod 포함**(클라이언트 그룹핑); 가로 스크롤 페이드 인디케이터. 티켓 생성은 탑바 **Create**(F14)만 — 컬럼 인라인 생성은 보류.  
 **API:** `GET …/kanban` (`columns`+`statuses`; `category=done` 최근건 기본), `POST …/tickets`.  
@@ -125,7 +134,7 @@
 **Layout:** People 테이블 (name, email, Spaces/Projects 소속 요약). 검색.  
 **Behavior:** 행 → 해당 사용자가 속한 Space/Project 목록 패널; Add to project(owner 컨텍스트).  
 **API:** members 목록 API 보강(설계: `GET /api/people` = 내가 볼 수 있는 멤버 합집합).  
-**Connections:** → Space/Project People. Top nav에는 없음 — Space hub **People**이 members API 화면.
+**Connections:** → Space/Project People. Top nav에는 없음 — Space settings **People**.
 
 ---
 
@@ -168,8 +177,9 @@ expand / dock(선택) / Esc. 성공 → 보드 Backlog 컬럼에 카드 + issue 
 
 ```mermaid
 flowchart LR
-  F2b[F2b Spaces] --> F4 --> F5
-  F2[F2 Projects] --> F5
+  F2b[F2b Spaces] --> F4 --> F4b[F4b Overview]
+  F2[F2 Projects] --> F4b
+  F4b --> F5
   F5 --- F6
   F5 --- F7
   F5 --- F8

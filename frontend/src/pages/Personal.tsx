@@ -198,12 +198,12 @@ export function YourWorkPage({
         {tab === "projects" && (
           <div className="content-panel tableish">
             {recentProjects.map((p) => (
-              <Link key={p.id} to={`/projects/${p.id}?view=board`} className="list-row linkish">
+              <Link key={p.id} to={`/projects/${p.id}`} className="list-row linkish">
                 <span className="name-cell">
                   <span className="project-icon sm">{initials(p.name)}</span>
                   {p.name}
                 </span>
-                <span className="muted">Open board</span>
+                <span className="muted">Open</span>
               </Link>
             ))}
           </div>
@@ -428,7 +428,7 @@ export function SearchPage({
             <h2 className="section-title pad">Projects</h2>
             <div className="content-panel tableish">
               {results.projects.map((p) => (
-                <Link key={p.id} to={`/projects/${p.id}?view=board`} className="list-row linkish">
+                <Link key={p.id} to={`/projects/${p.id}`} className="list-row linkish">
                   <span>{p.name}</span>
                 </Link>
               ))}

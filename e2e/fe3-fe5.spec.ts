@@ -109,6 +109,7 @@ test("FE8: board settings custom column appears on board", async ({ page }) => {
   await expect(page.getByText("Board columns saved")).toBeVisible({ timeout: 10000 });
 
   await clickEl(page.getByRole("link", { name: "← Back to project" }));
+  await clickEl(page.locator(".sidebar").getByRole("link", { name: "Tickets" }));
   await expect(
     page.locator(".board-col").filter({ has: page.getByRole("heading", { name: "Staging" }) }),
   ).toBeVisible({ timeout: 10000 });
