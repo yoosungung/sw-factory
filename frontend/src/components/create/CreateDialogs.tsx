@@ -309,6 +309,7 @@ export function CreateProjectUnderClientDialog({
   onCreated: (projectId: string) => void;
 }) {
   const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
   const [spaceId, setSpaceId] = useState(clientId ?? clients?.[0]?.id ?? "");
   const [busy, setBusy] = useState(false);
   useEscape(onClose, true);
@@ -318,7 +319,7 @@ export function CreateProjectUnderClientDialog({
     e.preventDefault();
     if (!spaceId) return;
     setBusy(true);
-    const r = await client.createProject({ name, client_id: spaceId });
+    const r = await client.createProject({ name, description, client_id: spaceId });
     onCreated(r.project.id);
   }
 
@@ -347,6 +348,10 @@ export function CreateProjectUnderClientDialog({
           <label className="span-2">
             Name <span className="req">*</span>
             <input value={name} onChange={(e) => setName(e.target.value)} required autoFocus />
+          </label>
+          <label className="span-2">
+            Description
+            <input value={description} onChange={(e) => setDescription(e.target.value)} />
           </label>
         </div>
         <div className="create-dialog-foot">

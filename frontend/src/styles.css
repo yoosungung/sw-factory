@@ -2038,7 +2038,14 @@ select {
 .settings-form {
   display: grid;
   gap: 12px;
-  max-width: 480px;
+  max-width: 720px;
+  width: 100%;
+}
+.settings-form input,
+.settings-form textarea,
+.settings-form select {
+  width: 100%;
+  box-sizing: border-box;
 }
 .settings-form label {
   display: grid;

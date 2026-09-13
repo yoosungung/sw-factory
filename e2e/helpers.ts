@@ -84,11 +84,14 @@ export async function openTickets(page: Page) {
 export async function createSoftwareProject(
   page: Page,
   name: string,
-  opts: { tickets?: boolean } = {},
+  opts: { tickets?: boolean; description?: string } = {},
 ) {
   await clickEl(page.getByRole("button", { name: "Create project" }));
   const dialog = page.locator(".create-dialog").filter({ hasText: "Create project" });
-  await fillField(dialog.getByLabel(/Name/), name);
+  await fillField(dialog.getByLabel(/^Name/), name);
+  if (opts.description !== undefined) {
+    await fillField(dialog.getByLabel(/^Description/), opts.description);
+  }
   await submitForm(dialog);
   await expect(page).toHaveURL(/\/projects\//);
   await expect(page.getByRole("heading", { name, exact: true })).toBeVisible();

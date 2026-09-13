@@ -142,6 +142,7 @@ IA 구조는 [overview.md](overview.md), 메뉴는 [menus.md](menus.md), 화면�
 ### 3.7 Project Settings Shell (이중 사이드바 제거)
 - **문제 해결:** 프로젝트 사이드바 옆에 설정 사이드바가 나란히 붙어 2개의 사이드바가 화면의 40%를 차지하는 문제 해결.
 - **표준 구조:** `/projects/:id/settings/*` 진입 시, 상단 브레드크럼(`Projects / Project Name / Settings`)을 제공하고 좌측 메인 사이드바는 컴팩트하게 접거나(Collapsed), 설정 전용 단일 사이드바로 깔끔하게 치환한다.
+- **본문 폭:** Details·Board 등 폼 영역(`.settings-form`)은 max-width **720px** (입력은 컨테이너 전체 폭).
 
 ### 3.8 Responsive & Mobile Rules
 - **Breakpoints:**

@@ -38,8 +38,12 @@ test("UX5: space settings in sidebar; overview vs tickets", async ({ page }) => 
   await expect(page.locator(".page-header").getByRole("link", { name: /Settings/ })).toHaveCount(0);
   await expect(page.locator(".page-header").getByRole("link", { name: "People" })).toHaveCount(0);
 
-  await createSoftwareProject(page, project, { tickets: false });
+  await createSoftwareProject(page, project, {
+    tickets: false,
+    description: `Desc for ${project}`,
+  });
   await expect(page.getByRole("heading", { name: project, exact: true })).toBeVisible();
+  await expect(page.locator(".overview-desc")).toHaveText(`Desc for ${project}`);
   await expect(page.getByRole("heading", { name: "In progress", exact: true })).toBeVisible();
   await expect(page.locator(".view-segment")).toHaveCount(0);
   await expect(page.locator(".sidebar").getByRole("link", { name: "Overview" })).toHaveClass(/active/);

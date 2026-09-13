@@ -40,7 +40,7 @@ Space/사이트 관리 축소.
 
 ### 3.1 Details — `.../details`
 
-**Layout:** name, description, 저장.  
+**Layout:** name, description, 저장. 본문(`.settings-form`) max-width **720px**.  
 **API:** `GET/PATCH /api/clients/:id`.  
 **Connections:** ← Space hub.
 
@@ -72,7 +72,7 @@ Project settings (Details / People).
 
 ### 4.1 Details — `.../details`
 
-**Layout:** name, description, parent Space(client) 표시·변경(대상 Space 멤버십 필요).  
+**Layout:** name, description, parent Space(client) 표시·변경(대상 Space 멤버십 필요). 본문(`.settings-form`) max-width **720px**.  
 **API:** `GET/PATCH /api/projects/:id`.
 
 ### 4.2 People — `.../people`
@@ -90,7 +90,7 @@ Space People와 동일 UX. 초대는 해당 Space 멤버만(이메일/`user_id`)
 
 ### 4.3 Board — `.../board`
 
-**Layout:** 프로젝트 status 목록 편집(label · category · 순서). 기본 9컬럼(Backlog→…→Done + Blocked/Waiting).  
+**Layout:** 프로젝트 status 목록 편집(label · category · 순서). 기본 9컬럼(Backlog→…→Done + Blocked/Waiting). 본문(`.settings-form`) max-width **720px** (컬럼 행 그리드 여유).  
 **Behavior:** owner만 추가·이름변경·순서변경·삭제 후 Save → `PUT /api/projects/:id/statuses` (`migrate`로 티켓 재매핑). 멤버는 읽기 전용.
 
 ### 4.4 Danger zone — `.../danger`
