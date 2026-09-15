@@ -1,0 +1,12 @@
+{
+  "name": "sw-factory-agent",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@cursor/sdk": "^1.0.31",
+    "@hono/node-server": "^2.1.1",
+    "hono": "^4.7.2",
+    "tsx": "^4.23.13",
+    "yaml": "^2.9.0"
+  }
+}

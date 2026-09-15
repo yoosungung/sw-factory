@@ -52,10 +52,20 @@ ENV_ARGS=(
   -e "GATEWAY_SESSION_COOKIE=${GATEWAY_SESSION_COOKIE:-${FACTORY_SESSION_COOKIE:-}}"
   -e "DATA_DIR=/data"
   -e "AGENTS_YAML=/config/agents.yaml"
+  -e "ENSURE_REPOS=${ENSURE_REPOS:-1}"
 )
 
 if [[ -n "${CURSOR_API_KEY:-}" ]]; then
   ENV_ARGS+=(-e "CURSOR_API_KEY=$CURSOR_API_KEY")
+fi
+if [[ -n "${GH_TOKEN:-}${GITHUB_TOKEN:-}" ]]; then
+  ENV_ARGS+=(-e "GH_TOKEN=${GH_TOKEN:-$GITHUB_TOKEN}")
+fi
+if [[ -n "${APPLY_PERSONA_SEEDS:-}" ]]; then
+  ENV_ARGS+=(-e "APPLY_PERSONA_SEEDS=$APPLY_PERSONA_SEEDS")
+fi
+if [[ -n "${PERSONA_SEED_DIR:-}" ]]; then
+  ENV_ARGS+=(-e "PERSONA_SEED_DIR=$PERSONA_SEED_DIR")
 fi
 if [[ -n "${AGENT_BACKEND:-}" ]]; then
   ENV_ARGS+=(-e "AGENT_BACKEND=$AGENT_BACKEND")

@@ -84,21 +84,61 @@ export async function buildPersonaBundle(
   return buildPersonaBundleFromTrees(defaultTree, personaTree);
 }
 
-export async function applyPersonaBundle(opts: {
-  dataDir: string;
-  persona: string;
-  personasRoot: string;
-}): Promise<{ cwd: string; memoryWritten: boolean; filesWritten: number }> {
-  const bundle = await buildPersonaBundle(opts.persona, opts.personasRoot);
-  const cwd = path.join(opts.dataDir, "workspaces", opts.persona);
-  await mkdir(cwd, { recursive: true });
+/** Persona overlay dirs under deploy/personas (excludes `_default`). */
+export async function listPersonaIds(personasRoot: string): Promise<string[]> {
+  const entries = await readdir(personasRoot, { withFileTypes: true });
+  return entries
+    .filter((e) => e.isDirectory() && e.name !== "_default" && !e.name.startsWith("."))
+    .map((e) => e.name)
+    .sort();
+}
 
+async function writeBundleTree(
+  outDir: string,
+  bundle: Record<string, string>,
+): Promise<number> {
+  let written = 0;
+  for (const [rel, content] of Object.entries(bundle)) {
+    const dest = path.join(outDir, rel);
+    await mkdir(path.dirname(dest), { recursive: true });
+    await writeFile(dest, content, "utf8");
+    written += 1;
+  }
+  return written;
+}
+
+/**
+ * Merge `_default`⊕overlay into prepared seed trees: `{outDir}/{persona}/MEMORY.md` + skills.
+ * Used by Docker image build (final image has no raw overlay source).
+ */
+export async function preparePersonaSeeds(opts: {
+  personasRoot: string;
+  outDir: string;
+  personas?: string[];
+}): Promise<string[]> {
+  const personas =
+    opts.personas?.slice().sort() ?? (await listPersonaIds(opts.personasRoot));
+  await mkdir(opts.outDir, { recursive: true });
+  for (const persona of personas) {
+    const bundle = await buildPersonaBundle(persona, opts.personasRoot);
+    const dest = path.join(opts.outDir, persona);
+    await mkdir(dest, { recursive: true });
+    await writeBundleTree(dest, bundle);
+  }
+  return personas;
+}
+
+async function applyBundleToWorkspace(opts: {
+  cwd: string;
+  bundle: Record<string, string>;
+}): Promise<{ memoryWritten: boolean; filesWritten: number }> {
+  await mkdir(opts.cwd, { recursive: true });
   let memoryWritten = false;
   let filesWritten = 0;
 
-  for (const [rel, content] of Object.entries(bundle)) {
+  for (const [rel, content] of Object.entries(opts.bundle)) {
     if (rel === "MEMORY.md" || rel === ".cursor/MEMORY.md") {
-      const memDest = path.join(cwd, "MEMORY.md");
+      const memDest = path.join(opts.cwd, "MEMORY.md");
       try {
         await stat(memDest);
       } catch {
@@ -109,11 +149,55 @@ export async function applyPersonaBundle(opts: {
       }
       continue;
     }
-    const dest = path.join(cwd, rel);
+    const dest = path.join(opts.cwd, rel);
     await mkdir(path.dirname(dest), { recursive: true });
     await writeFile(dest, content, "utf8");
     filesWritten += 1;
   }
 
-  return { cwd, memoryWritten, filesWritten };
+  return { memoryWritten, filesWritten };
+}
+
+export async function applyPersonaBundle(opts: {
+  dataDir: string;
+  persona: string;
+  personasRoot: string;
+}): Promise<{ cwd: string; memoryWritten: boolean; filesWritten: number }> {
+  const bundle = await buildPersonaBundle(opts.persona, opts.personasRoot);
+  const cwd = path.join(opts.dataDir, "workspaces", opts.persona);
+  const result = await applyBundleToWorkspace({ cwd, bundle });
+  return { cwd, ...result };
+}
+
+/** Apply a pre-merged seed tree from `{seedRoot}/{persona}/` (Docker `/opt/persona-seed`). */
+export async function applyPreparedPersonaSeed(opts: {
+  dataDir: string;
+  persona: string;
+  seedRoot: string;
+}): Promise<{ cwd: string; memoryWritten: boolean; filesWritten: number }> {
+  const seedDir = path.join(opts.seedRoot, opts.persona);
+  const bundle = await collectTree(seedDir);
+  const cwd = path.join(opts.dataDir, "workspaces", opts.persona);
+  const result = await applyBundleToWorkspace({ cwd, bundle });
+  return { cwd, ...result };
+}
+
+/** Apply every persona directory under seedRoot into dataDir/workspaces. */
+export async function applyAllPreparedPersonaSeeds(opts: {
+  dataDir: string;
+  seedRoot: string;
+}): Promise<
+  Array<{ persona: string; cwd: string; memoryWritten: boolean; filesWritten: number }>
+> {
+  const personas = await listPersonaIds(opts.seedRoot);
+  const out = [];
+  for (const persona of personas) {
+    const r = await applyPreparedPersonaSeed({
+      dataDir: opts.dataDir,
+      persona,
+      seedRoot: opts.seedRoot,
+    });
+    out.push({ persona, ...r });
+  }
+  return out;
 }

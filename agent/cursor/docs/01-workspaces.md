@@ -17,11 +17,12 @@
 ```
 
 시드 정본: [deploy/personas/](../../../deploy/personas/) — `_default/` + `{persona}/` overlay.  
-머지·적용: [persona-bundle](../src/persona-bundle.ts) (`buildPersonaBundle` · `applyPersonaBundle`).  
+머지·적용: [persona-bundle](../src/persona-bundle.ts) (`buildPersonaBundle` · `applyPersonaBundle` · `preparePersonaSeeds` · `applyPreparedPersonaSeed`).  
 `MEMORY.md`는 **seed-once**(파일 없을 때만). skills/rules는 재시드 시 overwrite.  
 세션 쿠키·`mcp.json`은 [factory-mcp seed](../mcp/seed.ts)가 생성(번들 mcp.json은 사용하지 않음).  
 **Repo ensure:** seed 시 `agents.yaml` `repos[]` + agent `primary_repo`/`repo_ids`로 `repos/{id}` clone-if-missing·fetch ([ensure-repos](../src/ensure-repos.ts)); `.cursor/clients-repos-registry.json` 기록. `GH_TOKEN`/`GITHUB_TOKEN` 필요(private).  
-k8s/Docker: Pod 기동 시 [entrypoint](../../../deploy/docker/entrypoint.sh)가 `ensure-repos-cli` 실행(PVC 유지·재시작=fetch). 쿠키/MEMORY는 [job-seed-personas](../../../deploy/k8s/job-seed-personas.yaml) 또는 로컬 `seed-personas.sh`.
+**Docker 이미지:** 빌드가 overlay를 `/opt/persona-seed/{persona}/`로 머지해 넣고, entrypoint가 PVC workspace에 적용. 원본 overlay는 최종 이미지에 없음 ([deploy/docker/README](../../../deploy/docker/README.md)).  
+k8s/Docker: Pod 기동 시 entrypoint가 persona seed 적용 + `ensure-repos-cli`(PVC 유지·재시작=fetch). 쿠키·mcp는 [job-seed-personas](../../../deploy/k8s/job-seed-personas.yaml) 또는 로컬 `seed-personas.sh`.
 
 ## 규칙
 

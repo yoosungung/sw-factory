@@ -1,7 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { loginFactory } from "./client";
-import { applyPersonaBundle } from "../src/persona-bundle";
+import { applyPersonaBundle, applyPreparedPersonaSeed } from "../src/persona-bundle";
 import {
   ensurePersonaRepos,
   resolveGhToken,
@@ -29,6 +29,8 @@ export async function seedPersonaWorkspace(opts: {
   persona: PersonaSeed;
   fetchImpl?: typeof fetch;
   personasRoot?: string;
+  /** Pre-merged seed root (`/opt/persona-seed`). Takes precedence over personasRoot. */
+  seedRoot?: string;
   agent?: LoadedPersona;
   repos?: LoadedRepo[];
   ghToken?: string;
@@ -77,12 +79,19 @@ export async function seedPersonaWorkspace(opts: {
 
   const personasRoot =
     opts.personasRoot ?? path.resolve(process.cwd(), "deploy/personas");
-  await applyPersonaBundle({
-    dataDir: opts.dataDir,
-    persona: opts.persona.persona,
-    personasRoot,
-  });
-
+  if (opts.seedRoot) {
+    await applyPreparedPersonaSeed({
+      dataDir: opts.dataDir,
+      persona: opts.persona.persona,
+      seedRoot: opts.seedRoot,
+    });
+  } else {
+    await applyPersonaBundle({
+      dataDir: opts.dataDir,
+      persona: opts.persona.persona,
+      personasRoot,
+    });
+  }
   let reposEnsured: EnsureRepoResult[] = [];
   if (opts.agent && opts.repos) {
     reposEnsured = await ensurePersonaRepos({

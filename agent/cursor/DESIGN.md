@@ -48,10 +48,15 @@ npm run test:agent
 npm test
 npm run agent:cursor -- --config agent/cursor/reference/agents.yaml.sample --mock
 npx tsx agent/cursor/src/seed-cli.ts --config deploy/local/agents.yaml --data-dir /tmp/swf-data
+# build-time merge overlays → prepared seed trees (Docker prepare stage)
+npx tsx agent/cursor/src/prepare-persona-seeds-cli.ts --personas-root deploy/personas --out /tmp/persona-seed
+# runtime apply prepared seeds → workspaces (Docker entrypoint)
+npx tsx agent/cursor/src/apply-persona-seeds-cli.ts --seed-dir /opt/persona-seed --data-dir /data
 # ensures repos from yaml (set GH_TOKEN for private clones)
 npx tsx agent/cursor/src/ensure-repos-cli.ts --config deploy/agents.yaml --data-dir /tmp/swf-data
-# k8s/Docker: entrypoint runs ensure-repos-cli when ENSURE_REPOS≠0 (see deploy/k8s/README.md)
+# k8s/Docker: entrypoint applies /opt/persona-seed then ensure-repos-cli (see deploy/docker/README.md)
 ```
 
 `CURSOR_API_KEY` + `@cursor/sdk` 설치 시 실 local agent; 아니면 mock.  
-persona 번들: [deploy/personas/](../../deploy/personas/) · [persona-bundle.ts](src/persona-bundle.ts).
+persona 번들: [deploy/personas/](../../deploy/personas/) · [persona-bundle.ts](src/persona-bundle.ts).  
+Docker 이미지: 공통 runtime + `/opt/persona-seed/{persona}` (머지본); 원본 overlay는 최종 이미지에 없음.

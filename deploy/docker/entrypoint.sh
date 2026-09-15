@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
-# Single-container supervisor: cursor listen, then gateway poll.
+# Single-container supervisor: persona seeds → ensure-repos → cursor → gateway.
 set -euo pipefail
 
 DATA_DIR="${DATA_DIR:-/data}"
 AGENTS_YAML="${AGENTS_YAML:-/config/agents.yaml}"
 FACTORY_BASE_URL="${FACTORY_BASE_URL:-https://factory.askwho.net}"
+PERSONA_SEED_DIR="${PERSONA_SEED_DIR:-/opt/persona-seed}"
 CURSOR_ARGS=(--config "$AGENTS_YAML" --data-dir "$DATA_DIR")
 GATEWAY_DATA_DIR="${GATEWAY_DATA_DIR:-$DATA_DIR/gateway}"
 
@@ -23,6 +24,7 @@ mkdir -p "$DATA_DIR/gateway" "$DATA_DIR/workspaces" "$DATA_DIR/shared/tool-cache
 export FACTORY_BASE_URL
 export DATA_DIR
 export AGENTS_YAML
+export PERSONA_SEED_DIR
 
 pids=()
 
@@ -35,6 +37,16 @@ term() {
 trap term SIGTERM SIGINT
 
 cd /app
+
+# Prepared seeds (/opt/persona-seed) → /data/workspaces/{persona}
+# Skip: APPLY_PERSONA_SEEDS=0
+if [[ "${APPLY_PERSONA_SEEDS:-1}" != "0" && -d "$PERSONA_SEED_DIR" ]]; then
+  echo "{\"msg\":\"persona_seeds_start\",\"seedDir\":\"$PERSONA_SEED_DIR\"}"
+  npx tsx agent/cursor/src/apply-persona-seeds-cli.ts \
+    --seed-dir "$PERSONA_SEED_DIR" \
+    --data-dir "$DATA_DIR"
+  echo "{\"msg\":\"persona_seeds_done\"}"
+fi
 
 # PVC repos: clone-if-missing / fetch (agents.yaml repos[] + primary_repo/repo_ids).
 # Skip: ENSURE_REPOS=0. Private: GH_TOKEN or GITHUB_TOKEN.

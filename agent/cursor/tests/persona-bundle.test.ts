@@ -4,8 +4,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import {
   applyPersonaBundle,
+  applyPreparedPersonaSeed,
   buildPersonaBundle,
   mergeMemory,
+  preparePersonaSeeds,
 } from "../src/persona-bundle";
 
 const repoRoot = path.resolve(
@@ -85,6 +87,73 @@ describe("persona-bundle", () => {
     });
     expect(second.memoryWritten).toBe(false);
     expect(await readFile(memPath, "utf8")).toBe("# edited by runtime\n");
+    expect(await readFile(skillPath, "utf8")).toContain("get_ticket");
+  });
+
+  it("preparePersonaSeeds writes merged trees without .sample", async () => {
+    const tmpRoot = path.join(repoRoot, "agent/.tmp-test");
+    await mkdir(tmpRoot, { recursive: true });
+    const outDir = await mkdtemp(path.join(tmpRoot, "seed-"));
+
+    const prepared = await preparePersonaSeeds({
+      personasRoot,
+      outDir,
+      personas: ["pm", "km"],
+    });
+    expect(prepared).toEqual(["km", "pm"]);
+
+    const pmMem = await readFile(path.join(outDir, "pm", "MEMORY.md"), "utf8");
+    expect(pmMem).toContain("persona: pm");
+    expect(pmMem).toContain("factory-collab");
+    await access(
+      path.join(outDir, "pm", ".cursor", "skills", "factory-collab", "SKILL.md"),
+    );
+    await access(
+      path.join(outDir, "km", ".cursor", "skills", "km-researcher", "SKILL.md"),
+    );
+    await expect(
+      access(path.join(outDir, "pm", "MEMORY.md.sample")),
+    ).rejects.toBeTruthy();
+    await expect(access(path.join(outDir, "_default"))).rejects.toBeTruthy();
+  });
+
+  it("applyPreparedPersonaSeed seed-once MEMORY and overwrites skills", async () => {
+    const tmpRoot = path.join(repoRoot, "agent/.tmp-test");
+    await mkdir(tmpRoot, { recursive: true });
+    const outDir = await mkdtemp(path.join(tmpRoot, "seed-"));
+    const dataDir = await mkdtemp(path.join(tmpRoot, "data-"));
+    await preparePersonaSeeds({
+      personasRoot,
+      outDir,
+      personas: ["pm"],
+    });
+
+    const first = await applyPreparedPersonaSeed({
+      dataDir,
+      persona: "pm",
+      seedRoot: outDir,
+    });
+    expect(first.memoryWritten).toBe(true);
+    const memPath = path.join(dataDir, "workspaces", "pm", "MEMORY.md");
+    await writeFile(memPath, "# edited\n", "utf8");
+    const skillPath = path.join(
+      dataDir,
+      "workspaces",
+      "pm",
+      ".cursor",
+      "skills",
+      "factory-collab",
+      "SKILL.md",
+    );
+    await writeFile(skillPath, "# stale\n", "utf8");
+
+    const second = await applyPreparedPersonaSeed({
+      dataDir,
+      persona: "pm",
+      seedRoot: outDir,
+    });
+    expect(second.memoryWritten).toBe(false);
+    expect(await readFile(memPath, "utf8")).toBe("# edited\n");
     expect(await readFile(skillPath, "utf8")).toContain("get_ticket");
   });
 });

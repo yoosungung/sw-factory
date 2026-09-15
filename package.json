@@ -19,6 +19,7 @@
     "deploy": "npm run build && wrangler deploy -c dist/sw_factory_workers/wrangler.json"
   },
   "dependencies": {
+    "@cursor/sdk": "^1.0.31",
     "@hono/node-server": "^2.1.1",
     "hono": "^4.7.2",
     "react": "^19.0.0",

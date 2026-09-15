@@ -6,7 +6,7 @@
  *   npx tsx agent/cursor/src/seed-cli.ts \
  *     --config deploy/local/agents.yaml \
  *     --data-dir deploy/local/.local-data \
- *     --password-env PERSONA_PASSWORD
+ *     [--seed-dir /opt/persona-seed | --personas-root deploy/personas]
  *
  * Password: PERSONA_PASSWORD_<NAME> or PERSONA_PASSWORD (shared).
  * GitHub: GH_TOKEN or GITHUB_TOKEN (private repos).
@@ -41,6 +41,7 @@ async function main() {
   const personasRoot =
     arg("--personas-root") ??
     path.resolve(process.cwd(), "deploy/personas");
+  const seedRoot = arg("--seed-dir") ?? process.env.PERSONA_SEED_DIR;
   const ghToken = resolveGhToken();
 
   const sessions = file.agents.filter((a) => a.type === "sessions");
@@ -57,7 +58,8 @@ async function main() {
     const { cwd, reposEnsured } = await seedPersonaWorkspace({
       dataDir,
       factoryBaseUrl,
-      personasRoot,
+      personasRoot: seedRoot ? undefined : personasRoot,
+      seedRoot,
       persona: {
         name: a.name,
         email: a.email,

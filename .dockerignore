@@ -1,9 +1,12 @@
 # Repo-root context for deploy/docker/Dockerfile
 node_modules
+**/node_modules
 .git
 .wrangler
 .tools
 .tmp-test
+docs
+tests
 dist
 frontend/dist
 e2e/playwright-report

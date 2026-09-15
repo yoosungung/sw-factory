@@ -9,8 +9,9 @@ kubelet `gitRepo` 볼륨은 쓰지 않는다(보안·1.36 제거). **앱과 동�
 
 | 경로 | 언제 | 무엇을 |
 |------|------|--------|
+| Pod **entrypoint** persona seeds | 매 기동 (`APPLY_PERSONA_SEEDS=1`, 기본) | `/opt/persona-seed/{persona}` → `/data/workspaces/{persona}` (MEMORY seed-once · skills overwrite) |
 | Pod **entrypoint** `ensure-repos-cli` | 매 기동 (`ENSURE_REPOS=1`, 기본) | `agents.yaml` `repos[]` + `primary_repo`/`repo_ids` → `/data/workspaces/{persona}/repos/{id}` clone-if-missing·fetch · registry 기록 |
-| **Job** `job-seed-personas.yaml` | PVC 최초·쿠키/MEMORY 재시드 | factory 로그인 + personas 번들 + ensure (로컬 `seed-personas.sh`와 동일) |
+| **Job** `job-seed-personas.yaml` | PVC 최초·쿠키 재시드 | factory 로그인 + prepared seed + ensure (로컬 `seed-personas.sh`와 유사; `--seed-dir /opt/persona-seed`) |
 
 Secret에 `GH_TOKEN`(private HTTPS). public만이면 생략 가능. 끄기: `ENSURE_REPOS=0`.
 

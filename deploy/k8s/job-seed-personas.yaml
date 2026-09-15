@@ -33,8 +33,8 @@ spec:
             - /config/agents.yaml
             - --data-dir
             - /data
-            - --personas-root
-            - /app/deploy/personas
+            - --seed-dir
+            - /opt/persona-seed
           env:
             - name: FACTORY_BASE_URL
               value: https://factory.askwho.net
