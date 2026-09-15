@@ -1825,6 +1825,90 @@ select {
   border-color: var(--color-brand);
   box-shadow: 0 0 0 1px var(--color-brand);
 }
+.issue-desc-view {
+  width: 100%;
+  min-height: 100px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-surface-sunken);
+  padding: 10px 12px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-text-primary);
+  box-sizing: border-box;
+  cursor: text;
+  text-align: left;
+}
+.issue-desc-view:hover,
+.issue-desc-view:focus-visible {
+  border-color: var(--color-border-subtle);
+  background: var(--ds-surface);
+  outline: none;
+}
+.rich-content {
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-text-primary);
+  overflow-wrap: anywhere;
+}
+.rich-content > :first-child {
+  margin-top: 0;
+}
+.rich-content > :last-child {
+  margin-bottom: 0;
+}
+.rich-content p,
+.rich-content ul,
+.rich-content ol,
+.rich-content pre,
+.rich-content blockquote,
+.rich-content table {
+  margin: 0.5em 0;
+}
+.rich-content ul,
+.rich-content ol {
+  padding-left: 1.35em;
+}
+.rich-content pre {
+  overflow-x: auto;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--ds-background-neutral, var(--color-bg-surface-sunken));
+  font-size: 12px;
+}
+.rich-content code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.92em;
+}
+.rich-content :not(pre) > code {
+  padding: 0.1em 0.35em;
+  border-radius: 3px;
+  background: var(--ds-background-neutral, var(--color-bg-surface-sunken));
+}
+.rich-content a {
+  color: var(--ds-link, var(--color-brand));
+}
+.rich-content blockquote {
+  margin-left: 0;
+  padding-left: 10px;
+  border-left: 3px solid var(--color-border-default);
+  color: var(--color-text-secondary);
+}
+.rich-content table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 12px;
+}
+.rich-content th,
+.rich-content td {
+  border: 1px solid var(--color-border-subtle);
+  padding: 4px 8px;
+  text-align: left;
+}
+.rich-content img {
+  max-width: 100%;
+  height: auto;
+}
 .card-meta {
   display: flex;
   gap: 6px;

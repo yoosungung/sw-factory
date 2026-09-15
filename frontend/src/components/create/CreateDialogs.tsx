@@ -207,7 +207,7 @@ export function CreateIssueDialog({
                 <textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Add a description…"
+                  placeholder="Add a description (Markdown)…"
                 />
               </label>
               <label>

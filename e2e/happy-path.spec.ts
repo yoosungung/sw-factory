@@ -1,5 +1,5 @@
 import { test, expect } from "@playwright/test";
-import { clickEl, createIssue, createSoftwareProject, createSpace, loginAsAdmin } from "./helpers";
+import { clickEl, createIssue, createSoftwareProject, createSpace, fillField, loginAsAdmin } from "./helpers";
 
 test.describe("happy path", () => {
   test("space → project → create issue on board", async ({ page }) => {
@@ -30,6 +30,32 @@ test.describe("happy path", () => {
     await clickEl(panel.locator(".prio-picker").getByRole("option", { name: /High/i }));
     await clickEl(panel.getByRole("button", { name: "✕" }));
     await expect(page.locator(".prio-badge.high").first()).toBeVisible();
+  });
+
+  test("issue description renders Markdown", async ({ page }) => {
+    await loginAsAdmin(page);
+
+    const space = `MD Space ${Date.now()}`;
+    const project = `MD Proj ${Date.now()}`;
+    await createSpace(page, space);
+    await createSoftwareProject(page, project);
+
+    const title = `MD Issue ${Date.now()}`;
+    await createIssue(page, title);
+    const panel = page.getByRole("dialog");
+    await expect(panel).toBeVisible();
+
+    await clickEl(panel.locator(".issue-desc-view"));
+    const desc = panel.locator("textarea.issue-desc");
+    await expect(desc).toBeVisible();
+    await fillField(desc, "**Bold bit** and [link](https://example.com)");
+    await desc.evaluate((el) => (el as HTMLTextAreaElement).blur());
+
+    await expect(panel.locator(".issue-desc-view .rich-content strong")).toHaveText("Bold bit");
+    await expect(panel.locator(".issue-desc-view .rich-content a")).toHaveAttribute(
+      "href",
+      "https://example.com",
+    );
   });
 
   test("project settings people page loads for owner", async ({ page }) => {

@@ -8,11 +8,14 @@ export function uniqueEmail(prefix = "e2e") {
 export async function fillField(locator: Locator, value: string) {
   await locator.waitFor({ state: "attached" });
   await locator.evaluate((el, v) => {
-    const input = el as HTMLInputElement;
-    const desc = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, "value");
-    desc?.set?.call(input, v);
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    input.dispatchEvent(new Event("change", { bubbles: true }));
+    const proto =
+      el instanceof HTMLTextAreaElement
+        ? window.HTMLTextAreaElement.prototype
+        : window.HTMLInputElement.prototype;
+    const desc = Object.getOwnPropertyDescriptor(proto, "value");
+    desc?.set?.call(el, v);
+    el.dispatchEvent(new Event("input", { bubbles: true }));
+    el.dispatchEvent(new Event("change", { bubbles: true }));
   }, value);
 }
 

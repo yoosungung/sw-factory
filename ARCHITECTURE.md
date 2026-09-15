@@ -21,6 +21,7 @@ sw-factory(Auth, Clients, Projects, Tickets/Milestones, Comments, Files)를 Clou
 13. **단일 컨테이너 병렬:** agent Pod/컨테이너는 기본 1개. cursor는 parent(SDK 미로드) + **공유 SDK worker pool**; `ticket_id` 뮤텍스; 기본 `max_active_per_persona=1`. prompt는 **202** 비차단; gateway `acked_id`는 성공 accept 후에만 전진.
 14. **PVC:** 볼륨 **1개 공유**(`/data`). 작업 상태는 **경로 격리** — `gateway/` vs `workspaces/{persona}/`(MEMORY·chats·git·세션 쿠키 비공유). persona별 PVC N개는 후순위.
 15. **플랫폼 admin:** `users.is_admin`. 가입(`POST /api/auth/register`)은 열려 있으나 가입만으로는 Space가 없다. admin이 Space People에 초대한 뒤에야 리소스에 접근한다. Ticket/Comment CRUD는 계정별 체크박스가 아니라 Space/Project `owner`|`member`(및 작성자 삭제 가드)로만 결정한다. 시드 admin은 `ADMIN_EMAIL`+`ADMIN_PASSWORD`(없으면 만들지 않음). 마지막 admin은 강등할 수 없다.
+16. **Ticket body format:** `tickets.description`과 `comments.body`는 **Markdown(GFM) 정본**이다. Agent·사람은 MD로 쓰고, SPA는 sanitize 후 렌더한다. `format` 컬럼은 두지 않는다. raw HTML은 계약상 보장하지 않으며, 표시 경로에서만 allowlist sanitize한다.
 
 ## 2. 컴포넌트
 
@@ -91,7 +92,7 @@ PRIMARY KEY (project_id, key)
 id TEXT PRIMARY KEY,
 project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
 title TEXT NOT NULL,
-description TEXT NOT NULL DEFAULT '',
+description TEXT NOT NULL DEFAULT '',  -- Markdown(GFM); see §1.16
 type TEXT NOT NULL CHECK (type IN ('task', 'milestone')),
 status TEXT NOT NULL,           -- project_statuses.key (칸반 컬럼)
 priority TEXT NOT NULL DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'urgent')),
@@ -110,7 +111,7 @@ updated_at TEXT NOT NULL
 id TEXT PRIMARY KEY,
 entity_type TEXT NOT NULL CHECK (entity_type IN ('ticket')),
 entity_id TEXT NOT NULL,
-body TEXT NOT NULL,
+body TEXT NOT NULL,                 -- Markdown(GFM); see §1.16
 author_id TEXT NOT NULL REFERENCES users(id),
 created_at TEXT NOT NULL
 

@@ -13,6 +13,7 @@ frontend/src/
     lib/brand.tsx · due.ts · view-mode.ts · recent.ts · savedViews.ts
     hooks/useDom.ts · useSession.ts
     components/EmptyState.tsx
+    components/issue/RichContent.tsx    # Markdown(GFM) 읽기 렌더 · sanitize
     components/issue/IssuePanel.tsx     # F9 · non-modal inspector · 커스텀 픽커
     components/chrome/AppChrome.tsx     # TopNav · Sidebar · AppChrome · Quick Create
     components/create/CreateDialogs.tsx # Issue · Space · Project 생성
@@ -24,6 +25,7 @@ frontend/src/
 ## 사용 흐름
 
 - Top nav (직접 링크): Spaces(`/spaces`) / Projects(`/projects`) / Your work(`/`) / Search(⌘K) / Account / Create. Filters·Teams는 Top nav에 없음.
+- Issue description/comments: 저장은 Markdown 문자열; 읽기는 `RichContent`(GFM + sanitize). Description은 click-to-edit textarea.
 - Issue: assignee · due · priority 인라인 `PATCH`(+`version` 409), Comments/History/Files, 작성자·owner 삭제
 - `/browse/:ticketId` 전체 페이지; 보드 `?issue=` sidebar/modal
 - Space/Project settings: Details · People · Board(statuses CRUD) · Danger
@@ -38,4 +40,5 @@ frontend/src/
 ```bash
 npm run dev
 npm run build
+npm test -- --config frontend/vitest.config.ts
 ```

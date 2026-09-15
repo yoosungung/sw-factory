@@ -12,6 +12,7 @@ import {
   type TicketPriority,
   type User,
 } from "../../api";
+import { RichContent } from "./RichContent";
 
 const PRIORITIES: TicketPriority[] = ["low", "medium", "high", "urgent"];
 const PRIORITY_LABEL: Record<TicketPriority, string> = {
@@ -192,6 +193,8 @@ export function IssuePanel({
   const [ticket, setTicket] = useState(initial);
   const [title, setTitle] = useState(initial.title);
   const [description, setDescription] = useState(initial.description);
+  const [editingDesc, setEditingDesc] = useState(false);
+  const descRef = useRef<HTMLTextAreaElement>(null);
   const [comments, setComments] = useState<Comment[]>([]);
   const [files, setFiles] = useState<FileMeta[]>([]);
   const [body, setBody] = useState("");
@@ -212,6 +215,7 @@ export function IssuePanel({
     setTicket(initial);
     setTitle(initial.title);
     setDescription(initial.description);
+    setEditingDesc(false);
     void Promise.all([
       client.comments(initial.id),
       client.listFiles(initial.id),
@@ -222,6 +226,10 @@ export function IssuePanel({
       setActivities(a.activities);
     });
   }, [initial]);
+
+  useEffect(() => {
+    if (editingDesc) descRef.current?.focus();
+  }, [editingDesc]);
 
   const canDelete = ticket.created_by === user.id || projectRole === "owner";
   const statusKeys = statuses.map((s) => s.key);
@@ -328,15 +336,41 @@ export function IssuePanel({
 
             <section className="issue-desc-section">
               <h3 className="section-title">Description</h3>
-              <textarea
-                className="issue-desc"
-                value={description}
-                placeholder="Add a description…"
-                onChange={(e) => setDescription(e.target.value)}
-                onBlur={() => {
-                  if (description !== ticket.description) void save({ description });
-                }}
-              />
+              {editingDesc ? (
+                <textarea
+                  ref={descRef}
+                  className="issue-desc"
+                  value={description}
+                  placeholder="Add a description (Markdown)…"
+                  onChange={(e) => setDescription(e.target.value)}
+                  onBlur={() => {
+                    if (description !== ticket.description) void save({ description });
+                    setEditingDesc(false);
+                  }}
+                />
+              ) : (
+                <div
+                  className="issue-desc-view"
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => {
+                    if ((e.target as HTMLElement).closest("a")) return;
+                    setEditingDesc(true);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      setEditingDesc(true);
+                    }
+                  }}
+                >
+                  {description.trim() ? (
+                    <RichContent source={description} />
+                  ) : (
+                    <span className="muted">Add a description…</span>
+                  )}
+                </div>
+              )}
             </section>
 
             <section className="issue-activity-section">
@@ -368,7 +402,7 @@ export function IssuePanel({
                 <>
                   <form className="comment-form" onSubmit={(e) => void postComment(e)}>
                     <textarea
-                      placeholder="Add a comment…"
+                      placeholder="Add a comment (Markdown)…"
                       value={body}
                       onChange={(e) => setBody(e.target.value)}
                       required
@@ -399,7 +433,7 @@ export function IssuePanel({
                             </button>
                           )}
                         </div>
-                        <div>{c.body}</div>
+                        <RichContent source={c.body} />
                         <div className="muted">{new Date(c.created_at).toLocaleString()}</div>
                       </div>
                     </div>

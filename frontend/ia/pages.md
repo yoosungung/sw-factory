@@ -104,7 +104,7 @@
 ```
 [ Type · Key · Status(커스텀 뱃지) · Priority(커스텀 뱃지) ]
 [ Title (자동 개행 입력창, 클리핑 방지) ]
-[ Description (리사이즈 텍스트에어리어) ]
+[ Description (읽기: Markdown 렌더 · 클릭 시 textarea 편집) ]
 [ Milestone · Dates · Assignee ]
 [ Activity: Comments | History | Files ]
 ```
@@ -113,7 +113,8 @@
 - **사이드 인스펙터 (`?issue=`):** 배경 딤(Backdrop) 없는 **논모달 패널**. 우측 480px 고정, 뒤쪽 보드/리스트와 실시간 동시 탐색 가능, 다른 카드 클릭 시 즉시 내용 갱신.
 - **모달 (`?issue=&issueUi=modal`):** 중앙 집중 팝업 + 어두운 오버레이 딤.
 - **전체 페이지 (`/browse/:ticketId`):** 독립 전체 화면.
-- **Behavior:** 인라인 저장 `PATCH` (낙관적 락 `version`); 투박한 네이티브 `<select>` 대신 커스텀 상태/우선순위 팝오버; 댓글 CRUD; 파일 업로드/다운로드/삭제; 삭제 시 작성자/owner만 가능; Esc로 닫기.  
+- **Behavior:** 인라인 저장 `PATCH` (낙관적 락 `version`); 투박한 네이티브 `<select>` 대신 커스텀 상태/우선순위 팝오버; 댓글 CRUD; 파일 업로드/다운로드/삭제; 삭제 시 작성자/owner만 가능; Esc로 닫기.
+- **Body format:** description·comment `body`는 Markdown(GFM) 정본([ARCHITECTURE §1.16](../../ARCHITECTURE.md)). 읽기는 공통 `RichContent`(sanitize); 편집·작성은 textarea(MD).  
 **API:** tickets, comments, files; History는 `GET /api/tickets/:id/activities`.  
 **Connections:** ← Board · List · Search · Your work.
 

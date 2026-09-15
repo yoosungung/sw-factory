@@ -28,7 +28,7 @@ export function createFactoryMcp(client: FactoryClient) {
       { name: "create_ticket", description: "POST /api/projects/:id/tickets" },
       { name: "update_ticket", description: "PATCH /api/tickets/:id" },
       { name: "get_comments", description: "GET /api/tickets/:id/comments" },
-      { name: "add_comment", description: "POST /api/tickets/:id/comments" },
+      { name: "add_comment", description: "POST /api/tickets/:id/comments (body = Markdown/GFM)" },
       { name: "list_projects", description: "GET /api/projects" },
       { name: "get_project", description: "GET /api/projects/:id" },
       { name: "search", description: "GET /api/search?q=" },
