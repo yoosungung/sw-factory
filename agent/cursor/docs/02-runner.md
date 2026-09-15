@@ -32,6 +32,8 @@ GH `agent-runner` DESIGN과 동일 정신: zombie `active_run` 후 같은 티켓
 | R4 | 새 session create + remap |
 | R5 | `session.recover` 구조화 로그 + 테스트 |
 
+`@cursor/sdk` 핸들은 `agent.send(...)` / `agent[Symbol.asyncDispose]()`처럼 **메서드 호출로 this를 유지**한다. 함수를 꺼내 호출하면 dispose가 `awaitPendingPrAttributions` TypeError로 프로세스를 죽일 수 있다 (`wrapSdkAgent`).
+
 gateway는 `sdk_zombie`일 때만 sticky rebind ([gateway dispatch](../../gateway/docs/04-dispatch-to-cursor.md)).
 
 ## 실행 정책 (Goose A안 축약)

@@ -147,6 +147,21 @@ describe("router", () => {
     const humanActor = { ...event, actor_user_id: "human-1" };
     expect(routeEvent(humanActor, [PM, TA]).map((a) => a.persona)).toEqual(["pm"]);
   });
+
+  it("routes unassigned (null assignee) to pm", () => {
+    const event: AgentEvent = {
+      id: "e-unassigned",
+      at: "2026-01-01T00:00:00.000Z",
+      event_type: "ticket_created",
+      ticket_id: "t-u",
+      project_id: "p1",
+      actor_user_id: "human-1",
+      assignee_user_id: null,
+      payload: {},
+    };
+    expect(routeEvent(event, [PM, TA]).map((a) => a.persona)).toEqual(["pm"]);
+    expect(routeEvent(event, [TA]).map((a) => a.persona)).toEqual([]);
+  });
 });
 
 describe("A2 gateway e2e", () => {

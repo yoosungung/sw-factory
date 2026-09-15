@@ -7,6 +7,46 @@ type DisposableAgent = {
   close: () => Promise<void>;
 };
 
+type SdkAgentLike = {
+  agentId?: unknown;
+  send: (text: string) => Promise<{ wait: () => Promise<unknown>; id?: string }>;
+  [Symbol.asyncDispose]?: () => Promise<void>;
+};
+
+/**
+ * Keep method-call receivers (`this`) intact.
+ * Extracting `agent.send` / `agent[Symbol.asyncDispose]` and calling them unbound
+ * crashes @cursor/sdk (`awaitPendingPrAttributions` on undefined).
+ */
+export function wrapSdkAgent(agent: SdkAgentLike): DisposableAgent {
+  const agentId =
+    typeof agent.agentId === "string" ? agent.agentId : crypto.randomUUID();
+  return {
+    agentId,
+    async send(text: string) {
+      const run = await agent.send(text);
+      const result = (await run.wait()) as { status?: string; id?: string } | undefined;
+      if (result && result.status === "error") {
+        throw new Error(`sdk_run_error:${result.id ?? run.id ?? "unknown"}`);
+      }
+      return { runId: run.id ?? result?.id ?? crypto.randomUUID() };
+    },
+    async close() {
+      try {
+        await agent[Symbol.asyncDispose]?.();
+      } catch (err) {
+        console.error(
+          JSON.stringify({
+            msg: "sdk_dispose_failed",
+            agentId,
+            detail: err instanceof Error ? err.message : String(err),
+          }),
+        );
+      }
+    },
+  };
+}
+
 /**
  * Real `@cursor/sdk` backend when CURSOR_API_KEY is set and package is installed.
  * Falls back to mock otherwise (local harness / tests).
@@ -20,7 +60,11 @@ export async function createSdkBackend(opts: {
     return Object.assign(mock, { mode: "mock" as const });
   }
 
-  let AgentMod: { Agent: { create: (opts: Record<string, unknown>) => Promise<Record<string, unknown>> } };
+  let AgentMod: {
+    Agent: {
+      create: (opts: Record<string, unknown>) => Promise<SdkAgentLike>;
+    };
+  };
   try {
     AgentMod = (await import(
       /* webpackIgnore: true */ "@cursor/sdk"
@@ -42,26 +86,9 @@ export async function createSdkBackend(opts: {
         model: { id: modelId },
         local: { cwd, settingSources: ["project"] },
       });
-      const agentId =
-        typeof agent.agentId === "string" ? agent.agentId : crypto.randomUUID();
-      const handle: DisposableAgent = {
-        agentId,
-        async send(text: string) {
-          const send = agent.send as (t: string) => Promise<{
-            wait: () => Promise<unknown>;
-            id?: string;
-          }>;
-          const run = await send(text);
-          await run.wait();
-          return { runId: run.id ?? crypto.randomUUID() };
-        },
-        async close() {
-          const dispose = agent[Symbol.asyncDispose] as (() => Promise<void>) | undefined;
-          await dispose?.();
-        },
-      };
-      live.set(agentId, handle);
-      return { agentId };
+      const handle = wrapSdkAgent(agent);
+      live.set(handle.agentId, handle);
+      return { agentId: handle.agentId };
     },
     async send({ agentId, prompt }) {
       const handle = live.get(agentId);

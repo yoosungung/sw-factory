@@ -39,7 +39,7 @@ export class Recover {
     rec.activeRun = false;
     rec.skipCount = 0;
     this.sessions.set(rec);
-    await this.backend.cancel?.(agentId);
+    await this.safeCancel(agentId);
     this.log({
       reason: "R1_worker_crash",
       agentId,
@@ -53,13 +53,27 @@ export class Recover {
     if (!rec) return;
     rec.activeRun = false;
     this.sessions.set(rec);
-    await this.backend.cancel?.(agentId);
+    await this.safeCancel(agentId);
     this.log({
       reason: "R2_active_run_fail",
       agentId,
       ticketId: rec.ticketId,
       detail,
     });
+  }
+
+  /** cancel must never reject into fire-and-forget prompt handlers */
+  private async safeCancel(agentId: string): Promise<void> {
+    try {
+      await this.backend.cancel?.(agentId);
+    } catch (err) {
+      this.log({
+        reason: "R5_recover_log",
+        agentId,
+        ticketId: this.sessions.get(agentId)?.ticketId ?? null,
+        detail: `cancel_failed:${err instanceof Error ? err.message : String(err)}`,
+      });
+    }
   }
 
   /**

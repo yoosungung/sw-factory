@@ -17,6 +17,7 @@ function mentionUserIds(event: AgentEvent): string[] {
 
 /**
  * Route an outbox event to sessions personas (assignee + mentions), applying self-echo skip.
+ * Unassigned (`assignee_user_id` null) → `persona: pm` triage when that sessions agent exists.
  */
 export function routeEvent(
   event: AgentEvent,
@@ -28,7 +29,12 @@ export function routeEvent(
 
   const targets = new Map<string, PersonaConfig>();
   const assignee = byUserId(agents, event.assignee_user_id);
-  if (assignee) targets.set(assignee.persona, assignee);
+  if (assignee) {
+    targets.set(assignee.persona, assignee);
+  } else if (!event.assignee_user_id) {
+    const pm = sessionsAgents(agents).find((a) => a.persona === "pm");
+    if (pm) targets.set(pm.persona, pm);
+  }
 
   for (const uid of mentionUserIds(event)) {
     const mentioned = byUserId(agents, uid);

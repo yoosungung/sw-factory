@@ -32,6 +32,7 @@ loop:
 if e.actor is bot AND e.actor == e.assignee AND e not mention-to-other:
   skip actor (self-echo)
 add assignee if type=sessions
+if assignee is null: add persona pm (triage) if present
 add each mention_user_id if type=sessions
 return unique personas
 ```
