@@ -12,6 +12,7 @@ import {
   type TicketPriority,
   type User,
 } from "../../api";
+import { commentsNewestFirst } from "./commentOrder";
 import { RichContent } from "./RichContent";
 
 const PRIORITIES: TicketPriority[] = ["low", "medium", "high", "urgent"];
@@ -221,7 +222,7 @@ export function IssuePanel({
       client.listFiles(initial.id),
       client.ticketActivities(initial.id),
     ]).then(([c, f, a]) => {
-      setComments(c.comments);
+      setComments(commentsNewestFirst(c.comments));
       setFiles(f.files);
       setActivities(a.activities);
     });
@@ -262,7 +263,7 @@ export function IssuePanel({
     e.preventDefault();
     await client.addComment(ticket.id, body);
     setBody("");
-    setComments((await client.comments(ticket.id)).comments);
+    setComments(commentsNewestFirst((await client.comments(ticket.id)).comments));
   }
 
   async function onUpload(e: React.ChangeEvent<HTMLInputElement>) {
@@ -425,7 +426,9 @@ export function IssuePanel({
                               className="btn-subtle sm"
                               onClick={() =>
                                 void client.deleteComment(c.id).then(async () => {
-                                  setComments((await client.comments(ticket.id)).comments);
+                                  setComments(
+                                    commentsNewestFirst((await client.comments(ticket.id)).comments),
+                                  );
                                 })
                               }
                             >

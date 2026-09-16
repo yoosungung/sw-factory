@@ -114,6 +114,7 @@
 - **모달 (`?issue=&issueUi=modal`):** 중앙 집중 팝업 + 어두운 오버레이 딤.
 - **전체 페이지 (`/browse/:ticketId`):** 독립 전체 화면.
 - **Behavior:** 인라인 저장 `PATCH` (낙관적 락 `version`); 투박한 네이티브 `<select>` 대신 커스텀 상태/우선순위 팝오버; 댓글 CRUD; 파일 업로드/다운로드/삭제; 삭제 시 작성자/owner만 가능; Esc로 닫기.
+- **Comments order:** 작성 폼 바로 아래에 **최신 → 오래된** 순으로 표시(`commentsNewestFirst`). API `GET …/comments`는 ASC 유지(agent/MCP 호환); FE 표시만 DESC.
 - **Body format:** description·comment `body`는 Markdown(GFM) 정본([ARCHITECTURE §1.16](../../ARCHITECTURE.md)). 읽기는 공통 `RichContent`(sanitize); 편집·작성은 textarea(MD).  
 **API:** tickets, comments, files; History는 `GET /api/tickets/:id/activities`.  
 **Connections:** ← Board · List · Search · Your work.
