@@ -247,7 +247,7 @@ payload_json TEXT NOT NULL DEFAULT '{}'
 
 | Method | Path | 비고 |
 | --- | --- | --- |
-| GET/POST | `/api/tickets/:id/comments` | |
+| GET/POST | `/api/tickets/:id/comments` | `POST` 시 body Markdown의 `@Name` 토큰 → 아래 mention 규칙 |
 | DELETE | `/api/comments/:id` | 작성자 또는 project owner |
 | POST | `/api/tickets/:id/files` | `multipart/form-data` field `file` → R2 + meta (소용량) |
 | POST | `/api/tickets/:id/files/upload-url` | `{ filename, mime, size }` → 임시 PUT `upload_url` + `r2_key` |
@@ -263,6 +263,8 @@ payload_json TEXT NOT NULL DEFAULT '{}'
 | GET | `/api/agent/events` | query `after_id`, `limit`(기본 100, 최대 500). **세션 인증 필수**(gateway 전용 시스템 유저로 로그인). 응답 `{ events }` — 각 항목에 `payload`(JSON 객체). Worker→agent push 없음. |
 
 티켓 create/update(필드 변경 시)/delete·코멘트 create 성공 시 Worker가 `agent_event_log`에 동기 append한다. tail은 `(at, id)` 키셋(`after_id`로 앵커). 라우팅·prompt는 gateway; 상세는 [agent/gateway/](agent/gateway/).
+
+**Comment @mention:** `comments.body`에서 `@Handle` 토큰을 추출한다(`@pm`/`@PM` 동일). Handle은 `users.name`과 **대소문자 무시 exact** 매칭이며, 대상은 해당 티켓의 **project_members**만. 이메일 중간 `@`(직전이 영숫자)는 제외. 매칭된 `users.id`를 `comment_added` payload의 `mention_user_ids`에 넣어 gateway가 assignee와 함께 라우팅한다.
 
 ## 5. 첨부 업로드 흐름
 

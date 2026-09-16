@@ -13,6 +13,7 @@ SPA IA: [frontend/ia/](../frontend/ia/).
 - `src/middleware/auth.ts` — 세션 로드
 - `src/routes/` — auth, admin, clients, projects, tickets, comments, files, agent
 - `src/lib/agent-events.ts` — `agent_event_log` append 헬퍼
+- `src/lib/mentions.ts` — comment `@Name` → `mention_user_ids` (project member, case-insensitive)
 - `tests/` — Vitest (workers pool)
 
 ## Commands

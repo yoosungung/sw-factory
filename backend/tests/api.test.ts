@@ -1,6 +1,7 @@
 import { env, createExecutionContext, waitOnExecutionContext } from "cloudflare:test";
 import { describe, it, expect } from "vitest";
 import app from "../src/index";
+import { extractMentionHandles } from "../src/lib/mentions";
 
 type Json = Record<string, unknown>;
 
@@ -866,6 +867,78 @@ describe("comments and files", () => {
     const dl = await request(`/api/files/${fileId}`, {}, cookie);
     expect(dl.status).toBe(200);
     expect(dl.json.raw).toBe("hello-bytes");
+  });
+});
+
+describe("comment @mentions", () => {
+  it("extracts @Name handles case-insensitively and skips email mid-@", () => {
+    expect(extractMentionHandles("hey @pm and @PM please")).toEqual(["pm"]);
+    expect(extractMentionHandles("@Pm review")).toEqual(["pm"]);
+    expect(extractMentionHandles("ping @qa,@ta")).toEqual(["qa", "ta"]);
+    expect(extractMentionHandles("mail user@pm.com ok")).toEqual([]);
+    expect(extractMentionHandles("no mentions here")).toEqual([]);
+  });
+
+  it("puts mention_user_ids on comment_added for project members", async () => {
+    const owner = await register("MentionOwner", { admin: true });
+    const pm = await register("pm");
+    const outsider = await register("pm"); // same name, not a project member
+
+    const clientId = await createClient(owner.cookie, "MentionCo");
+    const clientAdd = await request(
+      `/api/clients/${clientId}/members`,
+      {
+        method: "POST",
+        body: JSON.stringify({ user_id: pm.userId, role: "member" }),
+      },
+      owner.cookie,
+    );
+    expect(clientAdd.status).toBe(201);
+
+    const proj = await request(
+      "/api/projects",
+      { method: "POST", body: JSON.stringify({ name: "MentionProj", client_id: clientId }) },
+      owner.cookie,
+    );
+    const projectId = (proj.json.project as Json).id as string;
+
+    const invite = await request(
+      `/api/projects/${projectId}/members`,
+      {
+        method: "POST",
+        body: JSON.stringify({ user_id: pm.userId, role: "member", lane: "pm" }),
+      },
+      owner.cookie,
+    );
+    expect(invite.status).toBe(201);
+
+    const ticket = await request(
+      `/api/projects/${projectId}/tickets`,
+      { method: "POST", body: JSON.stringify({ title: "Need PM", type: "task" }) },
+      owner.cookie,
+    );
+    const ticketId = (ticket.json.ticket as Json).id as string;
+
+    const baseline = await request("/api/agent/events?limit=500", {}, owner.cookie);
+    const afterId = (baseline.json.events as Json[]).at(-1)?.id as string | undefined;
+
+    const comment = await request(
+      `/api/tickets/${ticketId}/comments`,
+      { method: "POST", body: JSON.stringify({ body: "Please look @PM thanks" }) },
+      owner.cookie,
+    );
+    expect(comment.status).toBe(201);
+
+    const pullPath = afterId
+      ? `/api/agent/events?after_id=${afterId}&limit=50`
+      : "/api/agent/events?limit=50";
+    const pull = await request(pullPath, {}, owner.cookie);
+    const events = (pull.json.events as Json[]).filter(
+      (e) => e.ticket_id === ticketId && e.event_type === "comment_added",
+    );
+    expect(events).toHaveLength(1);
+    expect((events[0]!.payload as Json).mention_user_ids).toEqual([pm.userId]);
+    expect((events[0]!.payload as Json).mention_user_ids).not.toContain(outsider.userId);
   });
 });
 

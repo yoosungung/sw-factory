@@ -31,6 +31,7 @@ Worker mutate 경로에서 동기 INSERT 후 응답. gateway pull.
 ```json
 {
   "comment_id": "…",
+  "mention_user_ids": ["…"],
   "changed_fields": ["assignee_id", "status"]
 }
 ```

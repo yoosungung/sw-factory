@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { AppVariables, Env } from "../env";
 import { newId, nowIso } from "../lib/crypto";
 import { appendAgentEvent } from "../lib/agent-events";
+import { resolveMentionUserIds } from "../lib/mentions";
 import { requireAuth, requireProjectMember } from "../middleware/auth";
 
 export const commentRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
@@ -61,13 +62,15 @@ commentRoutes.post("/tickets/:ticketId/comments", async (c) => {
     .bind(id, ticketId, text, user.id, created_at)
     .run();
 
+  const mention_user_ids = await resolveMentionUserIds(c.env.DB, ticket.project_id, text);
+
   await appendAgentEvent(c.env.DB, {
     event_type: "comment_added",
     ticket_id: ticketId,
     project_id: ticket.project_id,
     actor_user_id: user.id,
     assignee_user_id: ticket.assignee_id,
-    payload: { comment_id: id },
+    payload: { comment_id: id, mention_user_ids },
     at: created_at,
   });
 

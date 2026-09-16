@@ -19,7 +19,7 @@ Worker가 티켓 도메인 mutate 시 append하는 **outbox**. gateway의 유일
 | `ticket_created` | POST ticket | assignee agent; **없으면 Unassigned→`pm` triage** |
 | `ticket_updated` | PATCH ticket (필드 변경 시) | assignee; 없으면 `pm`; assignee 변경 시 handoff |
 | `ticket_deleted` | DELETE ticket | sticky session delete 힌트만 (작업 없음) |
-| `comment_added` | POST comment | assignee(없으면 `pm`) + @mention targets |
+| `comment_added` | POST comment | assignee(없으면 `pm`) + `payload.mention_user_ids` (@Name → project member) |
 | `catch_up` | (log 아님) gateway 기동 | 티켓리스 prompt — [03-routing](03-routing.md) |
 
 스키마·REST: [../reference/event-log-schema.md](../reference/event-log-schema.md).

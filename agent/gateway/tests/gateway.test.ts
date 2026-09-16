@@ -162,6 +162,19 @@ describe("router", () => {
     expect(routeEvent(event, [PM, TA]).map((a) => a.persona)).toEqual(["pm"]);
     expect(routeEvent(event, [TA]).map((a) => a.persona)).toEqual([]);
   });
+  it("routes mention_user_ids to sessions personas", () => {
+    const event: AgentEvent = {
+      id: "e-mention",
+      at: "2026-01-01T00:00:00.000Z",
+      event_type: "comment_added",
+      ticket_id: "t1",
+      project_id: "p1",
+      actor_user_id: "human-1",
+      assignee_user_id: TA.user_id,
+      payload: { mention_user_ids: [PM.user_id] },
+    };
+    expect(routeEvent(event, [PM, TA]).map((a) => a.persona).sort()).toEqual(["pm", "ta"]);
+  });
 });
 
 describe("A2 gateway e2e", () => {
