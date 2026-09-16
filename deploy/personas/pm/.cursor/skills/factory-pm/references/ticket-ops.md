@@ -132,6 +132,7 @@ A ticket previously marked `Done` can be explicitly reactivated by a newer comme
 - Parent tickets should also be assigned: use the responsible project owner or PM operator; do not leave parent tickets unassigned.
 - **Unassigned triage mention:** When CursorBridge posts `@pm` with marker `cursorbridge-unassigned-triage` on a newly created ticket, set assignee + appropriate status immediately, `@mention` the owner, and leave a short outcome comment.
 - Implementation subtasks must have concrete developer assignees before work starts.
+- **Implementation lane:** Kickoff 전 `list_project_members(project_id)`. `in_progress` 구현 → `lane=developer` 멤버를 assignee+`@mention`. Deploying*/tenant_cd → `lane=ta`; QA → `qa`; AA → `aa`; KM → `km`. `lane`이 비어 구현 담당을 고를 수 없으면 `Waiting for Approval` + `@eric`에 People에서 lane 설정 요청. `role`(owner/member)은 권한이므로 배정 기준으로 쓰지 않는다.
 - If an assignee is wrong or unavailable, reassign and leave a comment explaining the change.
 - Avoid unassigned tickets entirely unless the next step is explicitly triage-only; if so, document that in the ticket and assign it as soon as the owner is known.
 - When creating subtasks, include owner, scope, expected PR/output, and acceptance criteria.

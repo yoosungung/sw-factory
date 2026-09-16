@@ -77,16 +77,19 @@ Project settings (Details / People).
 
 ### 4.2 People — `.../people`
 
-Space People와 동일 UX. 초대는 해당 Space 멤버만(이메일/`user_id`).  
+Space People와 동일 UX + **Lane** 컬럼(프로젝트만). 초대는 해당 Space 멤버만(이메일/`user_id`).  
+**Access** = `owner`\|`member`(권한). **Lane** = 배정용 `pm`\|`ta`\|`qa`\|`aa`\|`km`\|`developer`\|비움.  
 **API(ARCHITECTURE §4 / M6·M9):**
 
 | Method | Path | 비고 |
 | --- | --- | --- |
-| GET | `/api/projects/:id/members` | 소속 멤버 목록 |
-| POST | `/api/projects/:id/members` | `{ user_id?, email?, role }` (project owner만; 해당 client 멤버여야 함) |
+| GET | `/api/projects/:id/members` | `role`, `lane` |
+| POST | `/api/projects/:id/members` | `{ user_id?, email?, role, lane? }` (project owner만; 해당 client 멤버여야 함) |
+| PATCH | `/api/projects/:id/members/:userId` | `{ role?, lane? }` (project owner만) |
 | DELETE | `/api/projects/:id/members/:userId` | project owner만 (마지막 owner 보호) |
 
-생성 시 creator=owner는 현 계약 유지. 초대 사용자는 해당 Space(Client) 멤버여야 함(ARCHITECTURE §1.4).
+생성 시 creator=owner는 현 계약 유지. 초대 사용자는 해당 Space(Client) 멤버여야 함(ARCHITECTURE §1.4).  
+PM 배정: factory-mcp `list_project_members` → `lane`.
 
 ### 4.3 Board — `.../board`
 

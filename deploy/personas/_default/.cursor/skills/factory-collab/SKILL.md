@@ -2,7 +2,7 @@
 name: factory-collab
 description: >-
   factory-mcp로 티켓·코멘트를 읽고 업데이트한다. get_ticket, get_comments,
-  add_comment, update_ticket, list_tickets, search 사용 시 적용한다.
+  add_comment, update_ticket, list_tickets, list_project_members, search 사용 시 적용한다.
 ---
 
 # Factory MCP 협업
@@ -23,7 +23,7 @@ MCP 서버 `factory` 도구를 사용한다. 작업 전 읽기, 작업 후 코�
 
 1. `get_ticket`(Active)
 2. `get_comments`(Active)
-3. 필요 시 `list_tickets` / `search` / `get_project`로 범위 확인
+3. 필요 시 `list_tickets` / `search` / `get_project` / `list_project_members`(lane 배정)로 범위 확인
 
 ## 작업 중
 

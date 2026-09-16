@@ -9,7 +9,7 @@ sw-factory(Auth, Clients, Projects, Tickets/Milestones, Comments, Files)를 Clou
 1. 브라우저·외부 클라이언트는 **Worker HTTP API만** 호출한다. D1·R2에 직접 접근하지 않는다. (단, R2 Presigned URL을 통한 다이렉트 바이너리 전송은 예외적으로 허용)
 2. 인증은 **HttpOnly + Secure + SameSite=Lax** 세션 쿠키와 D1 `sessions` 행으로 유지한다. JWT를 기본으로 쓰지 않는다. **코딩 agent도 동일** — email/password 로그인 후 세션 쿠키(PAT/`x-api-key` 신설 없음).
 3. **Client**는 고객사/조직 단위다. Client 리소스는 **client_members** 멤버십이 없으면 거부한다(fail-closed). **Space 생성(`POST /api/clients`)은 플랫폼 admin만** 가능하고, 생성자가 해당 client의 `owner`가 된다. `owner`만 client 삭제·멤버 관리(초대/역할변경/제거)가 가능하다.
-4. **Project**는 반드시 하나의 `client_id`에 속한다. 프로젝트 생성 시 해당 client의 멤버여야 한다. 프로젝트 리소스 접근은 **project_members** 기준 fail-closed. `owner`만 프로젝트 삭제·멤버 관리(초대/역할변경/제거)가 가능하다.
+4. **Project**는 반드시 하나의 `client_id`에 속한다. 프로젝트 생성 시 해당 client의 멤버여야 한다. 프로젝트 리소스 접근은 **project_members** 기준 fail-closed. `owner`만 프로젝트 삭제·멤버 관리(초대/역할변경/제거)가 가능하다. 멤버의 optional **`lane`**(`pm`\|`ta`\|`qa`\|`aa`\|`km`\|`developer`)은 접근 권한이 아니라 **작업 배정**용이다.
 5. 첨부 **바이너리는 R2만** 저장한다. D1 `files`에는 메타데이터(key, mime, size, entity)만 둔다. 대용량은 `upload-url` → 임시 PUT(`direct-upload`) → `confirm` 흐름을 지원한다.
 6. 작업 단위는 `tickets` 한 테이블이며 `type`이 `task` | `milestone`이다. 마일스톤은 동일 CRUD 규칙을 따른다. 협업을 위해 `assignee_id`, `due_at`, `priority`, 동시성 제어를 위한 `version`을 필수 메타데이터로 관리한다.
 7. 티켓 삭제(`DELETE /api/tickets/:id`)는 데이터 유실 방지를 위해 **작성자(`created_by`) 본인 또는 프로젝트 `owner`만** 허용한다. 일반 멤버는 삭제 불가.
@@ -78,6 +78,7 @@ created_at TEXT NOT NULL
 project_id TEXT NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
 user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
 role TEXT NOT NULL CHECK (role IN ('owner', 'member')),
+lane TEXT CHECK (lane IS NULL OR lane IN ('pm', 'ta', 'qa', 'aa', 'km', 'developer')),
 PRIMARY KEY (project_id, user_id)
 
 -- project_statuses (프로젝트별 칸반 컬럼; 생성 시 기본 9개 시드)
@@ -216,8 +217,9 @@ payload_json TEXT NOT NULL DEFAULT '{}'
 | GET | `/api/projects/:id` | 멤버만 (`client_id` 포함) |
 | PATCH | `/api/projects/:id` | 멤버; `client_id` 변경 시 대상 client 멤버여야 함 |
 | DELETE | `/api/projects/:id` | owner만 |
-| GET | `/api/projects/:id/members` | 소속 프로젝트 멤버 목록 |
-| POST | `/api/projects/:id/members` | `{ user_id?, email?, role }` — project owner만 추가 (client 멤버여야 함). `user_id` 또는 `email` |
+| GET | `/api/projects/:id/members` | 소속 프로젝트 멤버 목록 (`role`, `lane`) |
+| POST | `/api/projects/:id/members` | `{ user_id?, email?, role, lane? }` — project owner만 추가 (client 멤버여야 함). `user_id` 또는 `email` |
+| PATCH | `/api/projects/:id/members/:userId` | `{ role?, lane? }` — project owner만; 마지막 owner 강등 불가 |
 | DELETE | `/api/projects/:id/members/:userId` | project owner만 멤버 제거 (마지막 owner 제거 불가) |
 | GET | `/api/projects/:id/statuses` | 멤버; `{ statuses: [{ key, label, category, sort_order }] }` 정렬순 |
 | PUT | `/api/projects/:id/statuses` | **owner**; `{ statuses, migrate? }` 전체 교체. `category=backlog`·`done` 각 ≥1. 사라진 key에 티켓이 있으면 `migrate[oldKey]=newKey` 필수 |

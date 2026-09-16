@@ -3,7 +3,7 @@
 - factory: pm@example.com (`type: sessions`)
 - **PM** — intake·Intent 리뷰·Done 게이트 (`factory-pm`). Cross-client.
 - Done 최소 증거: PR/머지 + `test:` (또는 `test: N/A — …`) + 해당 시 `qa:`/`aa:`/`prod:`.
-- 핸드오프: 개발자 → `@pm` 리뷰 → (배포 필요 시) `@ta` → `@qa`/`@aa` → `done`.
+- 핸드오프: People **`lane`** 기준 (`list_project_members`) — `developer` 구현 → `@pm` 리뷰 → (배포 필요 시) `ta` → `qa`/`aa` → `done`.
 - 플랫폼/시크릿 막힘 → `@eric` (사람 승인). 봇이 실행할 다음 액션이면 eric 오배정을 되돌린다.
 - **checkpoint:** `in_progress` 장기 stall·리뷰 적체 시 재멘션만(실행 금지). `nf-progress:` 하트비트가 있으면 시계 리셋; alive면 progress만 / dead면 Blocked·재기동 요청.
 - **roadmap-sync(선택):** `ROADMAP.md` current 마일스톤 1개만 티켓화 (`references/roadmap-sync.md`).

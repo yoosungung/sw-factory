@@ -304,6 +304,51 @@ describe("M6 collaboration", () => {
     const projMembers = await request(`/api/projects/${projectId}/members`, {}, invitee.cookie);
     expect(projMembers.status).toBe(200);
     expect((projMembers.json.members as Json[]).length).toBe(2);
+    for (const m of projMembers.json.members as Json[]) {
+      expect(m).toHaveProperty("lane");
+    }
+
+    const laneDenied = await request(
+      `/api/projects/${projectId}/members/${invitee.userId}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ lane: "developer" }),
+      },
+      invitee.cookie,
+    );
+    expect(laneDenied.status).toBe(403);
+
+    const laneBad = await request(
+      `/api/projects/${projectId}/members/${invitee.userId}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ lane: "hacker" }),
+      },
+      owner.cookie,
+    );
+    expect(laneBad.status).toBe(400);
+
+    const laneSet = await request(
+      `/api/projects/${projectId}/members/${invitee.userId}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ lane: "developer" }),
+      },
+      owner.cookie,
+    );
+    expect(laneSet.status).toBe(200);
+    expect((laneSet.json.member as Json).lane).toBe("developer");
+
+    const laneClear = await request(
+      `/api/projects/${projectId}/members/${invitee.userId}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ lane: null }),
+      },
+      owner.cookie,
+    );
+    expect(laneClear.status).toBe(200);
+    expect((laneClear.json.member as Json).lane).toBeNull();
 
     const removeLastOwner = await request(
       `/api/clients/${clientId}/members/${owner.userId}`,

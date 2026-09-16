@@ -11,6 +11,7 @@ Load when stuck, MCP fails, or concurrent agents may race.
 - PR만 있고 배포/스모크가 필요하면 `done` 금지.
 - 큰 제품 트레이드오프는 `@eric` 없이 결정하지 않는다.
 - pm이 실행할 수 없는 일을 `@pm` 루프로 자기 배정하지 않는다 — 전문 persona 또는 eric.
+- **배정은 People `lane` SoR.** 킥오프 전 `list_project_members`. 구현=`developer`, 배포=`ta` 등. MEMORY/agents.yaml 추측으로 IC를 고르지 않는다.
 - **agent↔agent mention-storm 금지.** CI/OPEN/merge-deferred 대기를 `@mention`으로 표현하지 않는다. 침묵하다가 머지·fail 등 실핸드오프만 멘션.
 - “이 workspace에 파일 없음”으로 소유권을 끝내지 않는다 — 담당 repo/owner를 적어 넘긴다.
 - `get_ticket`/`get_comments`가 실패하거나 새 배정 티켓이 비면 Active를 읽을 수 없는 것으로 보고 중단한다. 제목만으로 범위 추정·다른 티켓 쓰기·git-ship 금지.

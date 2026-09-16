@@ -54,7 +54,8 @@ Persona별 `MEMORY.md`가 이어 붙는다. factory 협업은 `factory-collab` �
 | qa | 봇 | **QA** — E2E·API 스모크 |
 | aa | 봇 | **AA** — 보안·클린코드 |
 
-직원(PM/KM/QA/TA/AA)은 client에 묶이지 않을 수 있다 (`agents.yaml`).
+직원(PM/KM/QA/TA/AA)은 client에 묶이지 않을 수 있다 (`agents.yaml`).  
+프로젝트 People의 **`lane`**(`pm`\|`ta`\|`qa`\|`aa`\|`km`\|`developer`)이 배정 SoR — PM은 `list_project_members`로 읽는다.
 
 ## 칸반 (축약)
 

@@ -11,7 +11,8 @@
 | `/data/workspaces/{persona}/` | PVC — entrypoint가 seed를 적용 (MEMORY seed-once) |
 
 원본 overlay 트리(`deploy/personas/_default`+…)는 **빌드 스테이지에서만** 쓰고 최종 이미지에 넣지 않는다.  
-의존성: 루트 `package.json`(FE/Workers)이 아니라 **`deploy/docker/package.json`**(agent 최소: `@cursor/sdk`·hono·yaml·tsx).
+의존성: 루트 `package.json`(FE/Workers)이 아니라 **`deploy/docker/package.json`**(agent 최소: `@cursor/sdk`·hono·yaml·tsx).  
+`AGENT_APP_ROOT=/app` — factory-mcp stdio 절대경로. entrypoint apply 시 cookie workspace의 mcp.json을 refresh.
 
 ```bash
 cd deploy/docker

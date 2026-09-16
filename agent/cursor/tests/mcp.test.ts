@@ -1,10 +1,14 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { mkdir, mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { FactoryClient, loginFactory } from "../mcp/client";
 import { createFactoryMcp } from "../mcp/tools";
-import { seedPersonaWorkspace } from "../mcp/seed";
+import {
+  factoryMcpEntryPath,
+  refreshFactoryMcpConfigs,
+  seedPersonaWorkspace,
+} from "../mcp/seed";
 
 const tempDirs: string[] = [];
 afterEach(async () => {
@@ -97,6 +101,31 @@ function startMockFactory() {
       return;
     }
 
+    if (req.method === "GET" && /\/api\/projects\/[^/]+\/members$/.test(url.pathname)) {
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(
+        JSON.stringify({
+          members: [
+            {
+              user_id: "user-dev",
+              role: "member",
+              lane: "developer",
+              email: "sw-factory@example.com",
+              name: "sw-factory",
+            },
+            {
+              user_id: "user-ta",
+              role: "owner",
+              lane: "ta",
+              email: "ta@example.com",
+              name: "ta",
+            },
+          ],
+        }),
+      );
+      return;
+    }
+
     res.writeHead(404);
     res.end();
   });
@@ -147,6 +176,12 @@ describe("A4 factory-mcp", () => {
     const listed = await mcp.callTool("get_comments", { ticket_id: "ticket-1" });
     expect(listed.content[0].text).toContain("agent notes");
 
+    const members = await mcp.callTool("list_project_members", {
+      project_id: "proj-1",
+    });
+    expect(members.content[0].text).toContain("developer");
+    expect(members.content[0].text).toContain("sw-factory");
+
     await factory.close();
   });
 
@@ -173,11 +208,70 @@ describe("A4 factory-mcp", () => {
     expect(saved).toBe(cookie);
     const mcpJson = JSON.parse(
       await readFile(path.join(cwd, ".cursor", "mcp.json"), "utf8"),
-    ) as { mcpServers: { factory: { env: Record<string, string> } } };
+    ) as {
+      mcpServers: {
+        factory: { args: string[]; env: Record<string, string> };
+      };
+    };
     expect(mcpJson.mcpServers.factory.env.FACTORY_BASE_URL).toContain(
       `http://127.0.0.1:${factory.port}`,
     );
+    expect(mcpJson.mcpServers.factory.args).toEqual([
+      "tsx",
+      factoryMcpEntryPath(),
+    ]);
+    expect(path.isAbsolute(mcpJson.mcpServers.factory.args[1]!)).toBe(true);
 
     await factory.close();
+  });
+
+  it("refreshFactoryMcpConfigs rewrites absolute stdio entry for existing workspaces", async () => {
+    const root = path.join(process.cwd(), ".tmp-test");
+    await mkdir(root, { recursive: true });
+    const dataDir = await mkdtemp(path.join(root, "refresh-mcp-"));
+    tempDirs.push(dataDir);
+
+    const cwd = path.join(dataDir, "workspaces", "pm");
+    await mkdir(path.join(cwd, "secrets"), { recursive: true });
+    await mkdir(path.join(cwd, ".cursor"), { recursive: true });
+    await writeFile(path.join(cwd, "secrets", "session.cookie"), "lt_session=x", "utf8");
+    await writeFile(
+      path.join(cwd, ".cursor", "mcp.json"),
+      JSON.stringify({
+        mcpServers: {
+          factory: {
+            command: "npx",
+            args: ["tsx", "agent/cursor/mcp/stdio.ts"],
+            env: {
+              FACTORY_BASE_URL: "http://old.example",
+              FACTORY_SESSION_COOKIE_FILE: path.join(cwd, "secrets", "session.cookie"),
+            },
+          },
+        },
+      }),
+      "utf8",
+    );
+
+    const refreshed = await refreshFactoryMcpConfigs({
+      dataDir,
+      factoryBaseUrl: "https://factory.askwho.net",
+      appRoot: "/app",
+    });
+    expect(refreshed).toEqual(["pm"]);
+
+    const mcpJson = JSON.parse(
+      await readFile(path.join(cwd, ".cursor", "mcp.json"), "utf8"),
+    ) as {
+      mcpServers: {
+        factory: { args: string[]; env: Record<string, string> };
+      };
+    };
+    expect(mcpJson.mcpServers.factory.args).toEqual([
+      "tsx",
+      "/app/agent/cursor/mcp/stdio.ts",
+    ]);
+    expect(mcpJson.mcpServers.factory.env.FACTORY_BASE_URL).toBe(
+      "https://factory.askwho.net",
+    );
   });
 });

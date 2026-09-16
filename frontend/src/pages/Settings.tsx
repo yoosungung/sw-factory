@@ -1,8 +1,10 @@
 import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
-import { client, type Client, type Member, type Project, type ProjectStatus, type StatusCategory, type User } from "../api";
+import { client, type Client, type Member, type MemberLane, type Project, type ProjectStatus, type StatusCategory, type User } from "../api";
 import { initials } from "../components/issue/IssuePanel";
 import { UserSearchField, type UserHit } from "../components/UserSearchField";
+
+const MEMBER_LANES: MemberLane[] = ["pm", "ta", "qa", "aa", "km", "developer"];
 
 function SettingsNav({
   base,
@@ -37,6 +39,7 @@ function PeopleTable({
   isOwner,
   currentUserId,
   onRole,
+  onLane,
   onRemove,
   addSlot,
 }: {
@@ -44,19 +47,22 @@ function PeopleTable({
   isOwner: boolean;
   currentUserId: string;
   onRole: (userId: string, role: "owner" | "member") => void;
+  onLane?: (userId: string, lane: MemberLane | null) => void;
   onRemove: (userId: string) => void;
   addSlot: React.ReactNode;
 }) {
+  const showLane = Boolean(onLane);
   return (
     <div className="content-panel tableish">
-      <div className="list-row head">
+      <div className={`list-row head${showLane ? " people-with-lane" : ""}`}>
         <span>Name</span>
         <span>Email</span>
-        <span>Role</span>
+        <span>Access</span>
+        {showLane && <span>Lane</span>}
         <span></span>
       </div>
       {members.map((m) => (
-        <div key={m.user_id} className="list-row">
+        <div key={m.user_id} className={`list-row${showLane ? " people-with-lane" : ""}`}>
           <span className="name-cell">
             <span className="avatar sm">{initials(m.name)}</span>
             {m.name}
@@ -66,6 +72,7 @@ function PeopleTable({
           <span>
             {isOwner ? (
               <select
+                aria-label={`Access for ${m.name}`}
                 value={m.role}
                 onChange={(e) => onRole(m.user_id, e.target.value as "owner" | "member")}
               >
@@ -76,6 +83,31 @@ function PeopleTable({
               m.role
             )}
           </span>
+          {showLane && (
+            <span>
+              {isOwner ? (
+                <select
+                  aria-label={`Lane for ${m.name}`}
+                  value={m.lane ?? ""}
+                  onChange={(e) =>
+                    onLane?.(
+                      m.user_id,
+                      e.target.value === "" ? null : (e.target.value as MemberLane),
+                    )
+                  }
+                >
+                  <option value="">—</option>
+                  {MEMBER_LANES.map((lane) => (
+                    <option key={lane} value={lane}>
+                      {lane}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                m.lane ?? "—"
+              )}
+            </span>
+          )}
           <span>
             {isOwner && (
               <button type="button" className="btn-subtle sm" onClick={() => onRemove(m.user_id)}>
@@ -300,6 +332,7 @@ export function ProjectSettingsPage({
   const [description, setDescription] = useState("");
   const [inviteUserId, setInviteUserId] = useState("");
   const [inviteRole, setInviteRole] = useState<"owner" | "member">("member");
+  const [inviteLane, setInviteLane] = useState<MemberLane | "">("");
   const [confirmName, setConfirmName] = useState("");
   const [error, setError] = useState("");
   const [msg, setMsg] = useState("");
@@ -405,13 +438,22 @@ export function ProjectSettingsPage({
           {section === "people" && (
             <>
               <h1>People</h1>
+              <p className="muted pad">
+                Access is owner/member permission. Lane is who PM assigns work to (developer, ta, …).
+              </p>
               <PeopleTable
                 members={members}
                 isOwner={isOwner}
                 currentUserId={user.id}
                 onRole={(userId, role) =>
                   void client
-                    .addProjectMember(id, { user_id: userId, role })
+                    .patchProjectMember(id, userId, { role })
+                    .then(() => reload())
+                    .catch((err) => setError(err instanceof Error ? err.message : "error"))
+                }
+                onLane={(userId, lane) =>
+                  void client
+                    .patchProjectMember(id, userId, { lane })
                     .then(() => reload())
                     .catch((err) => setError(err instanceof Error ? err.message : "error"))
                 }
@@ -423,14 +465,19 @@ export function ProjectSettingsPage({
                 }
                 addSlot={
                   <form
-                    className="list-row"
+                    className="list-row people-with-lane"
                     onSubmit={(e) => {
                       e.preventDefault();
                       if (!inviteUserId) return;
                       void client
-                        .addProjectMember(id, { user_id: inviteUserId, role: inviteRole })
+                        .addProjectMember(id, {
+                          user_id: inviteUserId,
+                          role: inviteRole,
+                          lane: inviteLane === "" ? null : inviteLane,
+                        })
                         .then(() => {
                           setInviteUserId("");
+                          setInviteLane("");
                           return reload();
                         })
                         .catch((err) => setError(err instanceof Error ? err.message : "error"));
@@ -448,17 +495,30 @@ export function ProjectSettingsPage({
                         </option>
                       ))}
                     </select>
+                    <span className="muted">—</span>
                     <select
+                      aria-label="Invite access"
                       value={inviteRole}
                       onChange={(e) => setInviteRole(e.target.value as "owner" | "member")}
                     >
                       <option value="member">member</option>
                       <option value="owner">owner</option>
                     </select>
+                    <select
+                      aria-label="Invite lane"
+                      value={inviteLane}
+                      onChange={(e) => setInviteLane(e.target.value as MemberLane | "")}
+                    >
+                      <option value="">—</option>
+                      {MEMBER_LANES.map((lane) => (
+                        <option key={lane} value={lane}>
+                          {lane}
+                        </option>
+                      ))}
+                    </select>
                     <button className="btn-primary" type="submit" disabled={!inviteUserId}>
                       Add people
                     </button>
-                    <span />
                   </form>
                 }
               />

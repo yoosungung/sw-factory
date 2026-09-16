@@ -43,6 +43,7 @@ ENV DATA_DIR=/data \
     AGENTS_YAML=/config/agents.yaml \
     FACTORY_BASE_URL=https://factory.askwho.net \
     PERSONA_SEED_DIR=/opt/persona-seed \
+    AGENT_APP_ROOT=/app \
     NODE_ENV=production
 
 VOLUME ["/data"]

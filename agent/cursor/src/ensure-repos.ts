@@ -83,6 +83,15 @@ export async function ensureRepo(opts: {
   await mkdir(path.dirname(opts.dest), { recursive: true });
   const gitDir = path.join(opts.dest, ".git");
 
+  // Host-mounted PVC may be owned by a different uid than the container user.
+  await runGit([
+    "config",
+    "--global",
+    "--add",
+    "safe.directory",
+    opts.dest,
+  ]);
+
   if (!(await pathExists(gitDir))) {
     const cloneArgs = ["clone"];
     if (opts.depth && opts.depth > 0) {

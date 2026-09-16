@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 /**
  * Runtime: apply /opt/persona-seed/{persona} → /data/workspaces/{persona}
- * (MEMORY seed-once, skills overwrite).
+ * (MEMORY seed-once, skills overwrite), then refresh factory mcp.json paths.
  *   npx tsx agent/cursor/src/apply-persona-seeds-cli.ts \
  *     --seed-dir /opt/persona-seed --data-dir /data
  */
 import { applyAllPreparedPersonaSeeds } from "./persona-bundle";
+import { refreshFactoryMcpConfigs } from "../mcp/seed";
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(name);
@@ -26,6 +27,14 @@ async function main() {
   if (!dataDir) usage();
 
   const results = await applyAllPreparedPersonaSeeds({ dataDir, seedRoot });
+  const factoryBaseUrl =
+    arg("--factory-url") ??
+    process.env.FACTORY_BASE_URL ??
+    "https://factory.askwho.net";
+  const mcpRefreshed = await refreshFactoryMcpConfigs({
+    dataDir,
+    factoryBaseUrl,
+  });
   console.log(
     JSON.stringify({
       msg: "persona_seeds_applied",
@@ -36,6 +45,7 @@ async function main() {
         memoryWritten: r.memoryWritten,
         filesWritten: r.filesWritten,
       })),
+      mcpRefreshed,
     }),
   );
 }

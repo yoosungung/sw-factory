@@ -82,6 +82,12 @@ export class FactoryClient {
     return res.json();
   }
 
+  async listProjectMembers(projectId: string) {
+    const res = await this.request(`/api/projects/${projectId}/members`);
+    if (!res.ok) throw new Error(`list_project_members ${res.status}`);
+    return res.json();
+  }
+
   async search(q: string) {
     const res = await this.request(`/api/search?q=${encodeURIComponent(q)}`);
     if (!res.ok) throw new Error(`search ${res.status}`);

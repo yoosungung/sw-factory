@@ -70,6 +70,9 @@ test.describe("happy path", () => {
 
     await clickEl(page.getByRole("link", { name: "People" }));
     await expect(page.getByRole("heading", { name: "People" })).toBeVisible();
-    await expect(page.locator("select").first()).toHaveValue("owner");
+    await expect(page.getByText("Access", { exact: true })).toBeVisible();
+    await expect(page.getByText("Lane", { exact: true })).toBeVisible();
+    await expect(page.getByLabel(/Access for/i).first()).toHaveValue("owner");
+    await expect(page.getByLabel(/Lane for/i).first()).toBeVisible();
   });
 });

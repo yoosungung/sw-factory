@@ -34,7 +34,7 @@ cp ../env.example .env
 |----------|------|
 | `./register-agent-users.sh` | register(+login resolve) → `agents.yaml` `user_id` |
 | `./obtain-cookie.sh` | gateway 로그인 → `.env` |
-| `./seed-personas.sh` | sessions persona 쿠키·mcp·MEMORY/skills·repos |
+| `./seed-personas.sh` | sessions persona 쿠키·mcp·MEMORY/skills·repos (`AGENT_APP_ROOT=/app` → 컨테이너용 mcp 절대경로) |
 | `./run-local.sh` | Docker 기동 |
 | `./stop-local.sh` | 중지·삭제 |
 

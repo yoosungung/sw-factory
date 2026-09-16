@@ -17,7 +17,7 @@ description: >-
 
 1. Active `get_ticket` / `get_comments` (실패·빈 응답이면 중단 — 제목만으로 추정 금지)
 2. PR·증거 확인; 부족하면 IC에게 **한 번** `@mention` (대기만이면 침묵)
-3. 핸드오프 시 assignee + actionable일 때만 멘션
+3. 핸드오프 시 assignee + actionable일 때만 멘션 — `list_project_members`의 `lane`으로 담당 결정
 4. 플랫폼/시크릿 blocker만 `@eric`
 5. 중요 mutation 후 Active를 다시 읽고, 방금 쓴 코멘트와 최신 상태가 어긋나면 같은 티켓에 짧게 정정
 

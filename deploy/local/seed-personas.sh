@@ -32,6 +32,8 @@ fi
 mkdir -p "$DATA_HOST"
 cd "$ROOT"
 export FACTORY_BASE_URL
+# mcp.json stdio path must resolve inside the agent container (WORKDIR /app).
+export AGENT_APP_ROOT="${AGENT_APP_ROOT:-/app}"
 npx tsx agent/cursor/src/seed-cli.ts \
   --config "$AGENTS_FILE" \
   --data-dir "$DATA_HOST" \

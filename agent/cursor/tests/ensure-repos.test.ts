@@ -150,8 +150,14 @@ describe("ensureRepo", () => {
     });
 
     expect(result.action).toBe("clone");
-    expect(calls[0]?.[0]).toBe("clone");
-    expect(calls[0]?.[1]).toContain("x-access-token:tok@");
+    expect(
+      calls.some(
+        (c) => c[0] === "config" && c.includes("safe.directory") && c.includes(dest),
+      ),
+    ).toBe(true);
+    const clone = calls.find((c) => c[0] === "clone");
+    expect(clone?.[0]).toBe("clone");
+    expect(clone?.[1]).toContain("x-access-token:tok@");
     expect(calls.some((c) => c[0] === "remote" && c.includes("set-url"))).toBe(
       true,
     );

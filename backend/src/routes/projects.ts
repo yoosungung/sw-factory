@@ -14,6 +14,34 @@ import {
   requireProjectMember,
 } from "../middleware/auth";
 
+const MEMBER_LANES = new Set(["pm", "ta", "qa", "aa", "km", "developer"]);
+
+/** Parse optional lane: omit → undefined (no change on PATCH); null/"" → null; valid string → lane. */
+function parseLane(
+  raw: unknown,
+  opts: { required?: boolean } = {},
+): { ok: true; lane: string | null | undefined } | { ok: false } {
+  if (raw === undefined) {
+    if (opts.required) return { ok: false };
+    return { ok: true, lane: undefined };
+  }
+  if (raw === null || raw === "") return { ok: true, lane: null };
+  if (typeof raw === "string" && MEMBER_LANES.has(raw)) return { ok: true, lane: raw };
+  return { ok: false };
+}
+
+async function fetchProjectMember(db: D1Database, projectId: string, userId: string) {
+  return db
+    .prepare(
+      `SELECT pm.user_id, pm.role, pm.lane, u.email, u.name
+       FROM project_members pm
+       JOIN users u ON u.id = pm.user_id
+       WHERE pm.project_id = ? AND pm.user_id = ?`,
+    )
+    .bind(projectId, userId)
+    .first();
+}
+
 export const projectRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
 projectRoutes.use("/projects/*", requireAuth);
@@ -226,7 +254,7 @@ projectRoutes.get("/projects/:id/members", async (c) => {
   if (!role) return c.json({ error: "forbidden" }, 403);
 
   const { results } = await c.env.DB.prepare(
-    `SELECT pm.user_id, pm.role, u.email, u.name
+    `SELECT pm.user_id, pm.role, pm.lane, u.email, u.name
      FROM project_members pm
      JOIN users u ON u.id = pm.user_id
      WHERE pm.project_id = ?
@@ -245,9 +273,17 @@ projectRoutes.post("/projects/:id/members", async (c) => {
   if (!role) return c.json({ error: "forbidden" }, 403);
   if (role !== "owner") return c.json({ error: "forbidden" }, 403);
 
-  const body = await c.req.json<{ user_id?: string; email?: string; role?: string }>();
+  const body = await c.req.json<{
+    user_id?: string;
+    email?: string;
+    role?: string;
+    lane?: string | null;
+  }>();
   const memberRole = body.role === "owner" || body.role === "member" ? body.role : null;
   if (!memberRole) return c.json({ error: "invalid_input" }, 400);
+  const laneParsed = parseLane(body.lane);
+  if (!laneParsed.ok) return c.json({ error: "invalid_lane" }, 400);
+  const lane = laneParsed.lane === undefined ? null : laneParsed.lane;
 
   const resolved = await resolveUserId(c.env.DB, body);
   if ("error" in resolved) {
@@ -264,22 +300,69 @@ projectRoutes.post("/projects/:id/members", async (c) => {
   if (!clientRole) return c.json({ error: "not_client_member" }, 400);
 
   await c.env.DB.prepare(
-    `INSERT INTO project_members (project_id, user_id, role) VALUES (?, ?, ?)
-     ON CONFLICT(project_id, user_id) DO UPDATE SET role = excluded.role`,
+    `INSERT INTO project_members (project_id, user_id, role, lane) VALUES (?, ?, ?, ?)
+     ON CONFLICT(project_id, user_id) DO UPDATE SET role = excluded.role, lane = excluded.lane`,
   )
-    .bind(id, userId, memberRole)
+    .bind(id, userId, memberRole, lane)
     .run();
 
-  const member = await c.env.DB.prepare(
-    `SELECT pm.user_id, pm.role, u.email, u.name
-     FROM project_members pm
-     JOIN users u ON u.id = pm.user_id
-     WHERE pm.project_id = ? AND pm.user_id = ?`,
-  )
-    .bind(id, userId)
-    .first();
-
+  const member = await fetchProjectMember(c.env.DB, id, userId);
   return c.json({ member }, 201);
+});
+
+projectRoutes.patch("/projects/:id/members/:userId", async (c) => {
+  const user = c.get("user");
+  const id = c.req.param("id");
+  const targetUserId = c.req.param("userId");
+  const role = await requireProjectMember(c.env.DB, id, user.id);
+  if (!role) return c.json({ error: "forbidden" }, 403);
+  if (role !== "owner") return c.json({ error: "forbidden" }, 403);
+
+  const targetRole = await requireProjectMember(c.env.DB, id, targetUserId);
+  if (!targetRole) return c.json({ error: "not_found" }, 404);
+
+  const body = await c.req.json<{ role?: string; lane?: string | null }>();
+  const nextRole =
+    body.role === undefined
+      ? undefined
+      : body.role === "owner" || body.role === "member"
+        ? body.role
+        : null;
+  if (body.role !== undefined && nextRole === null) {
+    return c.json({ error: "invalid_input" }, 400);
+  }
+  const laneParsed = parseLane(body.lane);
+  if (!laneParsed.ok) return c.json({ error: "invalid_lane" }, 400);
+  if (nextRole === undefined && laneParsed.lane === undefined) {
+    return c.json({ error: "invalid_input" }, 400);
+  }
+
+  if (nextRole === "member" && targetRole === "owner") {
+    const owners = await c.env.DB.prepare(
+      `SELECT COUNT(*) AS n FROM project_members WHERE project_id = ? AND role = 'owner'`,
+    )
+      .bind(id)
+      .first<{ n: number }>();
+    if ((owners?.n ?? 0) <= 1) return c.json({ error: "last_owner" }, 400);
+  }
+
+  if (nextRole !== undefined) {
+    await c.env.DB.prepare(
+      `UPDATE project_members SET role = ? WHERE project_id = ? AND user_id = ?`,
+    )
+      .bind(nextRole, id, targetUserId)
+      .run();
+  }
+  if (laneParsed.lane !== undefined) {
+    await c.env.DB.prepare(
+      `UPDATE project_members SET lane = ? WHERE project_id = ? AND user_id = ?`,
+    )
+      .bind(laneParsed.lane, id, targetUserId)
+      .run();
+  }
+
+  const member = await fetchProjectMember(c.env.DB, id, targetUserId);
+  return c.json({ member });
 });
 
 projectRoutes.delete("/projects/:id/members/:userId", async (c) => {

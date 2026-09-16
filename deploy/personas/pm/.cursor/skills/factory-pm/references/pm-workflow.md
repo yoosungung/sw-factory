@@ -22,7 +22,8 @@ Load for intake → design → breakdown → Intent review → closeout.
 
 ## 4. Developer kickoff
 
-코멘트에 포함할 것: 읽을 문서, 코딩 전 답변, PR 순서, 필수 테스트 출력, 언제 PM/Eric에게 물을지.
+코멘트에 포함할 것: 읽을 문서, 코딩 전 답변, PR 순서, 필수 테스트 출력, 언제 PM/Eric에게 물을지.  
+**assignee:** `list_project_members`로 `lane=developer`인 멤버. lane 미설정이면 `@eric`에 People lane 설정 요청.
 
 ## 5. PR Review (Intent)
 

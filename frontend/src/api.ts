@@ -6,9 +6,12 @@ export type User = {
   is_admin: boolean;
 };
 
+export type MemberLane = "pm" | "ta" | "qa" | "aa" | "km" | "developer";
+
 export type Member = {
   user_id: string;
   role: "owner" | "member";
+  lane?: MemberLane | null;
   email: string;
   name: string;
 };
@@ -178,9 +181,21 @@ export const client = {
   deleteProject: (id: string) =>
     api<{ ok: boolean }>(`/api/projects/${id}`, { method: "DELETE" }),
   projectMembers: (id: string) => api<{ members: Member[] }>(`/api/projects/${id}/members`),
-  addProjectMember: (id: string, body: { user_id?: string; email?: string; role: "owner" | "member" }) =>
+  addProjectMember: (
+    id: string,
+    body: { user_id?: string; email?: string; role: "owner" | "member"; lane?: MemberLane | null },
+  ) =>
     api<{ member: Member }>(`/api/projects/${id}/members`, {
       method: "POST",
+      body: JSON.stringify(body),
+    }),
+  patchProjectMember: (
+    id: string,
+    userId: string,
+    body: { role?: "owner" | "member"; lane?: MemberLane | null },
+  ) =>
+    api<{ member: Member }>(`/api/projects/${id}/members/${userId}`, {
+      method: "PATCH",
       body: JSON.stringify(body),
     }),
   removeProjectMember: (id: string, userId: string) =>
