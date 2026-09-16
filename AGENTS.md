@@ -9,22 +9,22 @@ This file provides guidance to AI coding assistants (Claude Code, Codex, Gemini,
 각 문서는 하나의 명확한 용도만 가진다. 같은 내용을 여러 문서에 중복하지 않는다. 한쪽을 고칠 때 다른 쪽이 같이 바뀌어야 한다면 잘못 나눈 것이므로 합치거나 한쪽이 다른 쪽을 참조하게 만든다.
 
 
-| 파일                                                    | 용도                                                | 위치                              |
-| ----------------------------------------------------- | ------------------------------------------------- | ------------------------------- |
-| `AGENTS.md` (이 파일, 정본) ← `CLAUDE.md`, `GEMINI.md` 심볼릭 | 수행 방법 + 문서 레이아웃 + 현황                              | 루트                              |
-| `ARCHITECTURE.md`                                     | **계약사항(불변 규칙)** + 컴포넌트 *간* 인터페이스 형태(스키마·레이아웃·이벤트) | 루트                              |
-| `README.md`                                           | 저장소 방문자용 소개 + 로컬 quickstart                       | 루트                              |
-| `ROADMAP.md`                                          | 수행 계획(마일스톤·순서·미결정 항목)                             | 루트                              |
-| `<comp>/DESIGN.md`                                    | 컴포넌트 *내부* 설계 + `## Commands` (빌드/실행/테스트)          | `backend/`, `frontend/`, `e2e/`, `agent/gateway/`, `agent/cursor/` |
-| `frontend/ia/`                                        | SPA **Prod IA** (메뉴·페이지·관리·디자인 시스템)             | `frontend/ia/`                  |
-| `agent/shared/`                                       | agents.yaml 로드 등 gateway/cursor 공용                   | `agent/shared/`                 |
-| `agent/gateway/`                                      | 티켓 이벤트 → agent prompt **배달** (CursorBridge 이식)   | `agent/gateway/`                |
-| `agent/cursor/`                                       | Cursor SDK runtime + MCP 작업 (agent-runner 이식)     | `agent/cursor/`                 |
-| `deploy/`                                              | Workers 런북 + 공유 `env.example`/`agents.yaml.example` | `deploy/`                        |
-| `deploy/docker/`                                      | agent Dockerfile·entrypoint·`build.sh`              | `deploy/docker/`                 |
-| `deploy/local/`                                       | 로컬 Docker 실행·작업용 `.env`/`agents.yaml`           | `deploy/local/`                  |
-| `deploy/k8s/`                                         | agent k8s 매니페스트·`apply.sh` (`NS=sw-factory`)     | `deploy/k8s/`                   |
-| `deploy/personas/`                                    | persona MEMORY·skills·rules (`_default`+overlay)    | `deploy/personas/`              |
+| 파일                                                    | 용도                                                  | 위치                                                                 |
+| ----------------------------------------------------- | --------------------------------------------------- | ------------------------------------------------------------------ |
+| `AGENTS.md` (이 파일, 정본) ← `CLAUDE.md`, `GEMINI.md` 심볼릭 | 수행 방법 + 문서 레이아웃 + 현황                                | 루트                                                                 |
+| `ARCHITECTURE.md`                                     | **계약사항(불변 규칙)** + 컴포넌트 *간* 인터페이스 형태(스키마·레이아웃·이벤트)   | 루트                                                                 |
+| `README.md`                                           | 저장소 방문자용 소개 + 로컬 quickstart                         | 루트                                                                 |
+| `ROADMAP.md`                                          | 수행 계획(마일스톤·순서·미결정 항목)                               | 루트                                                                 |
+| `<comp>/DESIGN.md`                                    | 컴포넌트 *내부* 설계 + `## Commands` (빌드/실행/테스트)            | `backend/`, `frontend/`, `e2e/`, `agent/gateway/`, `agent/cursor/` |
+| `frontend/ia/`                                        | SPA **Prod IA** (메뉴·페이지·관리·디자인 시스템)                 | `frontend/ia/`                                                     |
+| `agent/shared/`                                       | agents.yaml 로드 등 gateway/cursor 공용                  | `agent/shared/`                                                    |
+| `agent/gateway/`                                      | 티켓 이벤트 → agent prompt **배달** (CursorBridge 이식)      | `agent/gateway/`                                                   |
+| `agent/cursor/`                                       | Cursor SDK runtime + MCP 작업 (agent-runner 이식)       | `agent/cursor/`                                                    |
+| `deploy/`                                             | Workers 런북 + 공유 `env.example`/`agents.yaml.example` | `deploy/`                                                          |
+| `deploy/docker/`                                      | agent Dockerfile·entrypoint·`build.sh`              | `deploy/docker/`                                                   |
+| `deploy/local/`                                       | 로컬 Docker 실행·작업용 `.env`/`agents.yaml`               | `deploy/local/`                                                    |
+| `deploy/k8s/`                                         | agent k8s 매니페스트·`apply.sh` (`NS=sw-factory`)        | `deploy/k8s/`                                                      |
+| `deploy/personas/`                                    | persona MEMORY·skills·rules (`_default`+overlay)    | `deploy/personas/`                                                 |
 
 
 규칙:
@@ -41,6 +41,7 @@ This file provides guidance to AI coding assistants (Claude Code, Codex, Gemini,
 ## 2. 수행 방법 (How we work in this repo)
 
 - 계획·설계·구현 변경은 해당 문서를 먼저(또는 함께) 고친다: 계획 변경 → `ROADMAP.md`, 계약·스키마 → `ARCHITECTURE.md`, 컴포넌트 내부 설계 → 해당 `DESIGN.md`, SPA 화면·메뉴 → `frontend/ia/`, 워크플로 → 이 파일.
+- **v1 참고·반영:** `v1` 브랜치는 이전 Leantime 기반 공장의 **동작·운영·persona/skill 참고본**이다. 기능·워크플로·배포·에이전트 동작을 추가·고칠 때는 구현 전에 `v1`에서 동등·유사 구현을 확인한다. 현재 계약([ARCHITECTURE.md](ARCHITECTURE.md))과 스택(Workers/D1/R2, `agent/gateway`·`agent/cursor`)에 맞게 **가능한 범위만** 이식한다 — 의도·시퀀스·운영 패턴·persona를 우선하고, Leantime/PHP·구 경로 전용 코드는 그대로 복사하지 않는다. 반영한 것과 의도적 생략(갭)은 해당 `DESIGN.md` 또는 티켓에 한 줄로 남긴다.
 - 코드가 처음 들어오는 컴포넌트는 그 폴더의 `DESIGN.md`를 함께 만들고, 이 파일의 §1 표 또는 `ARCHITECTURE.md` §1 계약사항을 필요 시 갱신한다.
 - 컴포넌트에 첫 코드가 들어오면, 해당 폴더의 `DESIGN.md`에 `## Commands` 섹션을 추가해 빌드/실행/테스트 방법을 기록한다. 그 전까지는 비워둔다(존재하지 않는 명령을 만들어 적지 않는다).
 - 개발은 TDD 방식으로 진행한다. (코드 스켈레톤 -> 테스트 코드 -> 기능 구현)
