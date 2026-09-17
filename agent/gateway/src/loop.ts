@@ -7,10 +7,11 @@ import {
   stickyKey,
 } from "./checkpoint";
 import { dispatchToCursor } from "./dispatch";
-import { renderPrompt } from "./prompts";
+import { renderPrompt, promptKindForTarget } from "./prompts";
 import { enqueueEventRetry, listRetries, removeRetry } from "./retry";
 import { routeEvent } from "./router";
 import { pullEvents } from "./tail";
+import { deliverTicketless } from "./ticketless";
 import type { AgentEvent, GatewayConfig, StickyMap } from "./types";
 
 export type TickDeps = {
@@ -90,7 +91,11 @@ export async function processEvent(
   let deliveredOk = 0;
   let hadRetry = false;
   for (const target of targets) {
-    const prompt = renderPrompt(config.prompts, event);
+    const prompt = renderPrompt(
+      config.prompts,
+      event,
+      promptKindForTarget(event, target.user_id),
+    );
     const outcome = await deliverOne({
       config,
       sticky,
@@ -123,6 +128,21 @@ export async function flushRetries(
   for (const item of items) {
     if (item.attempts >= config.retryMaxAttempts) {
       await removeRetry(config.dataDir, item.ticket_id, item.persona);
+      continue;
+    }
+    const ticketless =
+      item.event.event_type === "schedule" ||
+      item.event.event_type === "catch_up";
+    if (ticketless) {
+      await deliverTicketless({
+        config,
+        persona: item.persona,
+        prompt: item.prompt,
+        retryKey: item.ticket_id,
+        eventType: item.event.event_type,
+        payload: item.event.payload,
+        fetchImpl,
+      });
       continue;
     }
     await deliverOne({

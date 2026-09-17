@@ -66,3 +66,18 @@ agentRoutes.get("/events", async (c) => {
 
   return c.json({ events });
 });
+
+agentRoutes.get("/flow-gates", async (c) => {
+  const inProgress = await c.env.DB.prepare(
+    `SELECT 1 AS ok FROM tickets WHERE status = 'in_progress' LIMIT 1`,
+  ).first<{ ok: number }>();
+  const flowActive = await c.env.DB.prepare(
+    `SELECT 1 AS ok FROM tickets
+     WHERE status IN ('in_progress', 'review', 'deploying_test', 'qa', 'deploying_prod')
+     LIMIT 1`,
+  ).first<{ ok: number }>();
+  return c.json({
+    in_progress: !!inProgress,
+    flow_active: !!flowActive,
+  });
+});

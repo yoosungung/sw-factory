@@ -1,6 +1,6 @@
-# Personas protocol (Dual-loop 축약)
+# Personas protocol (Dual-loop)
 
-배달 규칙이 아니라 **cursor가 MCP로 일할 때**의 협업 규약. GH ARCHITECTURE §2.6을 Workers 칸반(`backlog|todo|in_progress|done`)에 맞게 축소한다.
+배달 규칙이 아니라 **cursor가 MCP로 일할 때**의 협업 규약.
 
 ## 역할
 
@@ -15,22 +15,25 @@
 
 공장 직원은 client에 묶이지 않을 수 있음(`agents.yaml`). 개발자는 repo/client 귀속 가능.
 
-## 기능 루프 (최소)
+## 기능 루프
 
-`todo/in_progress`(구현) → 리뷰/머지(사람 또는 pm) → 검증(qa/aa) → `done`.  
-세분 status 보드는 후속; 지금은 코멘트 증거 마커(`test:`, `qa:`, `aa:`, `prod:`)로 Done 게이트를 흉내 낼 수 있다.
+`backlog` → `in_progress` → `review` → `deploying_test` → `qa`(∥ aa) → `deploying_prod` → `done`  
+(+ `blocked` / `waiting_for_approval`).  
+Done은 코멘트 증거 마커(`test:`, `qa:`, `aa:`, `prod:`) — 백엔드 하드 게이트 없음.
 
 ## 공통
 
-- 쓰기는 `add_comment` 우선; 상태 변경은 명시적 handoff와 함께.
-- description·comment body는 **Markdown(GFM)** 으로 쓴다(raw HTML 지양). SPA가 sanitize 렌더한다.
+- 쓰기는 `add_comment` 우선; status-board는 `edit_comment` (웨이크 없음).
+- description·comment body는 **Markdown(GFM)**.
 - `@mention`으로 다음 담당 깨우기(실제 wake는 gateway가 comment 이벤트로 처리).
 - self-echo는 gateway가 차단; agent는 불필요한 자기 재트리거 코멘트를 남기지 않는다.
-- git ship/push는 봇이 수행(사람에게 로컬 push 요청 금지) — `git-ship` 스킬.
+- git ship/push는 봇이 수행 — `git-ship` 스킬.
 - 조사는 **wiki-first** (`org-knowledge` · `ORG_WIKI_URL`); 작업 후 `wiki: inbox/…` 또는 `wiki: N/A`.
+- FS 선행: `set_blocked_by`. Parent/child: `milestone_id` + `list_tickets?milestone_id=`.
 
 ## 번들
 
 레포: [deploy/personas/](../../../deploy/personas/).  
 런타임 시드: `_default` + persona overlay → `/data/workspaces/{persona}/` ([01-workspaces](01-workspaces.md)).  
+레지스트리: `.cursor/clients-repos-registry.json` (공통), `.cursor/tenant-cd-registry.json` (ta), `.cursor/roadmap-registry.json` (pm).  
 MCP 도구 계약: [05-factory-mcp](05-factory-mcp.md).

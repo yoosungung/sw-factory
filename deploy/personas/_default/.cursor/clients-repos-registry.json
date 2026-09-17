@@ -1,0 +1,9 @@
+[
+  {
+    "client_id": "00000000-0000-0000-0000-000000000010",
+    "project_id": "00000000-0000-0000-0000-000000000011",
+    "repo_id": "nl2sql",
+    "git_repo_url": "https://github.com/example/nl2sql.git",
+    "path": "repos/nl2sql"
+  }
+]

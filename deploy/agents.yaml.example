@@ -15,6 +15,74 @@ settings:
   max_queue_per_persona: 32
   cursor_listen: 127.0.0.1:8080
   poll_interval_ms: 3000
+  success_checks:
+    - Read Active ticket via factory-mcp before writing.
+    - Leave an add_comment outcome on the Active ticket when work progressed.
+    - "If Review-ready: git-ship (push + PR) before handoff."
+    - "If tenant_cd-enabled: feature Done needs test+qa+aa+prod evidence (skill gate)."
+    - "Wiki-first (org-knowledge); after work: inbox path or wiki: N/A on Active ticket."
+  schedules:
+    - id: pm-checkpoint
+      cron: "5,20,35,50 * * * *"
+      agents: [pm]
+      gates: [flow_active]
+      prompt: >-
+        Use factory-pm. Dual-loop flow checkpoint. Scan in_progress, review,
+        deploying_test, qa, deploying_prod. Silence clock: assignee progress /
+        nf-progress: / completion·blocker only. In Progress ≈30m × 3 empty →
+        waiting_for_approval + @admin. Review ≥2h no pm evidence → Approval.
+        Deploy/QA ladder as factory-pm ticket-ops. Status board:
+        <!-- pm-checkpoint-status --> upsert via edit_comment; actionable
+        add_comment only. No kubectl/E2E/security/CD by pm. ≤5 actionable comments.
+      success_checks:
+        - At most 5 new actionable add_comment this run (status-board edit_comment excluded).
+        - Final reply lists acted/skipped tickets with classification.
+    - id: pm-roadmap-sync
+      cron: "0 22 * * *"
+      agents: [pm]
+      prompt: >-
+        Use factory-pm roadmap-sync. Read .cursor/roadmap-registry.json.
+        Current milestone = first ## with open - [ ] items. Create tickets
+        only for that section. Pass-gate <!-- roadmap-pass:approved --> before
+        next M{n}. Dedup <!-- roadmap:repo_id:… -->.
+    - id: github-issue-check
+      cron: "0 23 * * *"
+      agents: [pm]
+      prompt: >-
+        GitHub issue 점검. 신규는 client 프로젝트 티켓으로. 블로커는 add_comment.
+        Actions/CD 실패 감시는 ta 소관.
+    - id: km-wiki
+      cron: "30 23 * * *"
+      agents: [km]
+      prompt: >-
+        Use km-researcher then knowledge-promote. Inbox drain + wiki ingest;
+        commit·push directly to main. PR·git-ship 금지. 실패 New, 성공 Done 티켓.
+    - id: ta-k8s-daily
+      cron: "0 1 * * *"
+      agents: [ta]
+      prompt: >-
+        Use k8s-operator-operations. 일일 k8s 리포트(read-only). mutate/배포 금지.
+        조치 가능 장애는 client 프로젝트 티켓.
+    - id: ta-load-weekly
+      cron: "0 2 * * 1"
+      agents: [ta]
+      prompt: >-
+        Use tenant-repo-sync then load-weekly. Each clients-repos-registry
+        entry: sync, run .factory/quality.yaml load against test. Failures →
+        New ticket on that client project. Long-run: detach + nf-progress:.
+    - id: aa-clean-weekly
+      cron: "30 2 * * 1"
+      agents: [aa]
+      prompt: >-
+        Use tenant-repo-sync then clean-code-weekly. High/Med → New tickets
+        on client project. Not a prod gate. Long-run: detach + nf-progress:.
+    - id: qa-bulk-weekly
+      cron: "0 3 * * 1"
+      agents: [qa]
+      prompt: >-
+        Use tenant-repo-sync then bulk-api-probe / opik-eval per tenant
+        .factory/quality.yaml. Failures → New tickets. Long-run: nf-progress:.
+
 
 prompts:
   ticket_created: "Ticket {ticket_id} created. Read via MCP then act. Active ticket_id={ticket_id}"

@@ -29,7 +29,7 @@ commentRoutes.get("/tickets/:ticketId/comments", async (c) => {
   if (!role) return c.json({ error: "forbidden" }, 403);
 
   const { results } = await c.env.DB.prepare(
-    `SELECT c.id, c.entity_type, c.entity_id, c.body, c.author_id, c.created_at, u.name AS author_name
+    `SELECT c.id, c.entity_type, c.entity_id, c.body, c.author_id, c.created_at, c.updated_at, u.name AS author_name
      FROM comments c
      JOIN users u ON u.id = c.author_id
      WHERE c.entity_type = 'ticket' AND c.entity_id = ?
@@ -56,10 +56,10 @@ commentRoutes.post("/tickets/:ticketId/comments", async (c) => {
   const id = newId();
   const created_at = nowIso();
   await c.env.DB.prepare(
-    `INSERT INTO comments (id, entity_type, entity_id, body, author_id, created_at)
-     VALUES (?, 'ticket', ?, ?, ?, ?)`,
+    `INSERT INTO comments (id, entity_type, entity_id, body, author_id, created_at, updated_at)
+     VALUES (?, 'ticket', ?, ?, ?, ?, ?)`,
   )
-    .bind(id, ticketId, text, user.id, created_at)
+    .bind(id, ticketId, text, user.id, created_at, created_at)
     .run();
 
   const mention_user_ids = await resolveMentionUserIds(c.env.DB, ticket.project_id, text);
@@ -84,10 +84,55 @@ commentRoutes.post("/tickets/:ticketId/comments", async (c) => {
         author_id: user.id,
         author_name: user.name,
         created_at,
+        updated_at: created_at,
       },
     },
     201,
   );
+});
+
+commentRoutes.patch("/comments/:id", async (c) => {
+  const user = c.get("user");
+  const comment = await c.env.DB.prepare(
+    `SELECT id, entity_id, author_id, created_at FROM comments WHERE id = ? AND entity_type = 'ticket'`,
+  )
+    .bind(c.req.param("id"))
+    .first<{ id: string; entity_id: string; author_id: string; created_at: string }>();
+  if (!comment) return c.json({ error: "not_found" }, 404);
+
+  const ticket = await loadTicketMeta(c.env.DB, comment.entity_id);
+  if (!ticket) return c.json({ error: "not_found" }, 404);
+  const role = await requireProjectMember(c.env.DB, ticket.project_id, user.id);
+  if (!role) return c.json({ error: "forbidden" }, 403);
+  if (comment.author_id !== user.id && role !== "owner") {
+    return c.json({ error: "forbidden" }, 403);
+  }
+
+  const body = await c.req.json<{ body?: string }>();
+  const text = body.body?.trim();
+  if (!text) return c.json({ error: "invalid_input" }, 400);
+
+  const updated_at = nowIso();
+  await c.env.DB.prepare(`UPDATE comments SET body = ?, updated_at = ? WHERE id = ?`)
+    .bind(text, updated_at, comment.id)
+    .run();
+
+  const author = await c.env.DB.prepare(`SELECT name FROM users WHERE id = ?`)
+    .bind(comment.author_id)
+    .first<{ name: string }>();
+
+  return c.json({
+    comment: {
+      id: comment.id,
+      entity_type: "ticket",
+      entity_id: comment.entity_id,
+      body: text,
+      author_id: comment.author_id,
+      author_name: author?.name ?? user.name,
+      created_at: comment.created_at,
+      updated_at,
+    },
+  });
 });
 
 commentRoutes.delete("/comments/:id", async (c) => {

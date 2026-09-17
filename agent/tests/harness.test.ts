@@ -147,6 +147,7 @@ agents:
       config,
       intervalMs: 20,
       signal: ac.signal,
+      skipCatchUp: true,
     });
     await new Promise((r) => setTimeout(r, 30));
     ac.abort();

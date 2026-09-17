@@ -6,7 +6,7 @@
 | [docs/](docs/) | v1 참고 운영 문서 — [agent 작업흐름](docs/agent-workflows.md) · [schedules](docs/schedules.md) |
 | `agents.yaml` | **공유 정본**(gitignore) — local·seed·k8s ConfigMap |
 | `agents.yaml.example` | 커밋용 템플릿 |
-| `agents.back.yaml` | v1 실정의 스냅샷(clients/schedules 등; schedules는 A8 전 미사용) |
+| `agents.back.yaml` | v1 실정의 스냅샷(clients/schedules 등; 런타임은 `agents.yaml` + gateway 로컬 cron) |
 | `env.example` | local `.env` 템플릿 |
 | [docker/](docker/) | agent Dockerfile·entrypoint·`build.sh` |
 | [local/](local/) | 로컬 Docker 실행·`.env` (`agents.yaml` → `../agents.yaml` 링크) |

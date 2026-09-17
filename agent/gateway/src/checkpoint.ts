@@ -23,6 +23,7 @@ export function retryDir(dataDir: string): string {
 export async function ensureGatewayDirs(dataDir: string): Promise<void> {
   await mkdir(retryDir(dataDir), { recursive: true });
   await mkdir(path.join(dataDir, "logs"), { recursive: true });
+  await mkdir(path.join(dataDir, "schedule-fires"), { recursive: true });
 }
 
 export async function loadCheckpoint(dataDir: string): Promise<Checkpoint> {

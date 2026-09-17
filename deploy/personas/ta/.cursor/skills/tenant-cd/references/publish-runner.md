@@ -1,6 +1,6 @@
 # Publish cursor-agent-runner (GHCR)
 
-Use when Deploying Test needs a fresh `ghcr.io/<owner>/cursor-agent-runner` image (e.g. leantime-mcp schema change) and you must not run `docker` in-cluster.
+Use when Deploying Test needs a fresh `ghcr.io/<owner>/cursor-agent-runner` image and you must not run `docker` in-cluster.
 
 Packages push is done by GitHub Actions `GITHUB_TOKEN` (`packages:write`). Your `GH_TOKEN_ta` only needs **Actions write** on `sw-factory` (plus Contents/PR on `k8s-test` / tenant repos for CD).
 

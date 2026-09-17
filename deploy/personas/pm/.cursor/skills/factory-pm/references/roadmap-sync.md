@@ -1,12 +1,12 @@
 # ROADMAP sync (single current milestone + pass-gate)
 
-Use when schedule `pm-roadmap-sync` runs, or Eric asks to sync a repo ROADMAP into Leantime.
+Use when schedule `pm-roadmap-sync` runs, or admin asks to sync a repo ROADMAP into factory tickets.
 
-Registry: `~/.cursor/roadmap-registry.json` (seeded for pm only). Empty/`repos: []` → no-op with a short final reply.
+Registry: `.cursor/roadmap-registry.json` (seeded for pm). Empty/`repos: []` → no-op with a short final reply.
 
 ## Per-repo steps
 
-1. **Read registry entry:** `repo_id`, `git_repo_url`, `path` (default `ROADMAP.md`), `project_id`, `leantime_client_id`.
+1. **Read registry entry:** `repo_id`, `git_repo_url`, `path` (default `ROADMAP.md`), `project_id`, `client_id`.
 2. **Clone (ephemeral):**
    ```bash
    ROOT="/tmp/roadmap-sync-${repo_id}"
@@ -50,7 +50,7 @@ Milestone id from a heading: first match of `\bM(\d+(?:\.\d+)?)\b` (e.g. `M2 —
 
 ### Delegate (pm picks exactly one)
 
-Resolve mention/`assignedTo` ids from `bridge.json` / `agents.yaml` — **never hardcode names or numeric ids** (including not assuming the admin human is named `eric`).
+Resolve mention/`assignee_id` from `agents.yaml` — **never hardcode names or numeric ids**.
 
 | Signal | Delegate |
 |--------|----------|
@@ -62,10 +62,10 @@ Resolve mention/`assignedTo` ids from `bridge.json` / `agents.yaml` — **never 
 
 **Human resolve:**
 
-1. **Client human:** among `agents[]` with `type: human` whose `primary_repo` (or repo membership) belongs to this registry entry’s `leantime_client_id` / client `repo_ids` → that agent’s `leantime_user_id`.
+1. **Client human:** among `agents[]` with `type: human` whose `primary_repo` (or repo membership) belongs to this registry entry’s `client_id` / client `repo_ids` → that agent’s `user_id`.
 2. **Else admin human:** factory `agents[]` with `type: human` in the admin/factory owner slot (identity by `type: human` + admin/factory primary — **not** by display name).
-3. Human delegate → status `Waiting for Approval` (2), assignee = that human id, HTML `@mention` with same id.
-4. Staff (`ta`/`qa`/`aa`) → status `In Progress` (4), assignee = staff id, HTML `@mention`.
+3. Human delegate → status `waiting_for_approval`, assignee = that human id, Markdown `@Name`.
+4. Staff (`ta`/`qa`/`aa`) → status `in_progress`, assignee = staff id, Markdown `@Name`.
 
 ### Next enqueue (only after pass-gate approved)
 
@@ -88,11 +88,11 @@ Resolve mention/`assignedTo` ids from `bridge.json` / `agents.yaml` — **never 
      - `headline` = item text
      - `project_id` from registry
      - `user_id` = pm
-     - `status` = New
+- `status` = `backlog`
      - `milestoneid` = current milestone id
      - `description` includes the marker + intake sections (Goal / Non-goals / Acceptance criteria / Risks / Required test·deploy evidence / Architecture notes) filled from the item and section context; leave open questions explicit rather than inventing product scope
      - Leave assignee empty or pm — do not invent developer assignee
-8. Do not force Leantime ticket Done from checklist alone; if tickets lag the doc, note once in the session reply (no spam comments).
+8. Do not force ticket Done from checklist alone; if tickets lag the doc, note once in the session reply (no spam comments).
 
 ## Session reply
 

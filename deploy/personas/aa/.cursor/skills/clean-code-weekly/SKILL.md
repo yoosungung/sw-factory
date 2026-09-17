@@ -18,7 +18,7 @@ Do not confuse with ticket **`security-review`** (prod gate). Do not set feature
 
 ### 0. Sync
 
-Follow **`tenant-repo-sync`** for every entry in `~/.cursor/clients-repos-registry.json`. Record `synced: repo_id=… sha=… path=…` (or skip). All later steps use that ephemeral `path`, not a stale primary workspace.
+Follow **`tenant-repo-sync`** for every entry in `.cursor/clients-repos-registry.json`. Record `synced: repo_id=… sha=… path=…` (or skip). All later steps use that ephemeral `path`, not a stale primary workspace.
 
 ### 1. Discover
 

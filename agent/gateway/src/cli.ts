@@ -53,6 +53,8 @@ async function main() {
     debounceMs: file.settings.debounce_ms ?? 2000,
     pollLimit: 100,
     retryMaxAttempts: 5,
+    schedules: file.settings.schedules ?? [],
+    successChecks: file.settings.success_checks ?? [],
   };
 
   const intervalMs = file.settings.poll_interval_ms ?? 3000;

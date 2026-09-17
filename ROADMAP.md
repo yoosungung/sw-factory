@@ -72,7 +72,9 @@
 | **A5** | 로컬 실행 하네스 (agents.yaml · gateway poll · cursor listen · SDK/mock backend) | `npm run agent:cursor`+`agent:gateway`로 mock E2E; yaml 로드·listen 테스트 green | done |
 | **A6** | `deploy/personas` MEMORY·skills 번들 + TS merge/seed | pm 번들에 default+persona MEMORY·`factory-collab`; MEMORY seed-once(재시드 시 미덮어씀); 테스트 green | done |
 | **A7** | agents.yaml `repos[]` + seed ensureRepos (clone-if-missing) | `primary_repo`/`repo_ids` → `workspaces/*/repos/*`; registry 기록; ensure 테스트 green | done |
-| **A8** | gateway `schedules[]` (로컬 cron → 티켓리스 prompt) | v1 동등 checkpoint/weekly wake; load-config + gateway 실행 | planned |
+| **A8** | gateway `schedules[]` (로컬 cron → 티켓리스 prompt) + 기동 catch-up + `GET /api/agent/flow-gates` | yaml 로드·UTC 분 틱·dedupe·gate fail-closed; catch_up 1회; `npm run test:agent` green | done |
+| **A9** | factory-mcp/API 정합 (`edit_comment`, `set_blocked_by` 마커, mention/handoff prompt, `milestone_id` 필터) | 코멘트 PATCH(이벤트 미적재)·MCP 도구·프롬프트 대상별 템플릿 테스트 green | done |
+| **A10** | Soft 레지스트리·persona/문서 정합 (Done 하드 게이트 없음) | tenant-cd/clients-repos/roadmap 샘플 시드; Leantime 잔재 제거; workflows/schedules 갭 갱신 | done |
 
 ## 범위 밖 (Exclude)
 

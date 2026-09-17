@@ -70,6 +70,15 @@ export class FactoryClient {
     return res.json();
   }
 
+  async editComment(commentId: string, body: string) {
+    const res = await this.request(`/api/comments/${commentId}`, {
+      method: "PATCH",
+      body: JSON.stringify({ body }),
+    });
+    if (!res.ok) throw new Error(`edit_comment ${res.status}`);
+    return res.json();
+  }
+
   async listProjects() {
     const res = await this.request(`/api/projects`);
     if (!res.ok) throw new Error(`list_projects ${res.status}`);

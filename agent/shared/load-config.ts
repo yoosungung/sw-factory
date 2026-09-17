@@ -27,6 +27,15 @@ export type LoadedPrompts = {
   catch_up: string;
 };
 
+export type LoadedSchedule = {
+  id: string;
+  cron: string;
+  prompt: string;
+  agents?: string[];
+  gates?: string[];
+  success_checks?: string[];
+};
+
 export type AgentsFile = {
   factory_base_url: string;
   settings: {
@@ -37,6 +46,8 @@ export type AgentsFile = {
     max_queue_per_persona?: number;
     cursor_listen?: string;
     poll_interval_ms?: number;
+    success_checks?: string[];
+    schedules?: LoadedSchedule[];
   };
   prompts: LoadedPrompts;
   repos?: LoadedRepo[];
@@ -84,6 +95,29 @@ function validateAgentRepoRefs(doc: AgentsFile): void {
   }
 }
 
+function validateSchedules(doc: AgentsFile): void {
+  const schedules = doc.settings.schedules ?? [];
+  doc.settings.schedules = schedules;
+  const seen = new Set<string>();
+  for (const s of schedules) {
+    if (!s?.id || !s.cron || !s.prompt) {
+      throw new Error(
+        "invalid agents.yaml schedules[]: need id, cron, prompt",
+      );
+    }
+    const parts = s.cron.trim().split(/\s+/);
+    if (parts.length !== 5) {
+      throw new Error(
+        `invalid agents.yaml schedule ${s.id}: cron must have 5 UTC fields`,
+      );
+    }
+    if (seen.has(s.id)) {
+      throw new Error(`duplicate schedules[].id: ${s.id}`);
+    }
+    seen.add(s.id);
+  }
+}
+
 export async function loadAgentsYaml(path: string): Promise<AgentsFile> {
   const raw = await readFile(path, "utf8");
   const doc = parseYaml(raw) as AgentsFile;
@@ -93,6 +127,7 @@ export async function loadAgentsYaml(path: string): Promise<AgentsFile> {
   doc.settings = doc.settings ?? {};
   doc.repos = doc.repos ?? [];
   validateAgentRepoRefs(doc);
+  validateSchedules(doc);
   return doc;
 }
 

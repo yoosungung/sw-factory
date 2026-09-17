@@ -101,6 +101,36 @@ function startMockFactory() {
       return;
     }
 
+    if (req.method === "PATCH" && url.pathname.startsWith("/api/comments/")) {
+      const id = url.pathname.split("/").pop()!;
+      const body = await readJson(req);
+      const comment = comments.find((c) => c.id === id);
+      if (!comment) {
+        res.writeHead(404, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "not_found" }));
+        return;
+      }
+      comment.body = String(body.body);
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ comment }));
+      return;
+    }
+
+    if (req.method === "PATCH" && url.pathname.startsWith("/api/tickets/")) {
+      const id = url.pathname.split("/").pop()!;
+      const body = await readJson(req);
+      const ticket = tickets.get(id);
+      if (!ticket) {
+        res.writeHead(404, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "not_found" }));
+        return;
+      }
+      Object.assign(ticket, body);
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ ticket }));
+      return;
+    }
+
     if (req.method === "GET" && /\/api\/projects\/[^/]+\/members$/.test(url.pathname)) {
       res.writeHead(200, { "content-type": "application/json" });
       res.end(
@@ -173,8 +203,21 @@ describe("A4 factory-mcp", () => {
     expect(added.content[0].text).toContain("agent notes");
     expect(factory.comments).toHaveLength(1);
 
+    const edited = await mcp.callTool("edit_comment", {
+      id: factory.comments[0]!.id,
+      body: "<!-- pm-checkpoint-status --> updated",
+    });
+    expect(edited.content[0].text).toContain("updated");
+
+    const blocked = await mcp.callTool("set_blocked_by", {
+      ticket_id: "ticket-1",
+      blocker_ids: ["ticket-2"],
+      status: "blocked",
+    });
+    expect(blocked.content[0].text).toContain("blocked-by:ticket-2");
+
     const listed = await mcp.callTool("get_comments", { ticket_id: "ticket-1" });
-    expect(listed.content[0].text).toContain("agent notes");
+    expect(listed.content[0].text).toContain("updated");
 
     const members = await mcp.callTool("list_project_members", {
       project_id: "proj-1",

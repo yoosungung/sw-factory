@@ -60,6 +60,7 @@ ticketRoutes.get("/projects/:projectId/tickets", async (c) => {
   const status = c.req.query("status");
   const assigneeId = c.req.query("assignee_id");
   const createdBy = c.req.query("created_by");
+  const milestoneId = c.req.query("milestone_id");
   const limitRaw = Number(c.req.query("limit") ?? "50");
   const limit = Number.isFinite(limitRaw)
     ? Math.min(Math.max(Math.floor(limitRaw), 1), 100)
@@ -85,6 +86,10 @@ ticketRoutes.get("/projects/:projectId/tickets", async (c) => {
     const resolvedCreator = createdBy === "me" ? user.id : createdBy;
     sql += ` AND created_by = ?`;
     binds.push(resolvedCreator);
+  }
+  if (milestoneId) {
+    sql += ` AND milestone_id = ?`;
+    binds.push(milestoneId);
   }
   if (cursor) {
     try {

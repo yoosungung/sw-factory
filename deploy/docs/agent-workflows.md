@@ -43,7 +43,7 @@ New → In Progress → Review → Deploying Test → QA → Deploying Prod → 
 
 1. **티켓 이벤트** — create/update/comment/assignee → gateway가 assignee·`@mention` persona에 prompt (`Active ticket_id=…`).
 2. **`schedules[]`** — 티켓리스 세션; 에이전트가 MCP로 열린 일을 찾음 ([schedules.md](schedules.md)).
-3. **Ready catch-up (재기동=출근)** — `/readyz` false→true 또는 gateway 기동 시 `prompts.catch_up` 1회 → `agent-catch-up` 스킬.
+3. **Ready catch-up (재기동=출근)** — gateway 기동 시 `prompts.catch_up` 1회 → `agent-catch-up` 스킬. `/readyz` 폴링 없음.
 
 ### 1.4 공통 규칙
 
@@ -236,12 +236,13 @@ sequenceDiagram
 
 ## 9. main 갭 (의도적)
 
-| v1 | main |
-|----|------|
-| Leantime MCP HTML 멘션 | factory REST + Markdown `@Name` |
-| `set_blocked_by` / status id 보드 | D1 tickets + project statuses (동일 의도, API 다름) |
-| persona 스킬명 `leantime-*` | `factory-*` 로 이식 중; 절차는 동일 정신 |
-| developer 다수(asky/path…) | `agents.yaml`의 repo IC (`sw-factory` 등) |
-| schedules 상시 가동 | A8 전 — 스냅샷만 `agents.back.yaml` |
+| 생략 | 이유 |
+|------|------|
+| Done / Intent / qa∥aa 증거 **하드 게이트** | Soft 완결 — 스킬 규율만. Workers는 상태 전이를 막지 않음 |
+| Worker Cron `schedule_tick` | gateway 로컬 cron이 정본 |
+| `/readyz` false→true 상시 프로브 | 기동 catch-up 1회 |
+| `parent_id` / FS 그래프 테이블 | `milestone_id` + `<!-- blocked-by: -->` |
+| SPA 코멘트 편집 UI | `PATCH /api/comments/:id`는 agent/MCP용 |
+| v1 Goose `success_retry` hard verify | success_checks는 prompt append만 |
 
 정본 스킬 경로: [../personas/](../personas/).

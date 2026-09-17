@@ -21,7 +21,7 @@ When Eric asks whether an older `@pm` Leantime mention will still be handled, do
 1. Mentions are routed by CursorBridge (`mention_routing`); there is no Hermes cron collector pending file to inspect.
 2. Re-read the referenced ticket and its comments to verify the mention exists and identify the latest actionable comment.
 3. Periodic PM checkpoint runs use schedule `pm-checkpoint` (CursorBridge `schedules[]`), not a Hermes watcher cron.
-4. To re-trigger automation, create a new actionable Leantime comment with the proper HTML mention (or wait for the next schedule tick when the work is checkpoint-shaped).
+4. To re-trigger automation, create a new actionable comment with Markdown `@Name` (or wait for the next schedule tick when the work is checkpoint-shaped).
 5. If the request is urgent or a prior run may have missed the real work, handle the ticket manually rather than telling Eric to wait — re-read comments and GitHub before acting.
 
 Record this distinction clearly: new mentions/new comments are picked up by CursorBridge routing or the next schedule fire; do not assume silent replay of already-handled mentions.

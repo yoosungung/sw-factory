@@ -114,7 +114,8 @@ entity_type TEXT NOT NULL CHECK (entity_type IN ('ticket')),
 entity_id TEXT NOT NULL,
 body TEXT NOT NULL,                 -- Markdown(GFM); see §1.16
 author_id TEXT NOT NULL REFERENCES users(id),
-created_at TEXT NOT NULL
+created_at TEXT NOT NULL,
+updated_at TEXT NOT NULL
 
 -- files
 id TEXT PRIMARY KEY,
@@ -228,7 +229,7 @@ payload_json TEXT NOT NULL DEFAULT '{}'
 
 | Method | Path | 비고 |
 | --- | --- | --- |
-| GET | `/api/projects/:id/tickets` | query: `type`, `status`, `assignee_id` (`me` = 현재 사용자), `created_by` (`me` = 현재 사용자), `limit`, `cursor` (Cursor 페이징) |
+| GET | `/api/projects/:id/tickets` | query: `type`, `status`, `assignee_id` (`me` = 현재 사용자), `created_by` (`me` = 현재 사용자), `milestone_id`, `limit`, `cursor` (Cursor 페이징) |
 | POST | `/api/projects/:id/tickets` | `{ title, description?, type, status?, priority?, assignee_id?, due_at?, milestone_id?, date_from?, date_to? }` |
 | GET | `/api/tickets/:id` | 멤버만 |
 | PATCH | `/api/tickets/:id` | body에 `{ status, sort_order, priority, assignee_id, due_at, version? }` 포함. 버전 전달 시 불일치하면 `409 Conflict`; 성공 시 `version` 증가 및 변경 필드 `ticket_activities` 기록 |
@@ -248,6 +249,7 @@ payload_json TEXT NOT NULL DEFAULT '{}'
 | Method | Path | 비고 |
 | --- | --- | --- |
 | GET/POST | `/api/tickets/:id/comments` | `POST` 시 body Markdown의 `@Name` 토큰 → 아래 mention 규칙 |
+| PATCH | `/api/comments/:id` | `{ body }` — 작성자 또는 project owner. `updated_at` 갱신. **agent_event_log 미적재** (status-board upsert / mention storm 방지) |
 | DELETE | `/api/comments/:id` | 작성자 또는 project owner |
 | POST | `/api/tickets/:id/files` | `multipart/form-data` field `file` → R2 + meta (소용량) |
 | POST | `/api/tickets/:id/files/upload-url` | `{ filename, mime, size }` → 임시 PUT `upload_url` + `r2_key` |
@@ -261,6 +263,7 @@ payload_json TEXT NOT NULL DEFAULT '{}'
 | Method | Path | 비고 |
 | --- | --- | --- |
 | GET | `/api/agent/events` | query `after_id`, `limit`(기본 100, 최대 500). **세션 인증 필수**(gateway 전용 시스템 유저로 로그인). 응답 `{ events }` — 각 항목에 `payload`(JSON 객체). Worker→agent push 없음. |
+| GET | `/api/agent/flow-gates` | 세션 필수. `{ in_progress, flow_active }` — 공장 전역 티켓 status EXISTS (`in_progress`; dual-loop 활성 컬럼). gateway 스케줄 게이트 전용. |
 
 티켓 create/update(필드 변경 시)/delete·코멘트 create 성공 시 Worker가 `agent_event_log`에 동기 append한다. tail은 `(at, id)` 키셋(`after_id`로 앵커). 라우팅·prompt는 gateway; 상세는 [agent/gateway/](agent/gateway/).
 

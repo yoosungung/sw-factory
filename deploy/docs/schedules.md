@@ -2,7 +2,7 @@
 
 출처: `v1` `ARCHITECTURE.md` §1.5 · §2.4 · §2.6 #10/#15, `ScheduleTicker` / `DefaultScheduleGates`, `deploy/k8s/base/cronjob-schedule-tick.yaml`, 실정 스냅샷 [../agents.back.yaml](../agents.back.yaml) · sample `deploy/k8s/agents.yaml.sample`.
 
-**main:** gateway `schedules[]`는 [ROADMAP A8](../../ROADMAP.md) **planned**. 이 문서는 v1 동작을 정본으로 남겨 A8 이식 시 그대로 맞춘다. catch-up은 gateway 기동 경로로 이미 유사 이식됨.
+**main:** gateway `schedules[]`는 로컬 UTC cron + 기동 catch-up으로 이식됨 ([ROADMAP](../../ROADMAP.md) A8). Worker Cron `schedule_tick`은 쓰지 않는다.
 
 ---
 
@@ -188,13 +188,12 @@ main 스냅샷: [../agents.back.yaml](../agents.back.yaml) `settings.schedules`.
 
 ## 8. main 이식 체크리스트 (A8)
 
-- [ ] `agents.yaml` `settings.schedules` 로드 (`agent/shared/load-config`)
-- [ ] gateway 로컬 cron 또는 Worker Cron이 due+gates 평가
-- [ ] 티켓리스 prompt → cursor `POST /sessions` (persona별)
-- [ ] `(schedule_id, minute)` dedupe
-- [ ] `flow_active` / `in_progress` 게이트를 D1 쿼리로 재구현
-- [ ] catch-up과 스케줄 분리 유지
-- [ ] NF 장시간: `nf-progress:` 계약 유지
-- [ ] persona prompt/스킬은 [../personas/](../personas/) · [agent-workflows.md](agent-workflows.md)와 정합
+- [x] `agents.yaml` `settings.schedules` 로드 (`agent/shared/load-config`)
+- [x] gateway 로컬 cron이 due+gates 평가 (Worker Cron 없음)
+- [x] 티켓리스 prompt → cursor `POST /sessions` (persona별)
+- [x] `(schedule_id, minute)` dedupe
+- [x] `flow_active` / `in_progress` 게이트를 D1 `GET /api/agent/flow-gates`로 재구현
+- [x] catch-up과 스케줄 분리 유지 (기동 시 catch_up 1회)
+- [x] NF 장시간: `nf-progress:` 계약 유지 (스킬)
+- [x] persona prompt/스킬은 [../personas/](../personas/) · [agent-workflows.md](agent-workflows.md)와 정합
 
-구현 전 `v1` `ScheduleTicker`·`DefaultScheduleGates`·`tick-schedules.php`를 다시 대조한다.

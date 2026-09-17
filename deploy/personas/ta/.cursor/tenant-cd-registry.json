@@ -1,0 +1,23 @@
+[
+  {
+    "client_id": "00000000-0000-0000-0000-000000000010",
+    "repo_id": "nl2sql",
+    "git_repo_url": "https://github.com/example/nl2sql.git",
+    "workflow": "deploy.yml",
+    "ref": "main",
+    "inputs": {
+      "environment": "test"
+    },
+    "image_input": "image_tag",
+    "verify": {
+      "namespace": "nl2sql",
+      "deployment": "nl2sql",
+      "timeout_sec": 300,
+      "smoke": {
+        "type": "http",
+        "url": "http://nl2sql.nl2sql.svc.cluster.local:8080/healthz",
+        "expect_status": 200
+      }
+    }
+  }
+]

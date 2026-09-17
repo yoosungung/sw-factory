@@ -177,6 +177,34 @@ describe("router", () => {
   });
 });
 
+describe("prompt templates", () => {
+  it("uses mention for mention-only targets and handoff on assignee change", async () => {
+    const { promptKindForTarget, renderPrompt } = await import("../src/prompts");
+    const mentionEvent: AgentEvent = {
+      id: "e",
+      at: "2026-01-01T00:00:00.000Z",
+      event_type: "comment_added",
+      ticket_id: "t1",
+      project_id: "p1",
+      actor_user_id: "human-1",
+      assignee_user_id: TA.user_id,
+      payload: { mention_user_ids: [PM.user_id] },
+    };
+    expect(promptKindForTarget(mentionEvent, PM.user_id)).toBe("mention");
+    expect(promptKindForTarget(mentionEvent, TA.user_id)).toBe("comment_added");
+    expect(renderPrompt(prompts, mentionEvent, "mention")).toContain("mentioned");
+
+    const handoffEvent: AgentEvent = {
+      ...mentionEvent,
+      event_type: "ticket_updated",
+      assignee_user_id: PM.user_id,
+      payload: { changed_fields: ["assignee_id"] },
+    };
+    expect(promptKindForTarget(handoffEvent, PM.user_id)).toBe("handoff");
+    expect(renderPrompt(prompts, handoffEvent, "handoff")).toContain("Handoff");
+  });
+});
+
 describe("A2 gateway e2e", () => {
   it("tails events and delivers 202 to mock cursor then advances acked_id", async () => {
     const dataDir = await mkdtemp(path.join(os.tmpdir(), "gw-"));

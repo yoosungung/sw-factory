@@ -9,11 +9,13 @@ GitHub `leantime-mcp`(JSON-RPC + PAT) 대신 Worker **REST + 세션 쿠키**를 
 | MCP tool | Worker |
 |----------|--------|
 | `get_ticket` | `GET /api/tickets/:id` |
-| `list_tickets` | `GET /api/projects/:id/tickets` (+ assignee/me 필터) |
+| `list_tickets` | `GET /api/projects/:id/tickets` (+ assignee/me, `milestone_id`) |
 | `create_ticket` | `POST /api/projects/:id/tickets` |
 | `update_ticket` | `PATCH /api/tickets/:id` (+ `version` 권장) |
 | `get_comments` | `GET /api/tickets/:id/comments` |
 | `add_comment` | `POST /api/tickets/:id/comments` |
+| `edit_comment` | `PATCH /api/comments/:id` (이벤트 없음) |
+| `set_blocked_by` | description `<!-- blocked-by:uuid[,uuid] -->` upsert (+ 선택 status) |
 | `list_projects` / `get_project` | `/api/projects` … |
 | `list_project_members` | `GET /api/projects/:id/members` (`role` + `lane`) |
 | `search` | `GET /api/search?q=` |

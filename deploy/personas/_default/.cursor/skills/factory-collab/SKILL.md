@@ -2,7 +2,8 @@
 name: factory-collab
 description: >-
   factory-mcp로 티켓·코멘트를 읽고 업데이트한다. get_ticket, get_comments,
-  add_comment, update_ticket, list_tickets, list_project_members, search 사용 시 적용한다.
+  add_comment, edit_comment, set_blocked_by, update_ticket, list_tickets,
+  list_project_members, search 사용 시 적용한다.
 ---
 
 # Factory MCP 협업
@@ -49,8 +50,10 @@ MCP 서버 `factory` 도구를 사용한다. 작업 전 읽기, 작업 후 코�
 |------|------|
 | `get_ticket` | 티켓 상세 |
 | `get_comments` | 코멘트 |
-| `add_comment` | 코멘트 추가 |
+| `add_comment` | 코멘트 추가 (멘션 웨이크) |
+| `edit_comment` | 코멘트 수정 (웨이크 없음; status-board upsert) |
+| `set_blocked_by` | description `<!-- blocked-by:uuid[,uuid] -->` |
 | `update_ticket` | 필드·상태·담당자 |
-| `list_tickets` | 프로젝트 티켓 목록 |
+| `list_tickets` | 프로젝트 티켓 목록 (`milestone_id` = parent 자식) |
 | `search` | 검색 |
 | `list_projects` / `get_project` | 프로젝트 |

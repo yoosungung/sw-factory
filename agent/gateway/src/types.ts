@@ -1,3 +1,5 @@
+import type { LoadedSchedule } from "../../shared/load-config";
+
 export type AgentEventType =
   | "ticket_created"
   | "ticket_updated"
@@ -46,6 +48,8 @@ export type GatewayConfig = {
   debounceMs: number;
   pollLimit: number;
   retryMaxAttempts: number;
+  schedules?: LoadedSchedule[];
+  successChecks?: string[];
 };
 
 export type Checkpoint = {

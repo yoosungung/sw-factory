@@ -15,7 +15,7 @@
 | Leantime + CursorBridge | Workers/D1 + `agent/gateway` |
 | agent-runner | `agent/cursor` |
 | HTML Tiptap `@mention` | Markdown `@Name` → `mention_user_ids` ([ARCHITECTURE](../../ARCHITECTURE.md) Comment @mention) |
-| `schedules[]` + CronJob tick | **A8 planned** ([ROADMAP](../../ROADMAP.md)); 스냅샷은 [../agents.back.yaml](../agents.back.yaml) |
+| `schedules[]` + CronJob tick | **gateway 로컬 cron** ([schedules.md](schedules.md)); 스냅샷은 [../agents.back.yaml](../agents.back.yaml) |
 | `bridge.json` `leantime_user_id` | `agents.yaml` `user_id` (factory `users.id`) |
 
 갭·의도적 생략은 각 문서 하단에 적는다. Leantime/PHP 경로를 그대로 복사하지 않는다 — 의도·시퀀스·운영 패턴만 이식한다.

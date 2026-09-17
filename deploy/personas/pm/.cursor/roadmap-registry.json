@@ -1,0 +1,11 @@
+{
+  "repos": [
+    {
+      "repo_id": "sw-factory",
+      "git_repo_url": "https://github.com/example/sw-factory.git",
+      "path": "ROADMAP.md",
+      "project_id": "00000000-0000-0000-0000-000000000012",
+      "client_id": "00000000-0000-0000-0000-000000000010"
+    }
+  ]
+}

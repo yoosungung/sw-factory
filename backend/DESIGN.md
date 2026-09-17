@@ -187,7 +187,8 @@ erDiagram
 
 | REST | 비고 |
 | --- | --- |
-| `POST`/`GET /api/tickets/:id/comments` | |
+| `GET/POST /api/tickets/:id/comments` | |
+| `PATCH /api/comments/:id` | 작성자 또는 owner; **이벤트 미적재** |
 | `DELETE /api/comments/:id` | 작성자 또는 project owner |
 | `POST /api/tickets/:id/files` | multipart (소용량) |
 | `POST …/files/upload-url` · `…/confirm` | Presigned Direct Upload |
@@ -198,6 +199,7 @@ erDiagram
 | REST | 비고 |
 | --- | --- |
 | `GET /api/agent/events` | `after_id`, `limit`; 세션 필수; mutate append는 tickets/comments 경로 |
+| `GET /api/agent/flow-gates` | `{ in_progress, flow_active }` EXISTS; 세션 필수 |
 
 ### 4.7 에러
 
@@ -227,6 +229,7 @@ erDiagram
 5. **Ticket 수정:** project 멤버 + `version`  
 6. **Ticket 삭제:** 작성자 또는 project `owner`  
 7. **Comment/File 삭제:** 작성자(업로더) 또는 project `owner`
+7b. **Comment PATCH:** 작성자 또는 project `owner` (이벤트 없음)
 
 ---
 
@@ -264,6 +267,7 @@ backend/src/
 | Cursor 페이징 · Done 기간 필터 · Presigned upload · 세션 Cron | **구현됨** | M7 |
 | `version` 409 · `ticket_activities` | **구현됨** | M8 |
 | `agent_event_log` · `GET /api/agent/events` | **구현됨** | A1 |
+| `GET /api/agent/flow-gates` · comment PATCH | **구현됨** | A8–A9 |
 | 플랫폼 admin · Space 생성 가드 | **구현됨** | M9 |
 | `project_statuses` · 동적 칸반 | **구현됨** | M10 |
 | timesheets, calendar, notifications, canvas/ideas/wiki/goals, plugins, PAT | **Exclude** | — |

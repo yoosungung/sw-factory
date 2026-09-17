@@ -13,6 +13,7 @@ GitHub 원본 개념: CursorBridge Listener / Router / DeferredDispatch / Resili
 | assignee / @mention / self-echo / debounce | MCP 호출 |
 | prompt 조립 → cursor에 전달 | `add_comment` / `PATCH ticket` |
 | 로컬 retry 큐 · `acked_id` checkpoint | SDK import / inference |
+| `settings.schedules[]` 로컬 cron · catch-up | Worker Cron `schedule_tick` outbox |
 
 ## Layout
 
@@ -22,7 +23,7 @@ agent/gateway/
   DESIGN.md
   docs/
   reference/
-  src/          # A2: tail · router · prompts · dispatch · retry · loop
+  src/          # tail · router · prompts · dispatch · retry · loop · schedule-tick · catch-up
   tests/        # mock cursor E2E
 ```
 
@@ -35,8 +36,10 @@ agent/gateway/
 | `prompts` | `bridge.json` prompts | 이벤트 타입별 템플릿 + Active ticket 스코프 |
 | `dispatch` | RunnerClient | cursor `POST /sessions` · `/prompt` (localhost) |
 | `retry` | ResilientRunnerClient | 409/5xx → `/data/gateway/retry/` 큐 |
-| `checkpoint` | SQLite sessions/ready | `acked_id`만 전진 (202/200 accept 후) |
+| `checkpoint` | SQLite sessions/ready | `acked_id`만 전진 (202/200 accept 후); `last_catch_up_at` |
 | `loop` | tick | pull → route → dispatch → checkpoint |
+| `schedule-tick` | ScheduleTicker | 로컬 UTC cron · gates · `(id, minute)` dedupe → 티켓리스 `POST /sessions` |
+| `catch-up` | ReadyCatchupTicker | 기동 시 `prompts.catch_up` 1회 (sessions persona) |
 
 ## Commands
 

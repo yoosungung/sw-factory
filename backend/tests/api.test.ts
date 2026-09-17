@@ -854,6 +854,29 @@ describe("comments and files", () => {
     );
     expect(comment.status).toBe(201);
 
+    const baseline = await request("/api/agent/events?limit=500", {}, cookie);
+    const afterId = (baseline.json.events as Json[]).at(-1)?.id as string | undefined;
+    const commentId = (comment.json.comment as Json).id as string;
+    const patched = await request(
+      `/api/comments/${commentId}`,
+      { method: "PATCH", body: JSON.stringify({ body: "<!-- pm-checkpoint-status --> hello2" }) },
+      cookie,
+    );
+    expect(patched.status).toBe(200);
+    expect((patched.json.comment as Json).body).toContain("hello2");
+
+    const pullPath = afterId
+      ? `/api/agent/events?after_id=${afterId}&limit=50`
+      : "/api/agent/events?limit=50";
+    const pull = await request(pullPath, {}, cookie);
+    const commentEvents = ((pull.json.events as Json[]) ?? []).filter(
+      (e) => e.event_type === "comment_added" && e.ticket_id === ticketId,
+    );
+    expect(commentEvents).toHaveLength(0);
+
+    const listed = await request(`/api/tickets/${ticketId}/comments`, {}, cookie);
+    expect((listed.json.comments as Json[])[0].updated_at).toBeTruthy();
+
     const form = new FormData();
     form.append("file", new File(["hello-bytes"], "note.txt", { type: "text/plain" }));
     const upload = await request(
@@ -1242,5 +1265,90 @@ describe("M10 project statuses", () => {
       owner.cookie,
     );
     expect(badStatus.status).toBe(400);
+  });
+});
+
+describe("A9 milestone_id filter", () => {
+  it("lists child tasks by milestone_id", async () => {
+    const owner = await register("MsOwner", { admin: true });
+    const clientId = await createClient(owner.cookie, "MsCo");
+    const proj = await request(
+      "/api/projects",
+      { method: "POST", body: JSON.stringify({ name: "MsProj", client_id: clientId }) },
+      owner.cookie,
+    );
+    const projectId = (proj.json.project as Json).id as string;
+    const ms = await request(
+      `/api/projects/${projectId}/tickets`,
+      { method: "POST", body: JSON.stringify({ title: "Parent", type: "milestone" }) },
+      owner.cookie,
+    );
+    const milestoneId = (ms.json.ticket as Json).id as string;
+    await request(
+      `/api/projects/${projectId}/tickets`,
+      {
+        method: "POST",
+        body: JSON.stringify({ title: "Child", type: "task", milestone_id: milestoneId }),
+      },
+      owner.cookie,
+    );
+    await request(
+      `/api/projects/${projectId}/tickets`,
+      { method: "POST", body: JSON.stringify({ title: "Other", type: "task" }) },
+      owner.cookie,
+    );
+    const listed = await request(
+      `/api/projects/${projectId}/tickets?milestone_id=${milestoneId}`,
+      {},
+      owner.cookie,
+    );
+    expect(listed.status).toBe(200);
+    const tickets = listed.json.tickets as Json[];
+    expect(tickets.map((t) => t.title)).toEqual(["Child"]);
+  });
+});
+
+describe("A8 flow-gates", () => {
+  it("requires auth and reports in_progress / flow_active existence", async () => {
+    const anon = await request("/api/agent/flow-gates");
+    expect(anon.status).toBe(401);
+
+    const owner = await register("GateOwner", { admin: true });
+    const authed = await request("/api/agent/flow-gates", {}, owner.cookie);
+    expect(authed.status).toBe(200);
+    expect(typeof authed.json.in_progress).toBe("boolean");
+    expect(typeof authed.json.flow_active).toBe("boolean");
+
+    const clientId = await createClient(owner.cookie, "GateCo");
+    const proj = await request(
+      "/api/projects",
+      { method: "POST", body: JSON.stringify({ name: "GateProj", client_id: clientId }) },
+      owner.cookie,
+    );
+    const projectId = (proj.json.project as Json).id as string;
+    const created = await request(
+      `/api/projects/${projectId}/tickets`,
+      { method: "POST", body: JSON.stringify({ title: "Flow", type: "task" }) },
+      owner.cookie,
+    );
+    const ticketId = (created.json.ticket as Json).id as string;
+
+    const moved = await request(
+      `/api/tickets/${ticketId}`,
+      { method: "PATCH", body: JSON.stringify({ status: "review" }) },
+      owner.cookie,
+    );
+    expect(moved.status).toBe(200);
+    const review = await request("/api/agent/flow-gates", {}, owner.cookie);
+    expect(review.json.flow_active).toBe(true);
+
+    await request(
+      `/api/tickets/${ticketId}`,
+      { method: "PATCH", body: JSON.stringify({ status: "in_progress" }) },
+      owner.cookie,
+    );
+    const active = await request("/api/agent/flow-gates", {}, owner.cookie);
+    expect(active.json.in_progress).toBe(true);
+    expect(active.json.flow_active).toBe(true);
   });
 });
