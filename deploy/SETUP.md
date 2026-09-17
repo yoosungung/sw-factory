@@ -25,6 +25,22 @@ npx wrangler d1 migrations apply sw-factory --remote
 
 ## Deploy (코드)
 
+### GitHub Actions (권장)
+
+워크플로: [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml)  
+트리거: `main` push · `workflow_dispatch` (`gh workflow run deploy.yml`)
+
+Repo Secrets (Settings → Secrets and variables → Actions):
+
+| Secret | 용도 |
+|--------|------|
+| `CLOUDFLARE_API_TOKEN` | Edit Cloudflare Workers (또는 동등 스코프) |
+| `CLOUDFLARE_ACCOUNT_ID` | 배포 계정 ID |
+
+Worker secrets(`SESSION_SECRET` 등)는 대시보드/`wrangler secret`에 두고 Actions에 넣지 않는다.
+
+### Local
+
 ```bash
 npm run deploy
 # = vite build + wrangler deploy -c dist/sw_factory_workers/wrangler.json
