@@ -336,4 +336,152 @@ describe("A2 gateway e2e", () => {
     await factory.close();
     await new Promise<void>((r) => cursorServer.close(() => r()));
   });
+
+  it("rebinds sticky session on 404 not_found then accepts", async () => {
+    const dataDir = await mkdtemp(path.join(os.tmpdir(), "gw-404-rebind-"));
+    tempDirs.push(dataDir);
+
+    const events: AgentEvent[] = [
+      {
+        id: "evt-rebind",
+        at: "2026-01-01T00:00:01.000Z",
+        event_type: "comment_added",
+        ticket_id: "ticket-rebind",
+        project_id: "proj-1",
+        actor_user_id: "human-1",
+        assignee_user_id: PM.user_id,
+        payload: { mention_user_ids: [PM.user_id] },
+      },
+    ];
+
+    const factory = await startMockFactory(events);
+    const hits: string[] = [];
+    const cursorServer = createServer(async (req, res) => {
+      const url = req.url ?? "";
+      hits.push(`${req.method} ${url}`);
+      if (url === "/sessions/agent-dead/prompt") {
+        res.writeHead(404, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "not_found" }));
+        return;
+      }
+      if (url === "/sessions") {
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ agent_id: "agent-fresh" }));
+        return;
+      }
+      res.writeHead(404);
+      res.end();
+    });
+
+    const cursorPort = await new Promise<number>((resolve) => {
+      cursorServer.listen(0, "127.0.0.1", () => {
+        const addr = cursorServer.address();
+        resolve(typeof addr === "object" && addr ? addr.port : 0);
+      });
+    });
+
+    const { saveSticky } = await import("../src/checkpoint");
+    await saveSticky(dataDir, { "ticket-rebind:pm": "agent-dead" });
+
+    const config: GatewayConfig = {
+      factoryBaseUrl: `http://127.0.0.1:${factory.port}`,
+      cursorBaseUrl: `http://127.0.0.1:${cursorPort}`,
+      dataDir,
+      sessionCookie: "lt_session=test",
+      agents: [PM, TA],
+      prompts,
+      debounceMs: 0,
+      pollLimit: 50,
+      retryMaxAttempts: 5,
+    };
+
+    const result = await tick({ config });
+    expect(result.acked_id).toBe("evt-rebind");
+    expect(result.dispatched).toEqual([
+      { event_id: "evt-rebind", persona: "pm", agent_id: "agent-fresh" },
+    ]);
+    expect(hits.some((h) => h.includes("/sessions/agent-dead/prompt"))).toBe(true);
+    expect(hits.some((h) => h === "POST /sessions")).toBe(true);
+
+    await factory.close();
+    await new Promise<void>((r) => cursorServer.close(() => r()));
+  });
+
+  it("acks multi-target event when one persona accepts and sibling hits mutex", async () => {
+    const dataDir = await mkdtemp(path.join(os.tmpdir(), "gw-mention-mutex-"));
+    tempDirs.push(dataDir);
+
+    const events: AgentEvent[] = [
+      {
+        id: "evt-mention",
+        at: "2026-01-01T00:00:01.000Z",
+        event_type: "comment_added",
+        ticket_id: "ticket-shared",
+        project_id: "proj-1",
+        actor_user_id: "human-1",
+        assignee_user_id: TA.user_id,
+        payload: { mention_user_ids: [PM.user_id] },
+      },
+      {
+        id: "evt-later",
+        at: "2026-01-01T00:00:02.000Z",
+        event_type: "comment_added",
+        ticket_id: "ticket-other",
+        project_id: "proj-1",
+        actor_user_id: "human-1",
+        assignee_user_id: PM.user_id,
+        payload: { mention_user_ids: [PM.user_id] },
+      },
+    ];
+
+    const factory = await startMockFactory(events);
+    const seen: string[] = [];
+    const cursorServer = createServer(async (req, res) => {
+      const url = req.url ?? "";
+      const body = req.method === "POST" ? await readJson(req) : {};
+      const persona = typeof body.persona === "string" ? body.persona : "";
+      if (url === "/sessions" || url.endsWith("/prompt")) {
+        seen.push(persona);
+        // First target (ta assignee) accepts; second (pm mention) mutex — then later pm ok.
+        if (persona === "pm" && seen.filter((p) => p === "pm").length === 1) {
+          res.writeHead(409, { "content-type": "application/json" });
+          res.end(JSON.stringify({ status: "skipped_mutex" }));
+          return;
+        }
+        res.writeHead(202, { "content-type": "application/json" });
+        res.end(JSON.stringify({ agent_id: `agent-${persona}`, run_id: "r1", status: "accepted" }));
+        return;
+      }
+      res.writeHead(404);
+      res.end();
+    });
+
+    const cursorPort = await new Promise<number>((resolve) => {
+      cursorServer.listen(0, "127.0.0.1", () => {
+        const addr = cursorServer.address();
+        resolve(typeof addr === "object" && addr ? addr.port : 0);
+      });
+    });
+
+    const config: GatewayConfig = {
+      factoryBaseUrl: `http://127.0.0.1:${factory.port}`,
+      cursorBaseUrl: `http://127.0.0.1:${cursorPort}`,
+      dataDir,
+      sessionCookie: "lt_session=test",
+      agents: [PM, TA],
+      prompts,
+      debounceMs: 0,
+      pollLimit: 50,
+      retryMaxAttempts: 5,
+    };
+
+    const result = await tick({ config });
+    expect(result.dispatched.map((d) => d.persona).sort()).toEqual(["pm", "ta"]);
+    expect(result.acked_id).toBe("evt-later");
+    expect(seen.includes("pm")).toBe(true);
+    expect(seen.includes("ta")).toBe(true);
+
+    await factory.close();
+    await new Promise<void>((r) => cursorServer.close(() => r()));
+  });
 });

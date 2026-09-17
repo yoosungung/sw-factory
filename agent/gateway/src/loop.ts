@@ -87,7 +87,8 @@ export async function processEvent(
     return { allOk: true, dispatched };
   }
 
-  let allOk = true;
+  let deliveredOk = 0;
+  let hadRetry = false;
   for (const target of targets) {
     const prompt = renderPrompt(config.prompts, event);
     const outcome = await deliverOne({
@@ -99,13 +100,17 @@ export async function processEvent(
       fetchImpl,
     });
     if (outcome === "ok") {
+      deliveredOk += 1;
       const agent_id = sticky[stickyKey(event.ticket_id ?? "", target.persona)] ?? "";
       dispatched.push({ event_id: event.id, persona: target.persona, agent_id });
     } else if (outcome === "retry") {
-      allOk = false;
+      hadRetry = true;
     }
     // poison → treat as ok for ack advancement (avoid infinite loop)
   }
+  // Block ack only when nothing accepted. If assignee accepted but @mention hit
+  // ticket mutex, mention stays in retry and outbox can move on.
+  const allOk = !(hadRetry && deliveredOk === 0);
   return { allOk, dispatched };
 }
 

@@ -55,8 +55,8 @@ export async function dispatchToCursor(opts: {
   };
   const reason = json.reason ?? json.status;
 
-  if (res.status === 409 && reason === "sdk_zombie") {
-    return { ok: false, status: 409, reason, rebind: true, enqueue: true };
+  if (res.status === 404 || (res.status === 409 && reason === "sdk_zombie")) {
+    return { ok: false, status: res.status, reason, rebind: true, enqueue: true };
   }
   if (res.status === 429) {
     return { ok: false, status: 429, reason, ackPoison: true };

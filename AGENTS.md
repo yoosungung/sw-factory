@@ -21,6 +21,7 @@ This file provides guidance to AI coding assistants (Claude Code, Codex, Gemini,
 | `agent/gateway/`                                      | 티켓 이벤트 → agent prompt **배달** (CursorBridge 이식)      | `agent/gateway/`                                                   |
 | `agent/cursor/`                                       | Cursor SDK runtime + MCP 작업 (agent-runner 이식)       | `agent/cursor/`                                                    |
 | `deploy/`                                             | Workers 런북 + 공유 `env.example`/`agents.yaml.example` | `deploy/`                                                          |
+| `deploy/docs/`                                        | v1 참고: agent 작업흐름·schedules 운영 문서                    | `deploy/docs/`                                                     |
 | `deploy/docker/`                                      | agent Dockerfile·entrypoint·`build.sh`              | `deploy/docker/`                                                   |
 | `deploy/local/`                                       | 로컬 Docker 실행·작업용 `.env`/`agents.yaml`               | `deploy/local/`                                                    |
 | `deploy/k8s/`                                         | agent k8s 매니페스트·`apply.sh` (`NS=sw-factory`)        | `deploy/k8s/`                                                      |

@@ -8,7 +8,7 @@
 |-------------|---------|
 | 202 accepted | 해당 event를 **acked**로 표시; sticky 갱신 |
 | 200 create `{agent_id}` | acked; sticky 저장 |
-| 409 `busy` / `skipped_mutex` | **acked 하지 않음** 또는 읽기만 하고 dispatch retry 큐에 넣음 — 정본: **acked_id는 202/성공 create 후에만 전진**. 미성공은 `/data/gateway/retry/`에 UPSERT |
+| 409 `busy` / `skipped_mutex` | **단일 대상**이면 acked 정지 + retry 큐. **동일 이벤트 다중 대상**(assignee+@mention)에서 **한 persona라도 accept**되면 나머지는 retry에 넣고 **acked는 전진**(다른 티켓 outbox HOL 방지). |
 | 409 `sdk_zombie` | sticky drop → create rebind 시도; 실패 시 retry 큐 |
 | 429 `create_throttled` | retry 큐에 **넣지 않음** (GH); 로그 후 skip/ack 정책 문서화 — 기본 **ack(poison 방지)** + 구조화 로그 |
 | 5xx / timeout | retry 큐; attempts < 5 |

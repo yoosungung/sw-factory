@@ -3,6 +3,7 @@
 | 경로 | 용도 |
 |------|------|
 | [SETUP.md](SETUP.md) | Cloudflare Workers 배포·시크릿·도메인 |
+| [docs/](docs/) | v1 참고 운영 문서 — [agent 작업흐름](docs/agent-workflows.md) · [schedules](docs/schedules.md) |
 | `agents.yaml` | **공유 정본**(gitignore) — local·seed·k8s ConfigMap |
 | `agents.yaml.example` | 커밋용 템플릿 |
 | `agents.back.yaml` | v1 실정의 스냅샷(clients/schedules 등; schedules는 A8 전 미사용) |
