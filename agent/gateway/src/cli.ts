@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 import path from "node:path";
 import { loadAgentsYaml } from "../../shared/load-config";
+import { formatTickError } from "./errors";
 import type { GatewayConfig } from "./types";
 import { runLoop } from "./run-loop";
 
@@ -82,7 +83,7 @@ async function main() {
       }
     },
     onError: (err) => {
-      console.error(JSON.stringify({ msg: "tick_error", error: String(err) }));
+      console.error(JSON.stringify({ msg: "tick_error", error: formatTickError(err) }));
     },
   });
 }

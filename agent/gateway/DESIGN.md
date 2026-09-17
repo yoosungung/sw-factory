@@ -31,7 +31,7 @@ agent/gateway/
 
 | 모듈 | 대응 (GH) | 책임 |
 |------|-----------|------|
-| `tail` | Listener + tick | Worker `GET /api/agent/events?after_id=` |
+| `tail` | Listener + tick | Worker `GET /api/agent/events?after_id=` (네트워크 실패 시 짧은 재시도; `tick_error`에 `cause` 포함) |
 | `router` | Router | 대상 persona, self-echo skip, mention |
 | `prompts` | `bridge.json` prompts | 이벤트 타입별 템플릿 + Active ticket 스코프 |
 | `dispatch` | RunnerClient | cursor `POST /sessions` · `/prompt` (localhost) |
