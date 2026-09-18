@@ -27,7 +27,7 @@ frontend/src/
 - Top nav (직접 링크): Spaces(`/spaces`) / Projects(`/projects`) / Your work(`/`) / Search(⌘K) / Account / Create. Filters·Teams는 Top nav에 없음.
 - Issue description/comments: 저장은 Markdown 문자열; 읽기는 `RichContent`(GFM + sanitize). Description은 click-to-edit textarea. Comments 탭은 FE에서 `created_at` DESC 표시(API ASC 유지).
 - Issue: assignee · due · priority 인라인 `PATCH`(+`version` 409), Comments/History/Files, 작성자·owner 삭제
-- `/browse/:ticketId` 전체 페이지; 보드 `?issue=` sidebar/modal
+- `/browse/:ticketId` 전체 페이지(`.issue-page`가 `.main` 잔여 높이를 채우고 `.drawer-body`만 세로 스크롤); 보드 `?issue=` sidebar/modal
 - Space/Project settings: Details · People · Board(statuses CRUD) · Danger
 - `/admin`: 플랫폼 admin 계정 목록 · Space 생성
 - Your work: Assigned / Created by me / Recently viewed / Recent projects
