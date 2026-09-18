@@ -37,8 +37,10 @@ Repo Secrets (Settings → Secrets and variables → Actions):
 
 | Secret | 용도 |
 |--------|------|
-| `CLOUDFLARE_API_TOKEN` | Edit Cloudflare Workers (또는 동등 스코프) |
+| `CLOUDFLARE_API_TOKEN` | Edit Cloudflare Workers **+ D1 Edit** (또는 동등 스코프) |
 | `CLOUDFLARE_ACCOUNT_ID` | 배포 계정 ID |
+
+`deploy.yml`은 Build 다음 **Apply D1 migrations** → **Deploy Worker** 순서다.
 
 Worker secrets(`SESSION_SECRET` 등)는 대시보드/`wrangler secret`에 두고 Actions에 넣지 않는다.
 

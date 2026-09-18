@@ -14,4 +14,16 @@ describe("deploy D1 migrations gate", () => {
     expect(applyIdx).toBeGreaterThan(-1);
     expect(deployIdx).toBeGreaterThan(applyIdx);
   });
+
+  it("GitHub Actions Deploy applies D1 migrations before Worker deploy", () => {
+    const yml = readFileSync(
+      path.join(__dirname, "../../.github/workflows/deploy.yml"),
+      "utf8",
+    );
+    expect(yml).toMatch(/d1 migrations apply\s+sw-factory\s+--remote/);
+    const applyIdx = yml.indexOf("d1 migrations apply sw-factory --remote");
+    const deployIdx = yml.indexOf("deploy -c dist/sw_factory_workers/wrangler.json");
+    expect(applyIdx).toBeGreaterThan(-1);
+    expect(deployIdx).toBeGreaterThan(applyIdx);
+  });
 });
