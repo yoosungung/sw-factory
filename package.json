@@ -16,7 +16,7 @@
     "test:e2e:ui": "PLAYWRIGHT_BROWSERS_PATH=\"${PLAYWRIGHT_BROWSERS_PATH:-$HOME/Library/Caches/ms-playwright}\" playwright test -c e2e/playwright.config.ts --ui",
     "test:e2e:install": "PLAYWRIGHT_BROWSERS_PATH=\"${PLAYWRIGHT_BROWSERS_PATH:-$HOME/Library/Caches/ms-playwright}\" playwright install chromium",
     "db:migrate:local": "wrangler d1 migrations apply sw-factory --local",
-    "deploy": "npm run build && wrangler deploy -c dist/sw_factory_workers/wrangler.json"
+    "deploy": "npm run build && wrangler d1 migrations apply sw-factory --remote && wrangler deploy -c dist/sw_factory_workers/wrangler.json"
   },
   "dependencies": {
     "@cursor/sdk": "^1.0.31",

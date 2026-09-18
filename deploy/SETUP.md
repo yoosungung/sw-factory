@@ -30,6 +30,9 @@ npx wrangler d1 migrations apply sw-factory --remote
 워크플로: [`.github/workflows/deploy.yml`](../.github/workflows/deploy.yml)  
 트리거: `main` push · `workflow_dispatch` (`gh workflow run deploy.yml`)
 
+배포 시 **`wrangler d1 migrations apply sw-factory --remote` 후** Worker deploy.
+(`wrangler deploy`만으로는 D1 스키마가 따라가지 않음 — `0006_comment_updated_at` 누락 시 comments API 500.)
+
 Repo Secrets (Settings → Secrets and variables → Actions):
 
 | Secret | 용도 |
@@ -43,7 +46,7 @@ Worker secrets(`SESSION_SECRET` 등)는 대시보드/`wrangler secret`에 두고
 
 ```bash
 npm run deploy
-# = vite build + wrangler deploy -c dist/sw_factory_workers/wrangler.json
+# = vite build + d1 migrations apply --remote + wrangler deploy -c dist/sw_factory_workers/wrangler.json
 ```
 
 최초 배포 후 `*.workers.dev` URL로도 접근 가능하다. 세션 쿠키는 `Secure`이므로 **HTTPS**에서만 로그인된다.
