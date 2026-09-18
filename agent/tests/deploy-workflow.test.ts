@@ -25,5 +25,6 @@ describe("deploy D1 migrations gate", () => {
     const deployIdx = yml.indexOf("deploy -c dist/sw_factory_workers/wrangler.json");
     expect(applyIdx).toBeGreaterThan(-1);
     expect(deployIdx).toBeGreaterThan(applyIdx);
+    expect(yml).toMatch(/-c wrangler\.jsonc/);
   });
 });
