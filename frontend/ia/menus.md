@@ -107,7 +107,7 @@ Space switcher와 본문 제목이 같은 이름을 두 번 쓰지 않는다. �
 | --- | --- | --- |
 | **Open in sidebar (기본)** | `?issue=` | **논모달 사이드 인스펙터** (오버레이 딤 없음, 보드 카드 클릭 시 즉시 전환) |
 | **Open in modal** | `?issue=&issueUi=modal` | **집중 중앙 모달** (어두운 배경 딤, 독립 팝업) |
-| **Open full page** | `/browse/:ticketId` | 전체 페이지 단독 뷰 |
+| **Open full page** | `/browse/:ticketId` | 메인 전폭 단독 뷰 · ✕/Esc → Board |
 | **Full screen board** | — | 사이드바 숨김 전폭 보드 |
 
 ---

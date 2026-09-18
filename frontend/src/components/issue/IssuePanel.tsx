@@ -206,7 +206,7 @@ export function IssuePanel({
     Awaited<ReturnType<typeof client.ticketActivities>>["activities"]
   >([]);
   const [statuses, setStatuses] = useState<ProjectStatus[]>([]);
-  useEscape(onClose, mode !== "page");
+  useEscape(onClose, true);
 
   useEffect(() => {
     void client.projectStatuses(project.id).then((r) => setStatuses(r.statuses));
@@ -316,11 +316,15 @@ export function IssuePanel({
               ↗
             </Link>
           )}
-          {mode !== "page" && (
-            <button type="button" className="icon-btn" onClick={onClose} title="Close">
-              ✕
-            </button>
-          )}
+          <button
+            type="button"
+            className="icon-btn"
+            onClick={onClose}
+            title={mode === "page" ? "Back to board" : "Close"}
+            aria-label={mode === "page" ? "Back to board" : "Close"}
+          >
+            ✕
+          </button>
         </div>
       </div>
       <div className="drawer-body">
