@@ -52,9 +52,11 @@ npx tsx agent/cursor/src/seed-cli.ts --config deploy/local/agents.yaml --data-di
 npx tsx agent/cursor/src/prepare-persona-seeds-cli.ts --personas-root deploy/personas --out /tmp/persona-seed
 # runtime apply prepared seeds → workspaces (Docker entrypoint)
 npx tsx agent/cursor/src/apply-persona-seeds-cli.ts --seed-dir /opt/persona-seed --data-dir /data
+# sessions persona별 로그인 쿠키 + factory mcp.json (GATEWAY_SESSION_COOKIE 미사용)
+npx tsx agent/cursor/src/seed-cookies-cli.ts --config deploy/agents.yaml --data-dir /tmp/swf-data
 # ensures repos from yaml (set GH_TOKEN for private clones)
 npx tsx agent/cursor/src/ensure-repos-cli.ts --config deploy/agents.yaml --data-dir /tmp/swf-data
-# k8s/Docker: entrypoint applies /opt/persona-seed then ensure-repos-cli (see deploy/docker/README.md)
+# k8s/Docker: entrypoint applies seeds, persona cookies, then ensure-repos-cli (see deploy/docker/README.md)
 ```
 
 `CURSOR_API_KEY` + `@cursor/sdk` 설치 시 실 local agent; 아니면 mock.  

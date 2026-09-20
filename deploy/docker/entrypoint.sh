@@ -48,6 +48,16 @@ if [[ "${APPLY_PERSONA_SEEDS:-1}" != "0" && -d "$PERSONA_SEED_DIR" ]]; then
   echo "{\"msg\":\"persona_seeds_done\"}"
 fi
 
+# Each sessions persona logs in as itself. GATEWAY_SESSION_COOKIE is poll-only.
+# Skip: SEED_PERSONA_COOKIES=0
+if [[ "${SEED_PERSONA_COOKIES:-1}" != "0" ]]; then
+  echo "{\"msg\":\"persona_cookies_start\"}"
+  npx tsx agent/cursor/src/seed-cookies-cli.ts \
+    --config "$AGENTS_YAML" \
+    --data-dir "$DATA_DIR"
+  echo "{\"msg\":\"persona_cookies_done\"}"
+fi
+
 # PVC repos: clone-if-missing / fetch (agents.yaml repos[] + primary_repo/repo_ids).
 # Skip: ENSURE_REPOS=0. Private: GH_TOKEN or GITHUB_TOKEN.
 if [[ "${ENSURE_REPOS:-1}" != "0" ]]; then

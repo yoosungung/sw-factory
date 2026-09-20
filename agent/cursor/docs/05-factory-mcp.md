@@ -25,7 +25,7 @@ GitHub `leantime-mcp`(JSON-RPC + PAT) 대신 Worker **REST + 세션 쿠키**를 
 1. **읽기 우선** — Active ticket이 있으면 먼저 get_ticket / get_comments (GH §1.7).
 2. 이벤트 세션의 쓰기는 Active `ticket_id`에 고정 (gateway가 prompt에 심은 스코프).
 3. catch-up·스케줄은 스코프 없음; actionable 1건 선택 후 그 티켓에만 쓰기.
-4. MCP는 persona workspace의 `.cursor/mcp.json`이 가리키며, 쿠키는 그 persona 것.
-5. **stdio 진입점은 절대 경로** — seed/`apply-persona-seeds`가 `AGENT_APP_ROOT`(Docker 기본 `/app`) 기준 `…/agent/cursor/mcp/stdio.ts`를 쓴다. 상대경로면 SDK cwd(`/data/workspaces/{persona}`)에서 로드 실패한다. 기동 시 cookie가 있는 workspace의 mcp.json을 refresh한다.
+4. MCP는 persona workspace의 `.cursor/mcp.json`이 가리키며, 쿠키는 그 persona 것. `GATEWAY_SESSION_COOKIE`(폴링용, 보통 pm)를 공유하지 않는다.
+5. **stdio 진입점은 절대 경로** — `seed-cookies-cli` / `apply-persona-seeds`가 `AGENT_APP_ROOT`(Docker 기본 `/app`) 기준 `…/agent/cursor/mcp/stdio.ts`를 쓴다. 상대경로면 SDK cwd(`/data/workspaces/{persona}`)에서 로드 실패한다. 쿠키가 없는 workspace는 mcp.json을 쓰지 않으므로 factory 네임스페이스가 없다.
 
 구현: [../mcp/](../mcp/) (A4). 도구 매핑·세션 쿠키 계약은 이 문서.

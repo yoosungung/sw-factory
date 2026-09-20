@@ -5,6 +5,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { FactoryClient, loginFactory } from "../mcp/client";
 import { createFactoryMcp } from "../mcp/tools";
 import {
+  ensurePersonaSessionCookies,
   factoryMcpEntryPath,
   refreshFactoryMcpConfigs,
   seedPersonaWorkspace,
@@ -45,12 +46,14 @@ function startMockFactory() {
 
     if (req.method === "POST" && url.pathname === "/api/auth/login") {
       const body = await readJson(req);
-      if (body.email === "pm@example.com" && body.password === "password123") {
+      const email = typeof body.email === "string" ? body.email : "";
+      if (email.endsWith("@example.com") && body.password === "password123") {
+        const tag = email.slice(0, email.indexOf("@"));
         res.writeHead(200, {
           "content-type": "application/json",
-          "set-cookie": "lt_session=pm-session; Path=/; HttpOnly",
+          "set-cookie": `lt_session=${tag}-session; Path=/; HttpOnly`,
         });
-        res.end(JSON.stringify({ user: { id: "user-pm", email: body.email } }));
+        res.end(JSON.stringify({ user: { id: `user-${tag}`, email } }));
         return;
       }
       res.writeHead(401, { "content-type": "application/json" });
@@ -316,5 +319,60 @@ describe("A4 factory-mcp", () => {
     expect(mcpJson.mcpServers.factory.env.FACTORY_BASE_URL).toBe(
       "https://factory.askwho.net",
     );
+  });
+
+  it("logs in each sessions persona and does not reuse the gateway cookie", async () => {
+    const factory = await startMockFactory();
+    const root = path.join(process.cwd(), ".tmp-test");
+    await mkdir(root, { recursive: true });
+    const dataDir = await mkdtemp(path.join(root, "cookies-"));
+    tempDirs.push(dataDir);
+    const personas = ["aa", "qa", "ta", "km", "sw-factory", "nl2sql", "pm"];
+    const gatewayCookie = "lt_session=pm-gateway";
+
+    const seeded = await ensurePersonaSessionCookies({
+      dataDir,
+      factoryBaseUrl: `http://127.0.0.1:${factory.port}`,
+      appRoot: "/app",
+      env: { PERSONA_PASSWORD: "password123" },
+      agents: [
+        ...personas.map((persona) => ({
+          name: persona,
+          email: `${persona}@example.com`,
+          persona,
+          type: "sessions" as const,
+        })),
+        {
+          name: "eric.yoo",
+          email: "suyoo@didim.com",
+          persona: "admin",
+          type: "human" as const,
+        },
+      ],
+    });
+
+    expect(seeded.map((s) => s.persona).sort()).toEqual([...personas].sort());
+    const cookies = new Set<string>();
+    for (const persona of personas) {
+      const cwd = path.join(dataDir, "workspaces", persona);
+      const cookie = await readFile(path.join(cwd, "secrets", "session.cookie"), "utf8");
+      expect(cookie).toBe(`lt_session=${persona}-session`);
+      expect(cookie).not.toBe(gatewayCookie);
+      cookies.add(cookie);
+      const mcpJson = JSON.parse(
+        await readFile(path.join(cwd, ".cursor", "mcp.json"), "utf8"),
+      ) as {
+        mcpServers: { factory: { env: Record<string, string> } };
+      };
+      expect(mcpJson.mcpServers.factory.env.FACTORY_SESSION_COOKIE_FILE).toBe(
+        path.join(cwd, "secrets", "session.cookie"),
+      );
+    }
+    expect(cookies.size).toBe(personas.length);
+    await expect(
+      readFile(path.join(dataDir, "workspaces", "admin", "secrets", "session.cookie"), "utf8"),
+    ).rejects.toThrow();
+
+    await factory.close();
   });
 });

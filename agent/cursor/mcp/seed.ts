@@ -62,6 +62,60 @@ export async function writeFactoryMcpJson(opts: {
   return entry;
 }
 
+/** `PERSONA_PASSWORD_<NAME>` or shared `PERSONA_PASSWORD`. Name is uppercased (`sw-factory` → `SW-FACTORY`). */
+export function personaPassword(
+  name: string,
+  env: Record<string, string | undefined> = process.env,
+): string | undefined {
+  return env[`PERSONA_PASSWORD_${name.toUpperCase()}`] ?? env.PERSONA_PASSWORD;
+}
+
+/**
+ * Login each `type: sessions` agent and write that persona's cookie + factory mcp.json.
+ * Does not copy GATEWAY_SESSION_COOKIE. Humans are skipped. Re-login on every call (expiry).
+ */
+export async function ensurePersonaSessionCookies(opts: {
+  dataDir: string;
+  factoryBaseUrl: string;
+  agents: Array<{
+    name: string;
+    email: string;
+    persona: string;
+    type: string;
+  }>;
+  env?: Record<string, string | undefined>;
+  fetchImpl?: typeof fetch;
+  appRoot?: string;
+}): Promise<Array<{ persona: string; cwd: string }>> {
+  const env = opts.env ?? process.env;
+  const seeded: Array<{ persona: string; cwd: string }> = [];
+  for (const agent of opts.agents) {
+    if (agent.type !== "sessions") continue;
+    const password = personaPassword(agent.name, env);
+    if (!password) {
+      throw new Error(
+        `Set PERSONA_PASSWORD or PERSONA_PASSWORD_${agent.name.toUpperCase()} for ${agent.name}`,
+      );
+    }
+    const cwd = path.join(opts.dataDir, "workspaces", agent.persona);
+    await mkdir(path.join(cwd, "secrets"), { recursive: true });
+    const cookie = await loginFactory({
+      baseUrl: opts.factoryBaseUrl,
+      email: agent.email,
+      password,
+      fetchImpl: opts.fetchImpl,
+    });
+    await writeFile(path.join(cwd, "secrets", "session.cookie"), cookie, "utf8");
+    await writeFactoryMcpJson({
+      workspaceCwd: cwd,
+      factoryBaseUrl: opts.factoryBaseUrl,
+      appRoot: opts.appRoot,
+    });
+    seeded.push({ persona: agent.persona, cwd });
+  }
+  return seeded;
+}
+
 /** Rewrite mcp.json for every workspace that already has a session cookie. */
 export async function refreshFactoryMcpConfigs(opts: {
   dataDir: string;

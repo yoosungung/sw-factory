@@ -36,6 +36,13 @@ spec:
                 secretKeyRef:
                   name: sw-factory-agent
                   key: GATEWAY_SESSION_COOKIE
+            - name: PERSONA_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: sw-factory-agent
+                  key: PERSONA_PASSWORD
+            - name: SEED_PERSONA_COOKIES
+              value: "1"
             - name: CURSOR_API_KEY
               valueFrom:
                 secretKeyRef:

@@ -13,7 +13,7 @@
  */
 import path from "node:path";
 import { loadAgentsYaml } from "../../shared/load-config";
-import { seedPersonaWorkspace } from "../mcp/seed";
+import { personaPassword, seedPersonaWorkspace } from "../mcp/seed";
 import { resolveGhToken } from "./ensure-repos";
 
 function arg(name: string): string | undefined {
@@ -46,9 +46,7 @@ async function main() {
 
   const sessions = file.agents.filter((a) => a.type === "sessions");
   for (const a of sessions) {
-    const password =
-      process.env[`PERSONA_PASSWORD_${a.name.toUpperCase()}`] ??
-      process.env.PERSONA_PASSWORD;
+    const password = personaPassword(a.name);
     if (!password) {
       console.error(
         `Set PERSONA_PASSWORD or PERSONA_PASSWORD_${a.name.toUpperCase()} for ${a.name}`,

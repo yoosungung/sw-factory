@@ -28,7 +28,7 @@ cp ../env.example .env
      "SELECT id, email, name FROM users WHERE email='suyoo@didim.com'"
    ```
 3. **Space/Project 초대** — 가입만으로는 티켓 권한이 없다. admin이 People에 초대한 뒤 assignee로 쓸 수 있다 ([ARCHITECTURE](../../ARCHITECTURE.md) §1.15).
-4. **시드** — `./seed-personas.sh`가 email+`PERSONA_PASSWORD`로 로그인 → workspace 쿠키.
+4. **시드** — Pod 기동(`seed-cookies-cli`) 또는 `./seed-personas.sh`가 email+`PERSONA_PASSWORD`로 **persona마다** 로그인한다. `GATEWAY_SESSION_COOKIE`는 gateway 폴링용이라 `secrets/session.cookie`를 대신하지 않는다.
 
 | 스크립트 | 역할 |
 |----------|------|
@@ -44,7 +44,8 @@ cp ../env.example .env
 |------|------|------|
 | `FACTORY_BASE_URL` | 예 | 기본 `https://factory.askwho.net` |
 | `GATEWAY_SESSION_COOKIE` | gateway 시 | `lt_session=…` |
-| `PERSONA_PASSWORD` | register/seed | 봇 계정 공유 비밀번호 (≥8) |
+| `PERSONA_PASSWORD` | register/seed/기동 | 봇 계정 공유 비밀번호 (≥8). 기동 시 persona별 쿠키 |
+| `SEED_PERSONA_COOKIES` | 아니오 | `0`이면 기동 시 로그인 생략 (기본 `1`) |
 | `CURSOR_API_KEY` | 실 SDK 시 | 없으면 mock |
 | `AGENT_BACKEND` | 아니오 | `mock` 강제 |
 | `AGENTS_FILE` | 아니오 | 기본 `deploy/agents.yaml` |

@@ -4,10 +4,10 @@
 
 ## 흐름
 
-1. 기동 시 `POST /api/auth/login` `{ email, password }` (Secret에서 읽기).
-2. `Set-Cookie: lt_session=…`를 persona `secrets/` 또는 메모리에 보관.
-3. factory-mcp·필요 시 직접 REST가 동일 쿠키로 호출.
-4. 만료 시 재로그인. Worker Cron이 만료 세션을 지우므로 TTL을 문서화(기본 세션 일수와 맞춤).
+1. Pod 기동 시 `seed-cookies-cli`가 `type: sessions`마다 `POST /api/auth/login` `{ email, password }` (`PERSONA_PASSWORD` 또는 `PERSONA_PASSWORD_<NAME>`).
+2. `Set-Cookie: lt_session=…`를 그 persona의 `secrets/session.cookie`에 저장하고 `.cursor/mcp.json`을 쓴다.
+3. factory-mcp는 그 파일만 읽는다. `GATEWAY_SESSION_COOKIE`는 gateway 이벤트 폴링용이며 persona 쿠키가 아니다.
+4. 만료 시 다음 기동에서 재로그인. Worker Cron이 만료 세션을 지우므로 TTL을 문서화(기본 세션 일수와 맞춤).
 
 ## 금지
 

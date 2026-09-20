@@ -67,6 +67,15 @@ fi
 if [[ -n "${PERSONA_SEED_DIR:-}" ]]; then
   ENV_ARGS+=(-e "PERSONA_SEED_DIR=$PERSONA_SEED_DIR")
 fi
+if [[ -n "${PERSONA_PASSWORD:-}" ]]; then
+  ENV_ARGS+=(-e "PERSONA_PASSWORD=$PERSONA_PASSWORD")
+fi
+while IFS= read -r key; do
+  ENV_ARGS+=(-e "$key=${!key}")
+done < <(compgen -v | grep '^PERSONA_PASSWORD_' || true)
+if [[ -n "${SEED_PERSONA_COOKIES:-}" ]]; then
+  ENV_ARGS+=(-e "SEED_PERSONA_COOKIES=$SEED_PERSONA_COOKIES")
+fi
 if [[ -n "${AGENT_BACKEND:-}" ]]; then
   ENV_ARGS+=(-e "AGENT_BACKEND=$AGENT_BACKEND")
 fi
