@@ -9,6 +9,7 @@
 - [AGENTS.md](AGENTS.md) — 에이전트/기여자 워크플로
 - [deploy/SETUP.md](deploy/SETUP.md) — Workers 배포·시크릿
 - [deploy/docker/](deploy/docker/) — agent 이미지
+- [scripts/](scripts/) — **native** 로컬 스택 (`local:run` / `local:stop`, Docker 아님)
 - [deploy/local/](deploy/local/) — agent 로컬 Docker 실행
 - [deploy/k8s/](deploy/k8s/) — agent Kubernetes (`NS=sw-factory`)
 - [backend/DESIGN.md](backend/DESIGN.md) · [frontend/DESIGN.md](frontend/DESIGN.md) · [frontend/ia/](frontend/ia/) — 컴포넌트 설계·IA
@@ -23,12 +24,25 @@ Node.js 22+ 필요. `npm`이 없으면:
 hash -r && node -v && npm -v
 ```
 
+앱만:
+
 ```bash
 npm install
 cp .dev.vars.example .dev.vars
 npm run db:migrate:local
 npm run dev
 ```
+
+앱 + agent (native, Docker 없음) — 기본 **원격** factory. [scripts/README.md](scripts/README.md):
+
+```bash
+cd deploy/local && cp ../env.example .env   # FACTORY_BASE_URL=https://factory.askwho.net
+./obtain-cookie.sh                          # GATEWAY_SESSION_COOKIE
+npm run local:run                           # 루트 · agent만 (원격 시 Vite 생략)
+npm run local:stop
+```
+
+로컬 factory: `.env`에 `FACTORY_BASE_URL=http://localhost:5173` 후 `local:run` (Vite+migrate 포함).
 
 - 앱: http://localhost:5173
 - API health: `GET /api/health`

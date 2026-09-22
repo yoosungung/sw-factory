@@ -4,6 +4,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
+    "local:run": "./scripts/run-local.sh",
+    "local:stop": "./scripts/stop-local.sh",
     "build": "vite build",
     "preview": "vite preview",
     "test": "vitest run && vitest run --config agent/vitest.config.ts && vitest run --config frontend/vitest.config.ts",

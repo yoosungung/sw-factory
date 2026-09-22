@@ -1,8 +1,8 @@
-# Agent local Docker run
+# Agent local run
 
-로컬에서 이미지 기동·쿠키 취득. 이미지: [../docker/](../docker/).  
-**agents 정본:** [`../agents.yaml`](../agents.yaml) (`./agents.yaml` → 심볼릭 링크).  
-예제: [`../env.example`](../env.example) · [`../agents.yaml.example`](../agents.yaml.example).
+`.env` / `.local-data` / [`../agents.yaml`](../agents.yaml) 공유.  
+예제: [`../env.example`](../env.example) · [`../agents.yaml.example`](../agents.yaml.example).  
+이미지: [../docker/](../docker/). Native 상세: [../../scripts/README.md](../../scripts/README.md).
 
 ```bash
 cd deploy/local
@@ -11,9 +11,17 @@ cp ../env.example .env
 ./register-agent-users.sh   # factory users 생성 → agents.yaml user_id 기입
 ./obtain-cookie.sh          # gateway용 (admin/human 로그인)
 ./seed-personas.sh          # sessions 쿠키·mcp·MEMORY + ensureRepos
+
+# Native (Vite + cursor + gateway, Docker 아님)
 ./run-local.sh
 ./stop-local.sh
+
+# 또는 Docker 컨테이너
+./run-docker.sh
+./stop-docker.sh
 ```
+
+루트에서도 native: `npm run local:run` / `local:stop`.
 
 ## Agent `user_id` 등록
 
@@ -35,8 +43,10 @@ cp ../env.example .env
 | `./register-agent-users.sh` | register(+login resolve) → `agents.yaml` `user_id` |
 | `./obtain-cookie.sh` | gateway 로그인 → `.env` |
 | `./seed-personas.sh` | sessions persona 쿠키·mcp·MEMORY/skills·repos (`AGENT_APP_ROOT=/app` → 컨테이너용 mcp 절대경로) |
-| `./run-local.sh` | Docker 기동 |
-| `./stop-local.sh` | 중지·삭제 |
+| `./run-local.sh` | Native 기동 (→ `scripts/run-local.sh`) |
+| `./stop-local.sh` | Native 중지 |
+| `./run-docker.sh` | Docker 기동 |
+| `./stop-docker.sh` | Docker 중지·삭제 |
 
 작업 파일(gitignore): `./.env` · `../agents.yaml` · `./.local-data/` → 컨테이너 `/data`.
 

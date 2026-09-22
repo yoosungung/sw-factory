@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Stop agent container started by run-docker.sh. Native: ../../scripts/stop-local.sh
 set -euo pipefail
 DIR="$(cd "$(dirname "$0")" && pwd)"
 cd "$DIR"

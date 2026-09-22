@@ -22,7 +22,7 @@ cp ../env.example .env
 # PERSONA_PASSWORD 설정 후:
 ./register-agent-users.sh   # factory user 생성 → user_id 기입 (상세: local/README.md)
 ./obtain-cookie.sh   # 선택
-./run-local.sh
+./run-local.sh       # native · 또는 ./run-docker.sh
 ```
 
 클러스터: [k8s/README.md](k8s/README.md) — `apply.sh` 기본 `../agents.yaml`(없으면 example).

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Start agent container (Docker). Native stack: ../../scripts/run-local.sh
 set -euo pipefail
 DIR="$(cd "$(dirname "$0")" && pwd)"
 DEPLOY="$(cd "$DIR/.." && pwd)"
