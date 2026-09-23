@@ -1,10 +1,19 @@
 #!/usr/bin/env bash
 # Native (no Docker) stack: Vite + agent:cursor + agent:gateway
 # Uses deploy/local/.env + .local-data (same as Docker). Docker: deploy/local/run-docker.sh
+#
+#   ./scripts/run-local.sh                 # .env 기준 (localhost면 Vite+migrate)
+#   ./scripts/run-local.sh remote-ticket   # 원격 factory만; Vite/migrate 없음
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
+
+MODE=""
+if [[ "${1:-}" == "remote-ticket" ]]; then
+  MODE=remote-ticket
+  shift
+fi
 
 LOCAL_DIR="$ROOT/deploy/local"
 DEPLOY="$ROOT/deploy"
@@ -59,13 +68,24 @@ is_local_factory=0
 case "$FACTORY_BASE_URL" in
   http://localhost:*|http://127.0.0.1:*) is_local_factory=1 ;;
 esac
-# Remote factory: skip local D1 migrate unless explicitly forced (SKIP_MIGRATE=0 + LOCAL_MIGRATE=1).
-if [[ "$is_local_factory" != "1" && "${LOCAL_MIGRATE:-0}" != "1" ]]; then
+
+if [[ "$MODE" == "remote-ticket" ]]; then
+  if [[ "$is_local_factory" == "1" ]]; then
+    echo "remote-ticket requires a remote FACTORY_BASE_URL (got $FACTORY_BASE_URL)." >&2
+    echo "Fix deploy/local/.env, or run without remote-ticket for local factory." >&2
+    exit 1
+  fi
   SKIP_MIGRATE=1
-fi
-# Remote: Vite is optional (agents hit remote). Local factory keeps Vite on.
-if [[ "$is_local_factory" != "1" && "${START_VITE:-0}" != "1" ]]; then
   SKIP_VITE=1
+else
+  # Remote factory: skip local D1 migrate unless explicitly forced (LOCAL_MIGRATE=1).
+  if [[ "$is_local_factory" != "1" && "${LOCAL_MIGRATE:-0}" != "1" ]]; then
+    SKIP_MIGRATE=1
+  fi
+  # Remote: Vite is optional (agents hit remote). Local factory keeps Vite on.
+  if [[ "$is_local_factory" != "1" && "${START_VITE:-0}" != "1" ]]; then
+    SKIP_VITE=1
+  fi
 fi
 
 if [[ ! -f "$CONFIG" ]]; then

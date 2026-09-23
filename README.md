@@ -38,8 +38,9 @@ npm run dev
 ```bash
 cd deploy/local && cp ../env.example .env   # FACTORY_BASE_URL=https://factory.askwho.net
 ./obtain-cookie.sh                          # GATEWAY_SESSION_COOKIE
-npm run local:run                           # 루트 · agent만 (원격 시 Vite 생략)
+npm run local:run:remote-ticket             # agent만 · 원격 티켓 (Vite/migrate 없음)
 npm run local:stop
+# 또는: npm run local:run (.env가 localhost면 Vite+migrate)
 ```
 
 로컬 factory: `.env`에 `FACTORY_BASE_URL=http://localhost:5173` 후 `local:run` (Vite+migrate 포함).

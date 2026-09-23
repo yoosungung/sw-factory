@@ -1,6 +1,9 @@
 # Native local run (no Docker)
 
-`agent:cursor` / `agent:gateway` (+ 선택 Vite). **Docker와 동일 작업 파일**:
+정본: `run-local.sh` / `stop-local.sh` (이 디렉터리).  
+`deploy/local/run-local.sh` · `stop-local.sh`는 cwd 편의용 한 줄 위임만.
+
+**Docker와 동일 작업 파일**:
 
 | 경로 | 용도 |
 |------|------|
@@ -8,8 +11,7 @@
 | `deploy/local/.local-data/` | agent data (`DATA_HOST`, 컨테이너 `/data`와 동일) |
 | [`deploy/agents.yaml`](../deploy/agents.yaml) | agents 정본 (없으면 example에서 생성) |
 
-Docker: [../deploy/local/run-docker.sh](../deploy/local/run-docker.sh) · `stop-docker.sh`.  
-`deploy/local/run-local.sh` / `stop-local.sh` → 이 디렉터리로 위임.
+Docker: [../deploy/local/run-docker.sh](../deploy/local/run-docker.sh) · `stop-docker.sh`.
 
 ```bash
 cd deploy/local
@@ -20,13 +22,14 @@ cp ../env.example .env
 ./register-agent-users.sh   # 선택
 ./seed-personas.sh          # 선택 (또는 SEED_PERSONA_COOKIES=1)
 
-npm run local:run           # 루트 · 또는 ./run-local.sh
-npm run local:stop
+npm run local:run                    # .env 기준
+npm run local:run:remote-ticket      # 원격만 허용 · Vite/migrate 없음
+npm run local:stop                   # 둘 다 동일 중지
 ```
 
 | 스크립트 | 역할 |
 |----------|------|
-| `run-local.sh` | `.env` 기준 factory → cursor(+gateway); localhost면 Vite+migrate |
+| `run-local.sh` | factory → cursor(+gateway); `remote-ticket` 인자 시 원격 강제 |
 | `stop-local.sh` | `.tools/local-pids/*.pid` 트리 종료 |
 
 기본: cursor **mock**. 실 SDK는 `.env`의 `CURSOR_API_KEY` (`FORCE_MOCK=1`이면 mock).
@@ -37,8 +40,8 @@ npm run local:stop
 | (`.env`) `GATEWAY_SESSION_COOKIE` | — | 원격 필수 (`obtain-cookie.sh`); localhost면 자동 기입 |
 | `AGENTS_FILE` | `deploy/agents.yaml` | agents.yaml |
 | `DATA_DIR` / `DATA_HOST` | `deploy/local/.local-data` | agent data |
-| `START_VITE` | `0` | 원격일 때 `1`이면 Vite도 기동 |
-| `LOCAL_MIGRATE` | `0` | 원격일 때 `1`이면 local D1 migrate |
+| `START_VITE` | `0` | 원격일 때 `1`이면 Vite도 기동 (`remote-ticket`면 무시) |
+| `LOCAL_MIGRATE` | `0` | 원격일 때 `1`이면 local D1 migrate (`remote-ticket`면 무시) |
 | `SKIP_MIGRATE` / `SKIP_VITE` / `SKIP_AGENT` | — | 강제 생략 |
 | `SEED_PERSONA_COOKIES` | `0` | `1`이면 기동 전 seed-cookies |
 | `ENSURE_REPOS` | `0` | `1`이면 기동 전 ensure-repos |

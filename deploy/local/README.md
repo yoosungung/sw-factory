@@ -13,7 +13,8 @@ cp ../env.example .env
 ./seed-personas.sh          # sessions 쿠키·mcp·MEMORY + ensureRepos
 
 # Native (Vite + cursor + gateway, Docker 아님)
-./run-local.sh
+./run-local.sh                 # → scripts/run-local.sh
+./run-local.sh remote-ticket   # 원격만 · Vite/migrate 없음
 ./stop-local.sh
 
 # 또는 Docker 컨테이너
@@ -21,7 +22,7 @@ cp ../env.example .env
 ./stop-docker.sh
 ```
 
-루트에서도 native: `npm run local:run` / `local:stop`.
+루트: `npm run local:run` · `local:run:remote-ticket` · `local:stop`.
 
 ## Agent `user_id` 등록
 
@@ -43,8 +44,8 @@ cp ../env.example .env
 | `./register-agent-users.sh` | register(+login resolve) → `agents.yaml` `user_id` |
 | `./obtain-cookie.sh` | gateway 로그인 → `.env` |
 | `./seed-personas.sh` | sessions persona 쿠키·mcp·MEMORY/skills·repos (`AGENT_APP_ROOT=/app` → 컨테이너용 mcp 절대경로) |
-| `./run-local.sh` | Native 기동 (→ `scripts/run-local.sh`) |
-| `./stop-local.sh` | Native 중지 |
+| `./run-local.sh` | Native 기동 (→ `scripts/run-local.sh`; `remote-ticket` 인자 가능) |
+| `./stop-local.sh` | Native 중지 (→ `scripts/stop-local.sh`) |
 | `./run-docker.sh` | Docker 기동 |
 | `./stop-docker.sh` | Docker 중지·삭제 |
 
