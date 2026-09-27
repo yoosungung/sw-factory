@@ -595,6 +595,19 @@ describe("M7 scale and durability", () => {
     expect(
       ((archived.json.columns as Record<string, Json[]>).done).some((t) => t.id === archivedId),
     ).toBe(true);
+
+    const listDefault = await request(`/api/projects/${projectId}/tickets?type=task`, {}, cookie);
+    expect(listDefault.status).toBe(200);
+    const listIds = (listDefault.json.tickets as Json[]).map((t) => t.id);
+    expect(listIds).toContain(withinWindowId);
+    expect(listIds).not.toContain(archivedId);
+
+    const listArchived = await request(
+      `/api/projects/${projectId}/tickets?type=task&include_archived=true`,
+      {},
+      cookie,
+    );
+    expect((listArchived.json.tickets as Json[]).map((t) => t.id)).toContain(archivedId);
   });
 
   it("supports direct upload url + confirm and session cleanup", async () => {

@@ -1,7 +1,26 @@
 export type StatusCategory = "backlog" | "active" | "done";
 
-/** `category=done` 티켓이 이 일수를 넘기면 archived Done (기본 칸반 제외). */
+/** `category=done` 티켓이 이 일수를 넘기면 archived Done (기본 칸반·리스트 제외). */
 export const DONE_ARCHIVE_DAYS = 7;
+
+/** Soft-archive filter for Done tickets older than DONE_ARCHIVE_DAYS. */
+export function archivedDoneFilter(includeArchived: boolean): {
+  sql: string;
+  binds: string[];
+} {
+  if (includeArchived) return { sql: "", binds: [] };
+  const cutoff = new Date(Date.now() - DONE_ARCHIVE_DAYS * 86400_000).toISOString();
+  return {
+    sql: ` AND (
+      NOT EXISTS (
+        SELECT 1 FROM project_statuses ps
+        WHERE ps.project_id = tickets.project_id AND ps.key = tickets.status AND ps.category = 'done'
+      )
+      OR updated_at >= ?
+    )`,
+    binds: [cutoff],
+  };
+}
 
 export type ProjectStatus = {
   key: string;

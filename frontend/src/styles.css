@@ -585,18 +585,6 @@ select {
   flex-direction: column;
 }
 
-.board-scroll::after {
-  content: "";
-  pointer-events: none;
-  position: absolute;
-  top: 0;
-  right: 0;
-  bottom: 0;
-  width: 48px;
-  background: linear-gradient(to right, transparent, var(--color-bg-canvas));
-  z-index: 2;
-}
-
 .board {
   display: grid;
   grid-auto-flow: column;

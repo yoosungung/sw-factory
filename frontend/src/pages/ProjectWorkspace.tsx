@@ -125,6 +125,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
       const r = await client.tickets(id, {
         limit: 50,
         cursor: reset ? undefined : listCursor ?? undefined,
+        include_archived: includeArchived || undefined,
       });
       setListTickets((prev) => (reset ? r.tickets : [...prev, ...r.tickets]));
       setListCursor(r.next_cursor ?? null);
@@ -142,7 +143,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
       setListCursor(null);
       void loadList(true);
     }
-  }, [id, view]);
+  }, [id, view, includeArchived]);
 
   const filteredColumns = useMemo(() => {
     const q = filter.trim().toLowerCase();

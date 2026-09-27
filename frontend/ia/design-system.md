@@ -115,7 +115,7 @@ IA 구조는 [overview.md](overview.md), 메뉴는 [menus.md](menus.md), 화면�
   - 상단 메타: 타입 아이콘(Task/Milestone) + 키(`MOB-F416`) + 우선순위 뱃지(High/Medium/Low 컬러 태그).
   - 본문: 최대 2줄 제목 말줄임 (`-webkit-line-clamp: 2`).
   - 하단 푸터: 마감일 태그(`due_at`, 기한 임박 시 주황/경과 시 빨강) + 우측 정렬된 담당자 원형 아바타(20px).
-- **가로 스크롤 UX:** 화면 너비가 좁아 우측 컬럼(Done)이 가려질 경우, 우측 가장자리에 부드러운 화이트 그라데이션 페이드와 스크롤 인디케이터 제공.
+- **가로 스크롤 UX:** 컬럼이 뷰포트보다 넓으면 `.board-scroll`에서 가로 스크롤. 우측 고정 캔버스 그라데이션 오버레이는 쓰지 않는다 — 컬럼 위를 덮어 회색 박스가 잘린 것처럼 보이기 때문.
 
 ### 3.5 Timeline & Empty State System (공백 화면 방지)
 - 모든 뷰(Timeline, Search, Backlog, Your work)는 데이터가 0건일 때 표준 `EmptyState` 컴포넌트를 렌더링한다.

@@ -4,7 +4,7 @@ import { TICKET_PRIORITIES } from "../env";
 import { newId, nowIso } from "../lib/crypto";
 import { appendAgentEvent } from "../lib/agent-events";
 import {
-  DONE_ARCHIVE_DAYS,
+  archivedDoneFilter,
   defaultTicketStatus,
   listProjectStatuses,
   projectHasStatus,
@@ -62,6 +62,7 @@ ticketRoutes.get("/projects/:projectId/tickets", async (c) => {
   const assigneeId = c.req.query("assignee_id");
   const createdBy = c.req.query("created_by");
   const milestoneId = c.req.query("milestone_id");
+  const includeArchived = c.req.query("include_archived") === "true";
   const limitRaw = Number(c.req.query("limit") ?? "50");
   const limit = Number.isFinite(limitRaw)
     ? Math.min(Math.max(Math.floor(limitRaw), 1), 100)
@@ -92,6 +93,9 @@ ticketRoutes.get("/projects/:projectId/tickets", async (c) => {
     sql += ` AND milestone_id = ?`;
     binds.push(milestoneId);
   }
+  const archive = archivedDoneFilter(includeArchived);
+  sql += archive.sql;
+  binds.push(...archive.binds);
   if (cursor) {
     try {
       const decoded = JSON.parse(atob(cursor)) as { created_at: string; id: string };
@@ -399,20 +403,12 @@ ticketRoutes.get("/projects/:projectId/kanban", async (c) => {
 
   const statuses = await listProjectStatuses(c.env.DB, projectId);
   const includeArchived = c.req.query("include_archived") === "true";
-  const cutoff = new Date(Date.now() - DONE_ARCHIVE_DAYS * 86400_000).toISOString();
 
   let sql = `SELECT ${TICKET_SELECT} FROM tickets WHERE project_id = ? AND type = 'task'`;
   const binds: string[] = [projectId];
-  if (!includeArchived) {
-    sql += ` AND (
-      NOT EXISTS (
-        SELECT 1 FROM project_statuses ps
-        WHERE ps.project_id = tickets.project_id AND ps.key = tickets.status AND ps.category = 'done'
-      )
-      OR updated_at >= ?
-    )`;
-    binds.push(cutoff);
-  }
+  const archive = archivedDoneFilter(includeArchived);
+  sql += archive.sql;
+  binds.push(...archive.binds);
   sql += ` ORDER BY sort_order ASC, created_at ASC`;
 
   const { results } = await c.env.DB.prepare(sql).bind(...binds).all<TicketRow>();
