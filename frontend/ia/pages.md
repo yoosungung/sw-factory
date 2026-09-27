@@ -61,7 +61,7 @@
 
 ## F5. Board — `/projects/:id?view=board`
 
-**Layout:** Tickets 작업 뷰. 툴바(타이틀 + 세그먼트 탭 `Board|Backlog|Timeline|List` + 검색·•••) + **프로젝트 statuses 순서** 컬럼 + 카드.  
+**Layout:** Tickets 작업 뷰. 툴바(타이틀 + 세그먼트 탭 `Board|Backlog|Timeline|List` + 검색·•••) + **프로젝트 statuses 순서** 컬럼 + 카드. 컬럼(회색 서피스)은 툴바 아래 **잔여 뷰포트 높이를 채우고**, 카드가 넘치면 컬럼 본문만 세로 스크롤.  
 **카드 규격:** 타입 아이콘 + 키(`MOB-F416`) + 우선순위 뱃지(High/Medium/Low 컬러 태그) + 2줄 말줄임 타이틀 + 마감일 태그 + 우측 정렬된 담당자 아바타.  
 **Behavior:** 드래그 → `PATCH` `{ status, sort_order, version }`; 카드 클릭 → **논모달 사이드 인스펙터** 오픈; Group by(assignee/milestone/type) **Prod 포함**(클라이언트 그룹핑); 가로 스크롤 페이드 인디케이터. 티켓 생성은 탑바 **Create**(F14)만 — 컬럼 인라인 생성은 보류.  
 **API:** `GET …/kanban` (`columns`+`statuses`; `category=done` 최근건 기본), `POST …/tickets`.  

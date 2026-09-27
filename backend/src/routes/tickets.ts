@@ -4,6 +4,7 @@ import { TICKET_PRIORITIES } from "../env";
 import { newId, nowIso } from "../lib/crypto";
 import { appendAgentEvent } from "../lib/agent-events";
 import {
+  DONE_ARCHIVE_DAYS,
   defaultTicketStatus,
   listProjectStatuses,
   projectHasStatus,
@@ -398,7 +399,7 @@ ticketRoutes.get("/projects/:projectId/kanban", async (c) => {
 
   const statuses = await listProjectStatuses(c.env.DB, projectId);
   const includeArchived = c.req.query("include_archived") === "true";
-  const cutoff = new Date(Date.now() - 14 * 86400_000).toISOString();
+  const cutoff = new Date(Date.now() - DONE_ARCHIVE_DAYS * 86400_000).toISOString();
 
   let sql = `SELECT ${TICKET_SELECT} FROM tickets WHERE project_id = ? AND type = 'task'`;
   const binds: string[] = [projectId];

@@ -576,9 +576,13 @@ select {
 /* —— Board —— */
 .board-scroll {
   flex: 1;
-  overflow: auto;
+  min-height: 0;
+  overflow-x: auto;
+  overflow-y: hidden;
   padding: 0 16px 24px;
   position: relative;
+  display: flex;
+  flex-direction: column;
 }
 
 .board-scroll::after {
@@ -598,16 +602,17 @@ select {
   grid-auto-flow: column;
   grid-auto-columns: minmax(260px, 1fr);
   gap: 8px;
-  align-items: start;
+  align-items: stretch;
   min-width: max-content;
   width: 100%;
+  flex: 1;
+  min-height: 0;
 }
 
 .board-col {
   background: var(--color-bg-surface-sunken);
   border-radius: var(--radius-lg);
-  min-height: 200px;
-  max-height: calc(100vh - var(--top-h) - 140px);
+  min-height: 0;
   display: flex;
   flex-direction: column;
 }
@@ -620,6 +625,7 @@ select {
   position: sticky;
   top: 0;
   z-index: 1;
+  flex-shrink: 0;
 }
 
 .board-col-head h3 {
@@ -640,6 +646,8 @@ select {
 }
 
 .board-col-body {
+  flex: 1;
+  min-height: 0;
   padding: 0 8px 8px;
   overflow: auto;
   display: grid;

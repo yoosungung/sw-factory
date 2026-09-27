@@ -1,5 +1,8 @@
 export type StatusCategory = "backlog" | "active" | "done";
 
+/** `category=done` 티켓이 이 일수를 넘기면 archived Done (기본 칸반 제외). */
+export const DONE_ARCHIVE_DAYS = 7;
+
 export type ProjectStatus = {
   key: string;
   label: string;

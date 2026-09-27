@@ -235,7 +235,7 @@ payload_json TEXT NOT NULL DEFAULT '{}'
 | PATCH | `/api/tickets/:id` | body에 `{ status, sort_order, priority, assignee_id, due_at, version? }` 포함. 버전 전달 시 불일치하면 `409 Conflict`; 성공 시 `version` 증가 및 변경 필드 `ticket_activities` 기록 |
 | DELETE | `/api/tickets/:id` | **작성자(`created_by`) 또는 project owner만 삭제 가능** |
 | GET | `/api/tickets/:id/activities` | 티켓 변경 이력 (최신순) |
-| GET | `/api/projects/:id/kanban` | `{ columns, statuses }` — 컬럼 키=project statuses 순서. `category=done` 중 `updated_at` 오래된 건 기본 제외(`include_archived=true`로 포함) |
+| GET | `/api/projects/:id/kanban` | `{ columns, statuses }` — 컬럼 키=project statuses 순서. `category=done` 중 `updated_at`이 7일 초과인 건은 기본 제외(archived Done; `include_archived=true`로 포함) |
 | GET | `/api/projects/:id/timeline` | date_from/date_to 있는 항목 |
 
 ### Search
@@ -283,6 +283,6 @@ payload_json TEXT NOT NULL DEFAULT '{}'
 
 - 칸반 컬럼 = 해당 프로젝트 `project_statuses`(정렬순). 티켓 `status`는 그 `key` 중 하나여야 한다. 기본 생성 status = 첫 `category=backlog`.
 - 드래그 저장 = `PATCH /api/tickets/:id` with `{ status, sort_order, version }`.
-- 완료 티켓 관리: `category=done` 이고 `updated_at`이 14일 초과인 건은 기본 칸반에서 제외. `include_archived=true`로 포함.
+- 완료 티켓 관리: `category=done` 이고 `updated_at`이 **7일** 초과인 건은 archived Done으로 취급해 기본 칸반에서 제외. `include_archived=true`로 포함. (별도 status 컬럼이 아니라 조회 필터.)
 - 타임라인 = `date_from`/`date_to`가 null이 아닌 ticket/milestone 목록.
 - 만료 세션은 Cron(`0 * * * *`) `scheduled` 핸들러가 `sessions.expires_at < now` 행을 삭제한다.

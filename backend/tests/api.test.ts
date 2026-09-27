@@ -552,21 +552,24 @@ describe("M7 scale and durability", () => {
     const ids2 = (page2.json.tickets as Json[]).map((t) => t.id);
     expect(ids1.some((id) => ids2.includes(id))).toBe(false);
 
-    const oldDone = await request(
-      `/api/projects/${projectId}/tickets`,
-      {
-        method: "POST",
-        body: JSON.stringify({ title: "OldDone", type: "task", status: "done" }),
-      },
-      cookie,
-    );
-    const oldDoneId = (oldDone.json.ticket as Json).id as string;
-    await env.DB.prepare(
-      `UPDATE tickets SET updated_at = ? WHERE id = ?`,
-    )
-      .bind("2020-01-01T00:00:00.000Z", oldDoneId)
-      .run();
+    const mkDone = async (title: string, daysAgo: number) => {
+      const res = await request(
+        `/api/projects/${projectId}/tickets`,
+        {
+          method: "POST",
+          body: JSON.stringify({ title, type: "task", status: "done" }),
+        },
+        cookie,
+      );
+      expect(res.status).toBe(201);
+      const id = (res.json.ticket as Json).id as string;
+      const at = new Date(Date.now() - daysAgo * 86400_000).toISOString();
+      await env.DB.prepare(`UPDATE tickets SET updated_at = ? WHERE id = ?`).bind(at, id).run();
+      return id;
+    };
 
+    const withinWindowId = await mkDone("Done6d", 6);
+    const archivedId = await mkDone("Done8d", 8);
     const recentDone = await request(
       `/api/projects/${projectId}/tickets`,
       {
@@ -580,7 +583,8 @@ describe("M7 scale and durability", () => {
     const kanban = await request(`/api/projects/${projectId}/kanban`, {}, cookie);
     expect(kanban.status).toBe(200);
     const doneCol = (kanban.json.columns as Record<string, Json[]>).done;
-    expect(doneCol.some((t) => t.id === oldDoneId)).toBe(false);
+    expect(doneCol.some((t) => t.id === withinWindowId)).toBe(true);
+    expect(doneCol.some((t) => t.id === archivedId)).toBe(false);
     expect(doneCol.some((t) => t.title === "RecentDone")).toBe(true);
 
     const archived = await request(
@@ -589,7 +593,7 @@ describe("M7 scale and durability", () => {
       cookie,
     );
     expect(
-      ((archived.json.columns as Record<string, Json[]>).done).some((t) => t.id === oldDoneId),
+      ((archived.json.columns as Record<string, Json[]>).done).some((t) => t.id === archivedId),
     ).toBe(true);
   });
 

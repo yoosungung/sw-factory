@@ -110,6 +110,7 @@ IA 구조는 [overview.md](overview.md), 메뉴는 [menus.md](menus.md), 화면�
 - **표준 구조:** 사이드바 상단 프로젝트 정보 영역에 **스위처 드롭다운(`[Audit Space ▾]`)** 형태로 배치하여, 클릭 시에만 팝오버로 스페이스를 변경할 수 있도록 압축.
 
 ### 3.4 Board & Card Specification (정보 밀도 강화)
+- **컬럼 높이:** 칸반 컬럼(`.board-col` 회색 서피스)은 툴바 아래 잔여 높이를 stretch로 채운다. 카드 오버플로는 `.board-col-body`에서만 세로 스크롤.
 - **카드 구성:**
   - 상단 메타: 타입 아이콘(Task/Milestone) + 키(`MOB-F416`) + 우선순위 뱃지(High/Medium/Low 컬러 태그).
   - 본문: 최대 2줄 제목 말줄임 (`-webkit-line-clamp: 2`).
