@@ -1205,12 +1205,76 @@ select {
   margin-top: 8px;
 }
 
+/* UX4 — Mobile drawer hidden until ≤900px */
+.mobile-nav-backdrop,
+.mobile-nav-drawer {
+  display: none;
+}
+
 @media (max-width: 900px) {
   .shell-body {
     grid-template-columns: 1fr;
   }
   .sidebar {
     display: none;
+  }
+  .nav-hamburger {
+    display: inline-grid;
+    place-items: center;
+  }
+  .nav-desktop-links {
+    display: none;
+  }
+  .mobile-nav-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    top: var(--top-h);
+    background: rgba(15, 23, 42, 0.35);
+    z-index: 80;
+  }
+  .mobile-nav-drawer {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    position: fixed;
+    top: var(--top-h);
+    left: 0;
+    bottom: 0;
+    width: min(280px, 86vw);
+    background: var(--color-bg-surface);
+    border-right: 1px solid var(--color-border-subtle);
+    box-shadow: var(--shadow-float);
+    z-index: 90;
+    padding: 12px;
+    overflow-y: auto;
+    animation: slide-in 0.15s ease-out;
+  }
+  .mobile-nav-section {
+    padding: 12px 12px 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--ds-text-subtlest);
+    letter-spacing: -0.01em;
+  }
+  .mobile-nav-item {
+    display: flex;
+    align-items: center;
+    min-height: 40px;
+    padding: 0 12px;
+    border-radius: var(--radius-md);
+    color: var(--color-text-primary);
+    text-decoration: none;
+    font-weight: 500;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+  }
+  .mobile-nav-item:hover,
+  .mobile-nav-item.active {
+    background: var(--color-bg-surface-sunken);
   }
   .field-grid {
     grid-template-columns: 1fr;
@@ -2288,14 +2352,6 @@ select {
   font-size: 13px;
 }
 
-/* UX4 — Mobile */
-.mobile-nav-backdrop {
-  display: none;
-}
-.mobile-nav-drawer {
-  display: none;
-}
-
 @media (max-width: 767px) {
   .app-shell {
     overflow-x: hidden;
@@ -2304,15 +2360,6 @@ select {
   .top-nav {
     padding: 0 8px;
     gap: 2px;
-  }
-
-  .nav-hamburger {
-    display: inline-grid;
-    place-items: center;
-  }
-
-  .nav-desktop-links {
-    display: none;
   }
 
   .nav-brand span {
@@ -2352,51 +2399,6 @@ select {
   .mobile-nav-item {
     min-height: 40px;
     min-width: 40px;
-  }
-
-  .mobile-nav-backdrop {
-    display: block;
-    position: fixed;
-    inset: 0;
-    top: var(--top-h);
-    background: rgba(15, 23, 42, 0.35);
-    z-index: 80;
-  }
-
-  .mobile-nav-drawer {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    position: fixed;
-    top: var(--top-h);
-    left: 0;
-    bottom: 0;
-    width: min(280px, 86vw);
-    background: var(--color-bg-surface);
-    border-right: 1px solid var(--color-border-subtle);
-    box-shadow: var(--shadow-float);
-    z-index: 90;
-    padding: 12px;
-    animation: slide-in 0.15s ease-out;
-  }
-
-  .mobile-nav-item {
-    display: flex;
-    align-items: center;
-    padding: 0 12px;
-    border-radius: var(--radius-md);
-    color: var(--color-text-primary);
-    text-decoration: none;
-    font-weight: 500;
-    border: none;
-    background: transparent;
-    cursor: pointer;
-    text-align: left;
-    width: 100%;
-  }
-
-  .mobile-nav-item:hover {
-    background: var(--color-bg-surface-sunken);
   }
 
   .issue-card .title,

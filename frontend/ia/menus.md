@@ -9,7 +9,7 @@
 ## 1. Top navigation
 
 백엔드 REST 표면에 1:1. 드롭다운 없이 **직접 링크**(Avatar만 예외). 활성 항목은 라우트 prefix 매칭.  
-스타일: 48px 클린 라이트 크롬 (`#ffffff`, Slate 텍스트). 모바일(`< 768px`)에서는 컴팩트 헤더(`[☰] Logo ... [Search] [Avatar]`)로 반응형 축소.
+스타일: 48px 클린 라이트 크롬 (`#ffffff`, Slate 텍스트). 좁은 폭(`≤900px`)에서는 좌측 사이드바를 숨기고 햄버거 드로어로 대체 — **탑 링크(Spaces/Projects/Your work/Create) + 현재 Space/Project 컨텍스트(Overview·Tickets·Settings)** 를 함께 노출한다. 더 좁은 폭(`<768px`)에서는 검색 힌트 등 헤더만 추가로 압축.
 
 ```
 [ Logo → / ]
@@ -88,7 +88,8 @@ Space switcher와 본문 제목이 같은 이름을 두 번 쓰지 않는다. �
 | Think | Ideas/Wiki/Goals | **Exclude** |
 | Time | Timesheets/Calendar | **Exclude** |
 
-사이드바 collapse · Board fullscreen(`•••`).
+사이드바 collapse · Board fullscreen(`•••`).  
+**좁은 폭:** 고정 사이드바가 사라질 때(≤900px) 동일 Work/Settings 링크는 탑 햄버거 드로어에 포함한다 — Settings에 도달할 수 없는 상태를 만들지 않는다.
 
 ### Project settings 하위 메뉴
 

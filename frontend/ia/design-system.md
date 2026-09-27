@@ -11,7 +11,7 @@ IA 구조는 [overview.md](overview.md), 메뉴는 [menus.md](menus.md), 화면�
 2. **Single Purpose Navigation (단일 내비게이션 진실 공급원):** 동일한 뷰 전환(Board/Backlog/Timeline/List)이나 동일한 설정 메뉴가 한 화면의 여러 곳(사이드바와 툴바)에 중복 노출되지 않도록 엄격히 일원화한다.
 3. **Continuous Context (작업 맥락 유지):** 이슈 상세 조회 시 보드나 리스트 작업 화면을 완전히 덮지 않는 **논모달 사이드 인스펙터(Non-modal Side Panel)**를 기본으로 하여, 카드를 넘나들며 편집할 수 있는 연속성을 보장한다.
 4. **No White Void (빈 상태 안내 의무):** 데이터가 없는 화면(타임라인, 검색 결과, 빈 백로그)에서 흰색 공백 화면을 방치하지 않고, 표준 `EmptyState` 컴포넌트를 통해 "현재 상태 설명 + 등록 가이드 + 즉시 생성 액션(CTA)"을 필수로 제공한다.
-5. **Mobile First Readability (모바일 가독성 완결):** 390px 뷰포트에서도 텍스트 잘림이나 가로 넘침이 발생하지 않도록 반응형 헤더와 적응형 레이아웃을 준수한다.
+5. **Mobile First Readability (모바일 가독성 완결):** 390px 뷰포트에서도 텍스트 잘림이나 가로 넘침이 발생하지 않도록 반응형 헤더와 적응형 레이아웃을 준수한다. **≤900px**에서 좌측 사이드바를 숨길 때는 동일 Work/Settings 링크를 햄버거 드로어에 포함해 Settings 등 컨텍스트 내비에 도달할 수 있게 한다.
 
 ---
 

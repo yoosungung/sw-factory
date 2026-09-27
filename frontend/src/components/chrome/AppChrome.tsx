@@ -42,10 +42,16 @@ export function TopNav({
   user,
   onLogout,
   onCreateIssue,
+  activeClient,
+  activeProject,
+  view = "overview",
 }: {
   user: User;
   onLogout: () => void;
   onCreateIssue: () => void;
+  activeClient?: Client | null;
+  activeProject?: Project | null;
+  view?: ViewMode;
 }) {
   const [menu, setMenu] = useState<string | null>(null);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -58,6 +64,7 @@ export function TopNav({
   const spacesActive = path === "/spaces" || path.startsWith("/clients/");
   const projectsActive = path === "/projects" || path.startsWith("/projects/");
   const workActive = path === "/" || path === "/your-work";
+  const projectBase = activeProject ? `/projects/${activeProject.id}` : "";
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -69,6 +76,10 @@ export function TopNav({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [navigate]);
+
+  useEffect(() => {
+    setMobileOpen(false);
+  }, [location.pathname, location.search]);
 
   useEscape(closeMobile, mobileOpen);
 
@@ -185,6 +196,47 @@ export function TopNav({
             >
               Create
             </button>
+
+            {activeProject && (
+              <>
+                <div className="mobile-nav-section">Work</div>
+                <Link
+                  to={projectBase}
+                  className={`mobile-nav-item${view === "overview" ? " active" : ""}`}
+                  onClick={closeMobile}
+                >
+                  Overview
+                </Link>
+                <Link
+                  to={`${projectBase}?view=board`}
+                  className={`mobile-nav-item${view !== "overview" ? " active" : ""}`}
+                  onClick={closeMobile}
+                >
+                  Tickets
+                </Link>
+                <div className="mobile-nav-section">Settings</div>
+                <Link
+                  to={`/projects/${activeProject.id}/settings/details`}
+                  className="mobile-nav-item"
+                  onClick={closeMobile}
+                >
+                  Project settings
+                </Link>
+              </>
+            )}
+
+            {activeClient && !activeProject && (
+              <>
+                <div className="mobile-nav-section">Settings</div>
+                <Link
+                  to={`/clients/${activeClient.id}/settings/details`}
+                  className="mobile-nav-item"
+                  onClick={closeMobile}
+                >
+                  Space settings
+                </Link>
+              </>
+            )}
           </div>
         </>
       )}
@@ -343,7 +395,14 @@ export function AppChrome({
 
   return (
     <div className="app-shell">
-      <TopNav user={user} onLogout={onLogout} onCreateIssue={openCreate} />
+      <TopNav
+        user={user}
+        onLogout={onLogout}
+        onCreateIssue={openCreate}
+        activeClient={activeClient}
+        activeProject={activeProject}
+        view={view}
+      />
       <div className={`shell-body ${showSidebar ? "" : "no-sidebar"}`.trim()}>
         {showSidebar && (
           <Sidebar

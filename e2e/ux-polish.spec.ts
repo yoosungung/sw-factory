@@ -73,3 +73,25 @@ test("UX4: mobile hamburger nav", async ({ page }) => {
     expect(box!.width).toBeGreaterThan(0);
   }
 });
+
+test("UX4: mobile drawer exposes project sidebar links", async ({ page }) => {
+  await loginAsAdmin(page);
+  const stamp = Date.now();
+  await createSpace(page, `UX4m Space ${stamp}`);
+  await createSoftwareProject(page, `UX4m Proj ${stamp}`, { tickets: false });
+  await expect(page).toHaveURL(/\/projects\//);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(page.locator(".sidebar")).toBeHidden();
+  const burger = page.locator(".top-nav").getByRole("button", { name: /menu|☰/i });
+  await clickEl(burger);
+
+  const drawer = page.locator(".mobile-nav-drawer");
+  await expect(drawer.getByRole("link", { name: "Overview" })).toBeVisible();
+  await expect(drawer.getByRole("link", { name: "Tickets" })).toBeVisible();
+  await expect(drawer.getByRole("link", { name: "Project settings" })).toBeVisible();
+
+  await clickEl(drawer.getByRole("link", { name: "Project settings" }));
+  await page.waitForURL(/\/settings\/details/);
+  await expect(page.locator(".mobile-nav-drawer")).toHaveCount(0);
+});
