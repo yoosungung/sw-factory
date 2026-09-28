@@ -20,6 +20,7 @@ test("FE3: your-work, search, account", async ({ page }) => {
   // Assign to me via issue panel so Your work shows it
   const panel = page.getByRole("dialog");
   await expect(panel).toBeVisible();
+  await clickEl(panel.getByRole("tab", { name: "Details" }));
   await panel.locator("select").first().evaluate((el) => {
     const select = el as HTMLSelectElement;
     if (select.options.length > 1) {
@@ -27,7 +28,7 @@ test("FE3: your-work, search, account", async ({ page }) => {
       select.dispatchEvent(new Event("change", { bubbles: true }));
     }
   });
-  await clickEl(panel.getByRole("button", { name: "✕" }));
+  await clickEl(panel.getByRole("button", { name: "Close" }));
 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Your work" })).toBeVisible();
@@ -79,12 +80,13 @@ test("FE6: history tab on issue", async ({ page }) => {
   await createIssue(page, title);
 
   const panel = page.getByRole("dialog");
+  await clickEl(panel.getByRole("tab", { name: "Details" }));
   await clickEl(panel.locator(".status-picker").getByRole("button", { name: /status/i }));
   await expect(panel.locator(".status-picker").getByRole("option", { name: /In Progress/i })).toBeVisible({
     timeout: 10000,
   });
   await clickEl(panel.locator(".status-picker").getByRole("option", { name: /In Progress/i }));
-  await clickEl(panel.getByRole("button", { name: "History" }));
+  await clickEl(panel.getByRole("tab", { name: "History" }));
   await expect(panel.getByText(/status/i).first()).toBeVisible({ timeout: 10000 });
 });
 
