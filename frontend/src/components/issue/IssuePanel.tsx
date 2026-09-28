@@ -199,7 +199,7 @@ export function IssuePanel({
   const [comments, setComments] = useState<Comment[]>([]);
   const [files, setFiles] = useState<FileMeta[]>([]);
   const [body, setBody] = useState("");
-  const [tab, setTab] = useState<"comments" | "history" | "files">("comments");
+  const [tab, setTab] = useState<"comments" | "details" | "files" | "history">("comments");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const [activities, setActivities] = useState<
@@ -379,9 +379,11 @@ export function IssuePanel({
             </section>
 
             <section className="issue-activity-section">
-              <div className="activity-tabs">
+              <div className="activity-tabs" role="tablist" aria-label="Activity">
                 <button
                   type="button"
+                  role="tab"
+                  aria-selected={tab === "comments"}
                   className={`activity-tab chip ${tab === "comments" ? "active" : ""}`}
                   onClick={() => setTab("comments")}
                 >
@@ -389,17 +391,30 @@ export function IssuePanel({
                 </button>
                 <button
                   type="button"
-                  className={`activity-tab chip ${tab === "history" ? "active" : ""}`}
-                  onClick={() => setTab("history")}
+                  role="tab"
+                  aria-selected={tab === "details"}
+                  className={`activity-tab chip ${tab === "details" ? "active" : ""}`}
+                  onClick={() => setTab("details")}
                 >
-                  History
+                  Details
                 </button>
                 <button
                   type="button"
+                  role="tab"
+                  aria-selected={tab === "files"}
                   className={`activity-tab chip ${tab === "files" ? "active" : ""}`}
                   onClick={() => setTab("files")}
                 >
                   Files {files.length > 0 && <span className="tab-pill">{files.length}</span>}
+                </button>
+                <button
+                  type="button"
+                  role="tab"
+                  aria-selected={tab === "history"}
+                  className={`activity-tab chip ${tab === "history" ? "active" : ""}`}
+                  onClick={() => setTab("history")}
+                >
+                  History
                 </button>
               </div>
 
@@ -448,17 +463,114 @@ export function IssuePanel({
                 </>
               )}
 
-              {tab === "history" && (
-                <div className="history-list">
-                  {activities.map((a) => (
-                    <div key={a.id} className="list-row">
-                      <span>
-                        <strong>{a.field}</strong>: {a.old_val ?? "—"} → {a.new_val ?? "—"}
-                      </span>
-                      <span className="muted">{new Date(a.at).toLocaleString()}</span>
+              {tab === "details" && (
+                <div className="issue-details-tab">
+                  <div className="properties-panel">
+                    <div className="field-grid">
+                      <div className="label">Status</div>
+                      <BadgePicker
+                        className="status-picker"
+                        label="Status"
+                        value={ticket.status}
+                        options={statusKeys.length ? statusKeys : [ticket.status]}
+                        labels={
+                          statusKeys.length ? statusLabels : { [ticket.status]: statusLabel(ticket.status) }
+                        }
+                        onChange={(status) => void save({ status })}
+                      />
+
+                      <div className="label">Priority</div>
+                      <BadgePicker
+                        className="prio-picker"
+                        label="Priority"
+                        value={ticket.priority}
+                        options={PRIORITIES}
+                        labels={PRIORITY_LABEL}
+                        onChange={(priority) => void save({ priority: priority as TicketPriority })}
+                      />
+
+                      <div className="label">Assignee</div>
+                      <div className="assignee-select-wrap">
+                        {assignee && (
+                          <span className="avatar sm" title={assignee.name}>
+                            {initials(assignee.name)}
+                          </span>
+                        )}
+                        <select
+                          className="prop-select"
+                          value={ticket.assignee_id ?? ""}
+                          onChange={(e) =>
+                            void save({ assignee_id: e.target.value ? e.target.value : null })
+                          }
+                        >
+                          <option value="">Unassigned</option>
+                          {members.map((m) => (
+                            <option key={m.user_id} value={m.user_id}>
+                              {m.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="label">Due date</div>
+                      <input
+                        type="date"
+                        className="prop-date-input"
+                        value={ticket.due_at ?? ""}
+                        onChange={(e) => void save({ due_at: e.target.value || null })}
+                      />
+
+                      <div className="label">Type</div>
+                      <div className="prop-val">
+                        <span className={`prop-type-badge ${ticket.type}`}>
+                          {ticket.type === "task" ? "Task" : "Milestone"}
+                        </span>
+                      </div>
+
+                      <div className="label">Project</div>
+                      <div className="prop-val">
+                        <span className="prop-project-name">{project.name}</span>
+                      </div>
+
+                      {(ticket.date_from || ticket.date_to) && (
+                        <>
+                          <div className="label">Dates</div>
+                          <div className="prop-val date-range">
+                            {ticket.date_from ?? "—"} → {ticket.date_to ?? "—"}
+                          </div>
+                        </>
+                      )}
                     </div>
-                  ))}
-                  {activities.length === 0 && <p className="muted">No history yet.</p>}
+                  </div>
+
+                  {canDelete && (
+                    <div className="issue-danger-action">
+                      <button
+                        type="button"
+                        className="btn-delete-subtle"
+                        disabled={busy}
+                        onClick={() => void removeTicket()}
+                        title="Only author or project owner can delete"
+                      >
+                        <svg
+                          width="14"
+                          height="14"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          aria-hidden="true"
+                        >
+                          <polyline points="3 6 5 6 21 6" />
+                          <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                        </svg>
+                        Delete issue
+                      </button>
+                      <span className="danger-hint">Only author or project owner can delete.</span>
+                    </div>
+                  )}
                 </div>
               )}
 
@@ -487,116 +599,22 @@ export function IssuePanel({
                   {files.length === 0 && <p className="muted">No attachments yet.</p>}
                 </>
               )}
+
+              {tab === "history" && (
+                <div className="history-list">
+                  {activities.map((a) => (
+                    <div key={a.id} className="list-row">
+                      <span>
+                        <strong>{a.field}</strong>: {a.old_val ?? "—"} → {a.new_val ?? "—"}
+                      </span>
+                      <span className="muted">{new Date(a.at).toLocaleString()}</span>
+                    </div>
+                  ))}
+                  {activities.length === 0 && <p className="muted">No history yet.</p>}
+                </div>
+              )}
             </section>
           </div>
-
-          <aside className="issue-aside">
-            <div className="properties-panel">
-              <h4 className="properties-title">Details</h4>
-              <div className="field-grid">
-                <div className="label">Status</div>
-                <BadgePicker
-                  className="status-picker"
-                  label="Status"
-                  value={ticket.status}
-                  options={statusKeys.length ? statusKeys : [ticket.status]}
-                  labels={statusKeys.length ? statusLabels : { [ticket.status]: statusLabel(ticket.status) }}
-                  onChange={(status) => void save({ status })}
-                />
-
-                <div className="label">Priority</div>
-                <BadgePicker
-                  className="prio-picker"
-                  label="Priority"
-                  value={ticket.priority}
-                  options={PRIORITIES}
-                  labels={PRIORITY_LABEL}
-                  onChange={(priority) => void save({ priority: priority as TicketPriority })}
-                />
-
-                <div className="label">Assignee</div>
-                <div className="assignee-select-wrap">
-                  {assignee && (
-                    <span className="avatar sm" title={assignee.name}>
-                      {initials(assignee.name)}
-                    </span>
-                  )}
-                  <select
-                    className="prop-select"
-                    value={ticket.assignee_id ?? ""}
-                    onChange={(e) =>
-                      void save({ assignee_id: e.target.value ? e.target.value : null })
-                    }
-                  >
-                    <option value="">Unassigned</option>
-                    {members.map((m) => (
-                      <option key={m.user_id} value={m.user_id}>
-                        {m.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="label">Due date</div>
-                <input
-                  type="date"
-                  className="prop-date-input"
-                  value={ticket.due_at ?? ""}
-                  onChange={(e) => void save({ due_at: e.target.value || null })}
-                />
-
-                <div className="label">Type</div>
-                <div className="prop-val">
-                  <span className={`prop-type-badge ${ticket.type}`}>
-                    {ticket.type === "task" ? "Task" : "Milestone"}
-                  </span>
-                </div>
-
-                <div className="label">Project</div>
-                <div className="prop-val">
-                  <span className="prop-project-name">{project.name}</span>
-                </div>
-
-                {(ticket.date_from || ticket.date_to) && (
-                  <>
-                    <div className="label">Dates</div>
-                    <div className="prop-val date-range">
-                      {ticket.date_from ?? "—"} → {ticket.date_to ?? "—"}
-                    </div>
-                  </>
-                )}
-              </div>
-            </div>
-
-            {canDelete && (
-              <div className="issue-danger-action">
-                <button
-                  type="button"
-                  className="btn-delete-subtle"
-                  disabled={busy}
-                  onClick={() => void removeTicket()}
-                  title="Only author or project owner can delete"
-                >
-                  <svg
-                    width="14"
-                    height="14"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    aria-hidden="true"
-                  >
-                    <polyline points="3 6 5 6 21 6" />
-                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                  </svg>
-                  Delete issue
-                </button>
-                <span className="danger-hint">Only author or project owner can delete.</span>
-              </div>
-            )}
-          </aside>
         </div>
       </div>
     </>

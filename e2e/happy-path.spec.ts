@@ -22,13 +22,14 @@ test.describe("happy path", () => {
     const panel = page.getByRole("dialog");
     await expect(panel).toBeVisible();
     await expect(page.locator(".issue-title-input")).toHaveValue(title);
+    await clickEl(panel.getByRole("tab", { name: "Details" }));
     await expect(panel.getByText("Priority")).toBeVisible();
     await expect(panel.getByText("Assignee")).toBeVisible();
     await expect(panel.getByText("Due date")).toBeVisible();
 
     await clickEl(panel.locator(".prio-picker").getByRole("button", { name: /priority/i }));
     await clickEl(panel.locator(".prio-picker").getByRole("option", { name: /High/i }));
-    await clickEl(panel.getByRole("button", { name: "✕" }));
+    await clickEl(panel.getByRole("button", { name: "Close" }));
     await expect(page.locator(".prio-badge.high").first()).toBeVisible();
   });
 

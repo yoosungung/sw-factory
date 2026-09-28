@@ -921,12 +921,18 @@ select {
   gap: 16px;
 }
 
+.issue-details-tab {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-width: 420px;
+}
+
 .issue-modal .issue-layout,
 .issue-page .issue-layout {
-  display: grid;
-  grid-template-columns: 1fr 270px;
-  gap: 28px;
-  align-items: start;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 @media (max-width: 768px) {
