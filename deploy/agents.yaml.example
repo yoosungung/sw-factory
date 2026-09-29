@@ -96,8 +96,6 @@ prompts:
 repos:
   - id: sw-factory
     git_repo_url: https://github.com/example/sw-factory.git
-  - id: nl2sql
-    git_repo_url: https://github.com/example/nl2sql.git
   - id: org-wiki
     git_repo_url: https://github.com/example/wiki.git
 
@@ -131,7 +129,6 @@ agents:
     workspace: /data/workspaces/ta
     repo_ids:
       - sw-factory
-      - nl2sql
 
   - name: qa
     user_id: "00000000-0000-0000-0000-000000000005"
@@ -148,7 +145,6 @@ agents:
     workspace: /data/workspaces/aa
     repo_ids:
       - sw-factory
-      - nl2sql
 
   - name: sw-factory
     user_id: "00000000-0000-0000-0000-000000000007"
@@ -158,10 +154,4 @@ agents:
     workspace: /data/workspaces/sw-factory
     primary_repo: sw-factory
 
-  - name: nl2sql
-    user_id: "00000000-0000-0000-0000-000000000008"
-    email: nl2sql@example.com
-    persona: nl2sql
-    type: sessions
-    workspace: /data/workspaces/nl2sql
-    primary_repo: nl2sql
+
