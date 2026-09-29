@@ -32,13 +32,13 @@ export type ProjectStatus = {
 export const DEFAULT_PROJECT_STATUSES: ProjectStatus[] = [
   { key: "backlog", label: "Backlog", category: "backlog", sort_order: 0 },
   { key: "in_progress", label: "In Progress", category: "active", sort_order: 1 },
-  { key: "review", label: "Review", category: "active", sort_order: 2 },
-  { key: "deploying_test", label: "Deploying Test", category: "active", sort_order: 3 },
-  { key: "qa", label: "QA", category: "active", sort_order: 4 },
-  { key: "deploying_prod", label: "Deploying Prod", category: "active", sort_order: 5 },
-  { key: "done", label: "Done", category: "done", sort_order: 6 },
-  { key: "blocked", label: "Blocked", category: "active", sort_order: 7 },
-  { key: "waiting_for_approval", label: "Waiting for Approval", category: "active", sort_order: 8 },
+  { key: "blocked", label: "Blocked", category: "active", sort_order: 2 },
+  { key: "waiting_for_approval", label: "Waiting for Approval", category: "active", sort_order: 3 },
+  { key: "review", label: "Review", category: "active", sort_order: 4 },
+  { key: "deploying_test", label: "Deploying Test", category: "active", sort_order: 5 },
+  { key: "qa", label: "QA", category: "active", sort_order: 6 },
+  { key: "deploying_prod", label: "Deploying Prod", category: "active", sort_order: 7 },
+  { key: "done", label: "Done", category: "done", sort_order: 8 },
 ];
 
 const KEY_RE = /^[a-z][a-z0-9_]{0,63}$/;

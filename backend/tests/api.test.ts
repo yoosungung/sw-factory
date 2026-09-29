@@ -213,13 +213,13 @@ describe("projects and tickets", () => {
     expect((statuses.json.statuses as Json[]).map((s) => s.key)).toEqual([
       "backlog",
       "in_progress",
+      "blocked",
+      "waiting_for_approval",
       "review",
       "deploying_test",
       "qa",
       "deploying_prod",
       "done",
-      "blocked",
-      "waiting_for_approval",
     ]);
 
     const kanban = await request(`/api/projects/${projectId}/kanban`, {}, a.cookie);

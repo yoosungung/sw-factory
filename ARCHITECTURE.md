@@ -167,13 +167,13 @@ payload_json TEXT NOT NULL DEFAULT '{}'
 | --- | --- | --- |
 | `backlog` | Backlog | backlog |
 | `in_progress` | In Progress | active |
+| `blocked` | Blocked | active |
+| `waiting_for_approval` | Waiting for Approval | active |
 | `review` | Review | active |
 | `deploying_test` | Deploying Test | active |
 | `qa` | QA | active |
 | `deploying_prod` | Deploying Prod | active |
 | `done` | Done | done |
-| `blocked` | Blocked | active |
-| `waiting_for_approval` | Waiting for Approval | active |
 
 정본 필드·REST: [agent/gateway/reference/event-log-schema.md](agent/gateway/reference/event-log-schema.md).
 

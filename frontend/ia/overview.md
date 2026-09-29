@@ -96,13 +96,13 @@ flowchart TB
 | --- | --- | --- |
 | Backlog | `backlog` | backlog |
 | In Progress | `in_progress` | active |
+| Blocked | `blocked` | active |
+| Waiting for Approval | `waiting_for_approval` | active |
 | Review | `review` | active |
 | Deploying Test | `deploying_test` | active |
 | QA | `qa` | active |
 | Deploying Prod | `deploying_prod` | active |
 | Done | `done` | done |
-| Blocked | `blocked` | active |
-| Waiting for Approval | `waiting_for_approval` | active |
 
 owner는 Project settings → Board에서 추가·이름·순서·삭제(`PUT …/statuses`).
 
