@@ -333,7 +333,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
               description="Tickets in an active status show up here."
             />
           ) : (
-            <div className="content-panel tableish">
+            <div className="content-panel tableish overview-active-list">
               {activeTickets.map((t) => (
                 <div key={t.id} className="list-row linkish" onClick={() => openIssue(t)}>
                   <span className="issue-key">

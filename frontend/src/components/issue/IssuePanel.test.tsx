@@ -122,4 +122,31 @@ describe("IssuePanel activity tabs", () => {
     expect(screen.getByText("Status")).toBeInTheDocument();
     expect(document.querySelector(".properties-panel")).toBeTruthy();
   });
+
+  it("History rows put change text before timestamp inside history-list", async () => {
+    const { client } = await import("../../api");
+    vi.mocked(client.ticketActivities).mockResolvedValueOnce({
+      activities: [
+        {
+          id: "a1",
+          field: "status",
+          old_val: "backlog",
+          new_val: "in_progress",
+          at: "2026-09-29T04:00:00.000Z",
+        },
+      ],
+    });
+
+    renderPanel();
+    screen.getByRole("tab", { name: /^History$/i }).click();
+
+    const list = await screen.findByText(/status/i).then((el) => el.closest(".history-list"));
+    expect(list).toBeTruthy();
+    const row = list!.querySelector(".list-row");
+    expect(row).toBeTruthy();
+    const cells = Array.from(row!.children) as HTMLElement[];
+    expect(cells).toHaveLength(2);
+    expect(cells[0].textContent).toMatch(/status.*backlog.*in_progress/i);
+    expect(cells[1].classList.contains("muted")).toBe(true);
+  });
 });
