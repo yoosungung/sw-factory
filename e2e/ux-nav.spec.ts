@@ -1,5 +1,5 @@
 import { expect, test } from "@playwright/test";
-import { clickEl, createSoftwareProject, createSpace, loginAsAdmin } from "./helpers";
+import { clickEl, createIssue, createSoftwareProject, createSpace, loginAsAdmin } from "./helpers";
 
 test("UX1: single view source + space switcher + settings shell", async ({ page }) => {
   await loginAsAdmin(page);
@@ -48,6 +48,23 @@ test("UX5: space settings in sidebar; overview vs tickets", async ({ page }) => 
   await expect(page.locator(".view-segment")).toHaveCount(0);
   await expect(page.locator(".sidebar").getByRole("link", { name: "Overview" })).toHaveClass(/active/);
   await expect(page.locator(".sidebar").getByRole("link", { name: "Tickets" })).toBeVisible();
+
+  await createIssue(page, `Overview active ${stamp}`);
+  const panel = page.getByRole("dialog");
+  await clickEl(panel.getByRole("tab", { name: "Details" }));
+  await clickEl(panel.locator(".status-picker").getByRole("button", { name: /status/i }));
+  await expect(panel.locator(".status-picker").getByRole("option", { name: /In Progress/i })).toBeVisible({
+    timeout: 10000,
+  });
+  await clickEl(panel.locator(".status-picker").getByRole("option", { name: /In Progress/i }));
+  await clickEl(panel.getByRole("button", { name: "Close" }));
+  await clickEl(page.locator(".sidebar").getByRole("link", { name: "Overview" }));
+  const overviewRow = page.locator(".overview-active-list .list-row").first();
+  await expect(overviewRow).toBeVisible({ timeout: 10000 });
+  await expect
+    .poll(async () => overviewRow.evaluate((el) => getComputedStyle(el).gridTemplateColumns.split(/\s+/).length))
+    .toBe(3);
+  await expect(overviewRow.locator(":scope > span").nth(1)).toContainText(`Overview active ${stamp}`);
 
   await clickEl(page.locator(".sidebar").getByRole("link", { name: "Tickets" }));
   await expect(page.getByRole("heading", { name: "Board" })).toBeVisible();
