@@ -131,7 +131,7 @@ export function YourWorkPage({
           </div>
         </div>
         {tab === "assigned" && (
-          <div className="content-panel tableish">
+          <div className="content-panel tableish your-work-issues">
             <div className="list-row head">
               <span>Issue</span>
               <span>Project</span>
@@ -140,7 +140,7 @@ export function YourWorkPage({
             </div>
             {assigned.map((t) => (
               <Link key={t.id} to={`/browse/${t.id}`} className="list-row linkish">
-                <span>{t.title}</span>
+                <span className="your-work-issue-title">{t.title}</span>
                 <span className="muted">{t.project?.name}</span>
                 <span className="muted">{statusLabel(t.status)}</span>
                 <span className="muted">{t.due_at ?? "—"}</span>
@@ -155,7 +155,7 @@ export function YourWorkPage({
           </div>
         )}
         {tab === "created" && (
-          <div className="content-panel tableish">
+          <div className="content-panel tableish your-work-issues">
             <div className="list-row head">
               <span>Issue</span>
               <span>Project</span>
@@ -164,7 +164,7 @@ export function YourWorkPage({
             </div>
             {created.map((t) => (
               <Link key={t.id} to={`/browse/${t.id}`} className="list-row linkish">
-                <span>{t.title}</span>
+                <span className="your-work-issue-title">{t.title}</span>
                 <span className="muted">{t.project?.name}</span>
                 <span className="muted">{statusLabel(t.status)}</span>
                 <span className="muted">{t.due_at ?? "—"}</span>
@@ -179,12 +179,19 @@ export function YourWorkPage({
           </div>
         )}
         {tab === "viewed" && (
-          <div className="content-panel tableish">
+          <div className="content-panel tableish your-work-issues">
+            <div className="list-row head">
+              <span>Issue</span>
+              <span>Project</span>
+              <span>Status</span>
+              <span>Due</span>
+            </div>
             {viewed.map((t) => (
               <Link key={t.id} to={`/browse/${t.id}`} className="list-row linkish">
-                <span>{t.title}</span>
+                <span className="your-work-issue-title">{t.title}</span>
                 <span className="muted">{t.project?.name}</span>
                 <span className="muted">{statusLabel(t.status)}</span>
+                <span className="muted">{t.due_at ?? "—"}</span>
               </Link>
             ))}
             {viewed.length === 0 && (
@@ -196,12 +203,20 @@ export function YourWorkPage({
           </div>
         )}
         {tab === "projects" && (
-          <div className="content-panel tableish">
+          <div className="content-panel tableish your-work-projects">
+            <div className="list-row head">
+              <span>Project</span>
+              <span>Description</span>
+              <span>Action</span>
+            </div>
             {recentProjects.map((p) => (
               <Link key={p.id} to={`/projects/${p.id}`} className="list-row linkish">
                 <span className="name-cell">
                   <span className="project-icon sm">{initials(p.name)}</span>
                   {p.name}
+                </span>
+                <span className={p.description.trim() ? "your-work-project-desc" : "muted"}>
+                  {p.description.trim() || "No description"}
                 </span>
                 <span className="muted">Open</span>
               </Link>

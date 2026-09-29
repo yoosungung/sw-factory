@@ -28,4 +28,18 @@ describe("list column ratio scopes", () => {
       /grid-template-columns:\s*auto\s+minmax\(0,\s*1fr\)\s+auto/,
     );
   });
+
+  it("your-work issues list uses Issue as main minmax(0,1fr) plus 3 auxiliary cols", () => {
+    const body = ruleBody(".your-work-issues .list-row");
+    expect(body).toMatch(
+      /grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto\s+auto\s+auto/,
+    );
+  });
+
+  it("your-work projects list uses name · description · action columns", () => {
+    const body = ruleBody(".your-work-projects .list-row");
+    expect(body).toMatch(
+      /grid-template-columns:\s*minmax\(0,\s*1\.2fr\)\s+minmax\(0,\s*1fr\)\s+auto/,
+    );
+  });
 });

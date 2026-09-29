@@ -12,7 +12,7 @@ import {
 test("FE3: your-work, search, account", async ({ page }) => {
   await loginAsAdmin(page);
   await createSpace(page, "FE3 Space");
-  await createSoftwareProject(page, "FE3 Proj");
+  await createSoftwareProject(page, "FE3 Proj", { description: "FE3 grid desc" });
 
   const title = `SearchableNeedle ${Date.now()}`;
   await createIssue(page, title);
@@ -32,10 +32,15 @@ test("FE3: your-work, search, account", async ({ page }) => {
 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Your work" })).toBeVisible();
+  await expect(page.locator(".your-work-issues .list-row.head")).toContainText("Issue");
   await clickEl(page.getByRole("button", { name: "Created by me" }));
   await expect(page.getByText(title)).toBeVisible();
+  await clickEl(page.getByRole("button", { name: "Recently viewed" }));
+  await expect(page.locator(".your-work-issues .list-row.head")).toContainText("Due");
   await clickEl(page.getByRole("button", { name: "Recent projects" }));
   await expect(page.getByText("FE3 Proj")).toBeVisible();
+  await expect(page.locator(".your-work-projects .list-row.head")).toContainText("Description");
+  await expect(page.locator(".your-work-projects")).toContainText("FE3 grid desc");
 
   await page.goto(`/search?q=${encodeURIComponent("SearchableNeedle")}`);
   await expect(page.getByRole("heading", { name: "Search" })).toBeVisible();
