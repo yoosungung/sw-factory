@@ -88,6 +88,11 @@ test("FE6: history tab on issue", async ({ page }) => {
   await clickEl(panel.locator(".status-picker").getByRole("option", { name: /In Progress/i }));
   await clickEl(panel.getByRole("tab", { name: "History" }));
   await expect(panel.getByText(/status/i).first()).toBeVisible({ timeout: 10000 });
+  const historyRow = panel.locator(".history-list .list-row").first();
+  await expect(historyRow).toBeVisible();
+  await expect
+    .poll(async () => historyRow.evaluate((el) => getComputedStyle(el).gridTemplateColumns))
+    .toMatch(/^\S+\s+\S+$/);
 });
 
 test("FE8: board settings custom column appears on board", async ({ page }) => {

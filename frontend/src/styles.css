@@ -2356,6 +2356,20 @@ select {
 }
 .history-list .list-row {
   font-size: 13px;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.overview-active-list.tableish .list-row {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.overview-active-list .list-row {
+  grid-template-columns: auto minmax(0, 1fr) auto;
+}
+
+.overview-active-list .list-row > span:nth-child(2) {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 @media (max-width: 767px) {
