@@ -2388,6 +2388,26 @@ select {
   overflow-wrap: anywhere;
 }
 
+.your-work-issues .list-row {
+  grid-template-columns: minmax(0, 1fr) auto auto auto;
+}
+
+.your-work-issues .your-work-issue-title {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.your-work-projects .list-row {
+  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto;
+}
+
+.your-work-projects .your-work-project-desc {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 @media (max-width: 767px) {
   .app-shell {
     overflow-x: hidden;
