@@ -655,7 +655,7 @@ select {
   box-shadow: var(--shadow-subtle);
   border: 1px solid var(--color-border-subtle);
   padding: 10px 12px;
-  height: 108px;
+  height: 216px;
   box-sizing: border-box;
   overflow: hidden;
   display: flex;
@@ -678,7 +678,7 @@ select {
   word-break: break-word;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 4;
   overflow: hidden;
 }
 
