@@ -25,13 +25,13 @@ describe("board fixed column width and card height", () => {
 
   it("issue-card has fixed height with overflow clipped", () => {
     const body = ruleBody(".issue-card");
-    expect(body).toMatch(/height:\s*108px/);
+    expect(body).toMatch(/height:\s*216px/);
     expect(body).toMatch(/overflow:\s*hidden/);
   });
 
   it("title keeps multi-line clamp with ellipsis", () => {
     const body = ruleBody(".issue-card .title");
-    expect(body).toMatch(/-webkit-line-clamp:\s*2/);
+    expect(body).toMatch(/-webkit-line-clamp:\s*4/);
     expect(body).toMatch(/overflow:\s*hidden/);
   });
 
