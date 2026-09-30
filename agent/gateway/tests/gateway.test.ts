@@ -252,6 +252,18 @@ describe("A2 gateway e2e", () => {
     expect(result.processed).toBe(2);
     expect(result.acked_id).toBe("evt-2");
     expect(result.dispatched).toHaveLength(2);
+    expect(result.dispatched[0]).toMatchObject({
+      event_id: "evt-1",
+      persona: "pm",
+      ticket_id: "ticket-1",
+      agent_id: "agent-1",
+    });
+    expect(result.dispatched[1]).toMatchObject({
+      event_id: "evt-2",
+      persona: "pm",
+      ticket_id: "ticket-1",
+      agent_id: "agent-1",
+    });
 
     expect(cursor.calls[0].url).toBe("/sessions");
     expect(cursor.calls[0].body.persona).toBe("pm");
@@ -426,7 +438,12 @@ describe("A2 gateway e2e", () => {
     const result = await tick({ config });
     expect(result.acked_id).toBe("evt-rebind");
     expect(result.dispatched).toEqual([
-      { event_id: "evt-rebind", persona: "pm", agent_id: "agent-fresh" },
+      {
+        event_id: "evt-rebind",
+        persona: "pm",
+        agent_id: "agent-fresh",
+        ticket_id: "ticket-rebind",
+      },
     ]);
     expect(hits.some((h) => h.includes("/sessions/agent-dead/prompt"))).toBe(true);
     expect(hits.some((h) => h === "POST /sessions")).toBe(true);

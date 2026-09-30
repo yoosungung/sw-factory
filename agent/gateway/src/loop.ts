@@ -22,7 +22,13 @@ export type TickDeps = {
 export type TickResult = {
   processed: number;
   acked_id: string | null;
-  dispatched: Array<{ event_id: string; persona: string; agent_id: string }>;
+  /** Cursor session id = `agent_id`. `ticket_id` is event UUID or null when ticketless. */
+  dispatched: Array<{
+    event_id: string;
+    persona: string;
+    agent_id: string;
+    ticket_id: string | null;
+  }>;
 };
 
 async function deliverOne(opts: {
@@ -107,7 +113,12 @@ export async function processEvent(
     if (outcome === "ok") {
       deliveredOk += 1;
       const agent_id = sticky[stickyKey(event.ticket_id ?? "", target.persona)] ?? "";
-      dispatched.push({ event_id: event.id, persona: target.persona, agent_id });
+      dispatched.push({
+        event_id: event.id,
+        persona: target.persona,
+        agent_id,
+        ticket_id: event.ticket_id ?? null,
+      });
     } else if (outcome === "retry") {
       hadRetry = true;
     }
