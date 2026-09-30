@@ -30,7 +30,7 @@ frontend/src/
 - `/browse/:ticketId` 전폭 페이지(`.issue-page` 잔여 높이 + `.drawer-body` 스크롤 · ✕/Esc → Board); 보드 `?issue=` sidebar/modal
 - Space/Project settings: Details · People · Board(statuses CRUD) · Danger
 - `/admin`: 플랫폼 admin 계정 목록 · Space 생성
-- Your work: Assigned / Created by me / Recently viewed / Recent projects
+- Your work: Assigned / Created by me / Recently viewed / Recent projects. Assigned·Created는 FE `created_at` DESC(API ASC 유지; Comments와 동일 패턴)
 - Search: `GET /api/search`
 - Filters: localStorage 메타 + tickets API
 - Space hub: Space Switcher + Space settings(좌측). Project: Overview(이름·설명·수행 중) / Tickets(Board|Backlog|Timeline|List)

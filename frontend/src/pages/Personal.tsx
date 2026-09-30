@@ -4,6 +4,7 @@ import { client, type Client, type Project, type Ticket, type User } from "../ap
 import { initials, statusLabel } from "../components/issue/IssuePanel";
 import { EmptyState } from "../components/EmptyState";
 import { recentProjectIds, recentTicketIds } from "../lib/recent";
+import { ticketsNewestFirst } from "../lib/ticketOrder";
 
 function useClients() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -63,7 +64,7 @@ export function YourWorkPage({
           return r.tickets.map((t) => ({ ...t, project: p }));
         }),
       );
-      setAssigned(lists.flat());
+      setAssigned(ticketsNewestFirst(lists.flat()));
     })();
   }, [projects]);
 
@@ -75,7 +76,7 @@ export function YourWorkPage({
           return r.tickets.map((t) => ({ ...t, project: p }));
         }),
       );
-      setCreated(lists.flat());
+      setCreated(ticketsNewestFirst(lists.flat()));
     })();
   }, [projects]);
 
