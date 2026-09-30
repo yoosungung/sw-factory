@@ -241,7 +241,7 @@ sequenceDiagram
 | Done / Intent / qa∥aa 증거 **하드 게이트** | Soft 완결 — 스킬 규율만. Workers는 상태 전이를 막지 않음 |
 | Worker Cron `schedule_tick` | gateway 로컬 cron이 정본 |
 | `/readyz` false→true 상시 프로브 | 기동 catch-up 1회 |
-| `parent_id` / FS 그래프 테이블 | `milestone_id` + `<!-- blocked-by: -->` |
+| `parent_id` / soft FS only | `milestone_id`(parent) + `ticket_dependencies`(FS 1급; soft marker dual-read) |
 | SPA 코멘트 편집 UI | `PATCH /api/comments/:id`는 agent/MCP용 |
 | v1 Goose `success_retry` hard verify | success_checks는 prompt append만 |
 

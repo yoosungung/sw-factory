@@ -4,6 +4,12 @@ import { TICKET_PRIORITIES } from "../env";
 import { newId, nowIso } from "../lib/crypto";
 import { appendAgentEvent } from "../lib/agent-events";
 import {
+  listDependencyView,
+  onBlockerReachedDone,
+  resolveBlockerIds,
+  setBlockers,
+} from "../lib/dependencies";
+import {
   archivedDoneFilter,
   defaultTicketStatus,
   listProjectStatuses,
@@ -222,7 +228,69 @@ ticketRoutes.get("/tickets/:id", async (c) => {
   if (!ticket) return c.json({ error: "not_found" }, 404);
   const role = await requireProjectMember(c.env.DB, ticket.project_id, user.id);
   if (!role) return c.json({ error: "forbidden" }, 403);
-  return c.json({ ticket });
+  const blocker_ids = await resolveBlockerIds(
+    c.env.DB,
+    ticket.id,
+    ticket.description,
+  );
+  return c.json({ ticket: { ...ticket, blocker_ids } });
+});
+
+ticketRoutes.get("/tickets/:id/dependencies", async (c) => {
+  const user = c.get("user");
+  const ticket = await loadTicket(c.env.DB, c.req.param("id"));
+  if (!ticket) return c.json({ error: "not_found" }, 404);
+  const role = await requireProjectMember(c.env.DB, ticket.project_id, user.id);
+  if (!role) return c.json({ error: "forbidden" }, 403);
+  return c.json(await listDependencyView(c.env.DB, ticket.id));
+});
+
+ticketRoutes.put("/tickets/:id/dependencies", async (c) => {
+  const user = c.get("user");
+  const ticket = await loadTicket(c.env.DB, c.req.param("id"));
+  if (!ticket) return c.json({ error: "not_found" }, 404);
+  const role = await requireProjectMember(c.env.DB, ticket.project_id, user.id);
+  if (!role) return c.json({ error: "forbidden" }, 403);
+
+  const body = await c.req.json<{ blocker_ids?: unknown }>();
+  const raw = body.blocker_ids;
+  if (!Array.isArray(raw) || raw.some((x) => typeof x !== "string")) {
+    return c.json({ error: "invalid_input" }, 400);
+  }
+
+  const result = await setBlockers(
+    c.env.DB,
+    {
+      id: ticket.id,
+      title: ticket.title,
+      status: ticket.status,
+      project_id: ticket.project_id,
+      milestone_id: ticket.milestone_id,
+      assignee_id: ticket.assignee_id,
+      version: ticket.version,
+      description: ticket.description,
+    },
+    raw as string[],
+    user.id,
+  );
+  if (!result.ok) {
+    const status =
+      result.error === "dependency_cycle" ||
+      result.error === "parent_not_fs" ||
+      result.error === "invalid_blocker"
+        ? 400
+        : 400;
+    return c.json({ error: result.error }, status);
+  }
+
+  const view = await listDependencyView(c.env.DB, ticket.id);
+  const fresh = await loadTicket(c.env.DB, ticket.id);
+  const blocker_ids = await resolveBlockerIds(
+    c.env.DB,
+    ticket.id,
+    fresh?.description ?? "",
+  );
+  return c.json({ ...view, blocker_ids, ticket: fresh ? { ...fresh, blocker_ids } : null });
 });
 
 ticketRoutes.patch("/tickets/:id", async (c) => {
@@ -352,7 +420,34 @@ ticketRoutes.patch("/tickets/:id", async (c) => {
     });
   }
 
-  return c.json({ ticket: await loadTicket(c.env.DB, ticket.id) });
+  if (tracked.some((t) => t.field === "status")) {
+    const updated = await loadTicket(c.env.DB, ticket.id);
+    if (updated) {
+      await onBlockerReachedDone(
+        c.env.DB,
+        {
+          id: updated.id,
+          title: updated.title,
+          status: updated.status,
+          project_id: updated.project_id,
+          milestone_id: updated.milestone_id,
+          assignee_id: updated.assignee_id,
+          version: updated.version,
+          description: updated.description,
+        },
+        user.id,
+      );
+    }
+  }
+
+  const fresh = await loadTicket(c.env.DB, ticket.id);
+  if (!fresh) return c.json({ error: "not_found" }, 404);
+  const blocker_ids = await resolveBlockerIds(
+    c.env.DB,
+    fresh.id,
+    fresh.description,
+  );
+  return c.json({ ticket: { ...fresh, blocker_ids } });
 });
 
 ticketRoutes.get("/tickets/:id/activities", async (c) => {

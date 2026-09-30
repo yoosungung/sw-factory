@@ -53,6 +53,7 @@ npm run dev
 | clients | **Adopt** | `clients`, `client_members` | |
 | projects | **Adopt** | `projects`, `project_members` | |
 | tickets | **Adopt** | `tickets` | type·status·milestone·assignee·due_at·priority·version |
+| ticket_dependencies | **Adopt** | FS 선행 1급 SoR; soft `<!-- blocked-by: -->`는 GET dual-read·PUT 시 strip (migrate 창) | parent=`milestone_id`와 분리; blocker `done`→후속 clear+`in_progress`+`ticket_updated`(`dependency_cleared`) |
 | comments | **Adopt** | `comments` | ticket만; 스레드 Defer |
 | files | **Adopt** | `files` + R2 | Direct Presigned Upload |
 | ticket_activities | **Adopt** | `ticket_activities` | 필드 변경 이력 (M8) |

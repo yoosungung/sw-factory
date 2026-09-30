@@ -67,6 +67,24 @@ function startMockFactory() {
       return;
     }
 
+    if (req.method === "PUT" && /\/api\/tickets\/[^/]+\/dependencies$/.test(url.pathname)) {
+      const ticketId = url.pathname.split("/")[3]!;
+      const body = await readJson(req);
+      const ticket = tickets.get(ticketId);
+      if (!ticket) {
+        res.writeHead(404, { "content-type": "application/json" });
+        res.end(JSON.stringify({ error: "not_found" }));
+        return;
+      }
+      const ids = Array.isArray(body.blocker_ids)
+        ? body.blocker_ids.map((x) => String(x))
+        : [];
+      ticket.blocker_ids = ids;
+      res.writeHead(200, { "content-type": "application/json" });
+      res.end(JSON.stringify({ blocker_ids: ids, ticket }));
+      return;
+    }
+
     if (req.method === "GET" && url.pathname.startsWith("/api/tickets/")) {
       const id = url.pathname.split("/").pop()!;
       if (url.pathname.endsWith("/comments")) {
@@ -77,6 +95,14 @@ function startMockFactory() {
             comments: comments.filter((c) => c.ticket_id === ticketId),
           }),
         );
+        return;
+      }
+      if (url.pathname.endsWith("/dependencies")) {
+        const ticketId = url.pathname.split("/")[3]!;
+        const ticket = tickets.get(ticketId);
+        const ids = (ticket?.blocker_ids as string[] | undefined) ?? [];
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ blocker_ids: ids, blockers: [], blocking: [] }));
         return;
       }
       const ticket = tickets.get(id);
@@ -166,6 +192,7 @@ function startMockFactory() {
   return new Promise<{
     port: number;
     comments: typeof comments;
+    tickets: typeof tickets;
     close: () => Promise<void>;
   }>((resolve) => {
     server.listen(0, "127.0.0.1", () => {
@@ -174,6 +201,7 @@ function startMockFactory() {
       resolve({
         port,
         comments,
+        tickets,
         close: () =>
           new Promise((r) => {
             server.close(() => r());
@@ -217,7 +245,9 @@ describe("A4 factory-mcp", () => {
       blocker_ids: ["ticket-2"],
       status: "blocked",
     });
-    expect(blocked.content[0].text).toContain("blocked-by:ticket-2");
+    expect(blocked.content[0].text).toContain("ticket-2");
+    expect(blocked.content[0].text).toContain("blocked");
+    expect(factory.tickets.get("ticket-1")?.blocker_ids).toEqual(["ticket-2"]);
 
     const listed = await mcp.callTool("get_comments", { ticket_id: "ticket-1" });
     expect(listed.content[0].text).toContain("updated");

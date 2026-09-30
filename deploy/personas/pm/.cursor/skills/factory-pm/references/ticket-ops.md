@@ -85,7 +85,7 @@ Newest actionable comment and live GitHub state override stale closeout. Re-read
 | Relation | SoR | MCP |
 |----------|-----|-----|
 | Parent → child (hierarchy) | `milestone_id` on child | `update_ticket(..., milestone_id=parent)` ; list with `list_tickets(query.milestone_id)` |
-| Ticket A blocked until B Done (FS) | description `<!-- blocked-by:B[,...] -->` + usually `blocked` | **`set_blocked_by(ticket_id, blocker_ids, status?)`** |
+| Ticket A blocked until B Done (FS) | `ticket_dependencies` (+ usually `blocked`) | **`set_blocked_by(ticket_id, blocker_ids, status?)`** → PUT dependencies |
 
 - Never set `milestone_id` to mean blocked-by.
 - Wire: `set_blocked_by` → `get_ticket` confirms marker → outcome. Clear with `blocker_ids=[]`.

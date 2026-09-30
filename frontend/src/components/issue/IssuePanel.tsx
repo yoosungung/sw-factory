@@ -7,6 +7,7 @@ import {
   type FileMeta,
   type Member,
   type Project,
+  type DepTicketSummary,
   type ProjectStatus,
   type Ticket,
   type TicketPriority,
@@ -206,6 +207,8 @@ export function IssuePanel({
     Awaited<ReturnType<typeof client.ticketActivities>>["activities"]
   >([]);
   const [statuses, setStatuses] = useState<ProjectStatus[]>([]);
+  const [blockers, setBlockers] = useState<DepTicketSummary[]>([]);
+  const [blockerInput, setBlockerInput] = useState("");
   useEscape(onClose, true);
 
   useEffect(() => {
@@ -217,14 +220,17 @@ export function IssuePanel({
     setTitle(initial.title);
     setDescription(initial.description);
     setEditingDesc(false);
+    setBlockerInput("");
     void Promise.all([
       client.comments(initial.id),
       client.listFiles(initial.id),
       client.ticketActivities(initial.id),
-    ]).then(([c, f, a]) => {
+      client.ticketDependencies(initial.id),
+    ]).then(([c, f, a, d]) => {
       setComments(commentsNewestFirst(c.comments));
       setFiles(f.files);
       setActivities(a.activities);
+      setBlockers(d.blockers);
     });
   }, [initial]);
 
@@ -256,6 +262,24 @@ export function IssuePanel({
       }
       setError(err instanceof Error ? err.message : "error");
       throw err;
+    }
+  }
+
+  async function saveBlockers(nextIds: string[]) {
+    setError("");
+    setBusy(true);
+    try {
+      const r = await client.putTicketDependencies(ticket.id, nextIds);
+      setBlockers(r.blockers);
+      if (r.ticket) {
+        setTicket(r.ticket);
+        onChanged(r.ticket);
+      }
+      setBlockerInput("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "deps_failed");
+    } finally {
+      setBusy(false);
     }
   }
 
@@ -540,6 +564,58 @@ export function IssuePanel({
                           </div>
                         </>
                       )}
+
+                      <div className="label">Blocked by</div>
+                      <div className="prop-val deps-blockers" data-testid="blocked-by">
+                        {blockers.length === 0 ? (
+                          <span className="muted">None</span>
+                        ) : (
+                          <ul className="deps-list">
+                            {blockers.map((b) => (
+                              <li key={b.id}>
+                                <span title={b.id}>
+                                  {b.title}{" "}
+                                  <span className="muted">({b.status})</span>
+                                </span>
+                                <button
+                                  type="button"
+                                  className="btn-subtle sm"
+                                  disabled={busy}
+                                  aria-label={`Remove blocker ${b.title}`}
+                                  onClick={() =>
+                                    void saveBlockers(blockers.filter((x) => x.id !== b.id).map((x) => x.id))
+                                  }
+                                >
+                                  Remove
+                                </button>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        <div className="deps-add">
+                          <input
+                            type="text"
+                            className="prop-text-input"
+                            placeholder="Predecessor ticket id"
+                            value={blockerInput}
+                            disabled={busy}
+                            onChange={(e) => setBlockerInput(e.target.value)}
+                            aria-label="Predecessor ticket id"
+                          />
+                          <button
+                            type="button"
+                            className="btn-subtle sm"
+                            disabled={busy || !blockerInput.trim()}
+                            onClick={() => {
+                              const id = blockerInput.trim();
+                              if (!id || blockers.some((b) => b.id === id)) return;
+                              void saveBlockers([...blockers.map((b) => b.id), id]);
+                            }}
+                          >
+                            Add
+                          </button>
+                        </div>
+                      </div>
                     </div>
                   </div>
 

@@ -15,6 +15,8 @@ GitHub 원본 개념: CursorBridge Listener / Router / DeferredDispatch / Resili
 | 로컬 retry 큐 · `acked_id` checkpoint | SDK import / inference |
 | `settings.schedules[]` 로컬 cron · catch-up | Worker Cron `schedule_tick` outbox |
 
+**갭(의도):** FS `dependency_cleared`는 Worker가 후속 `ticket_updated`로 append한다. gateway는 기존 assignee/`ticket_updated` 라우팅만 쓰며 전용 prompt 분기는 두지 않는다.
+
 ## Layout
 
 ```

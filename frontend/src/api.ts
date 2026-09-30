@@ -64,7 +64,11 @@ export type Ticket = {
   created_by: string;
   created_at: string;
   updated_at: string;
+  /** FS predecessors (GET ticket dual-read / PUT dependencies). */
+  blocker_ids?: string[];
 };
+
+export type DepTicketSummary = { id: string; title: string; status: string };
 
 export type Comment = {
   id: string;
@@ -255,6 +259,22 @@ export const client = {
     }),
   deleteTicket: (id: string) =>
     api<{ ok: boolean }>(`/api/tickets/${id}`, { method: "DELETE" }),
+  ticketDependencies: (id: string) =>
+    api<{
+      blocker_ids: string[];
+      blockers: DepTicketSummary[];
+      blocking: DepTicketSummary[];
+    }>(`/api/tickets/${id}/dependencies`),
+  putTicketDependencies: (id: string, blocker_ids: string[]) =>
+    api<{
+      blocker_ids: string[];
+      blockers: DepTicketSummary[];
+      blocking: DepTicketSummary[];
+      ticket: Ticket | null;
+    }>(`/api/tickets/${id}/dependencies`, {
+      method: "PUT",
+      body: JSON.stringify({ blocker_ids }),
+    }),
   ticketActivities: (id: string) =>
     api<{ activities: TicketActivity[] }>(`/api/tickets/${id}/activities`),
   kanban: (projectId: string, includeArchived = false) =>

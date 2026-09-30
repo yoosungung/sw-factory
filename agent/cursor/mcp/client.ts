@@ -55,6 +55,21 @@ export class FactoryClient {
     return res.json();
   }
 
+  async putDependencies(ticketId: string, blockerIds: string[]) {
+    const res = await this.request(`/api/tickets/${ticketId}/dependencies`, {
+      method: "PUT",
+      body: JSON.stringify({ blocker_ids: blockerIds }),
+    });
+    if (!res.ok) throw new Error(`put_dependencies ${res.status}`);
+    return res.json();
+  }
+
+  async getDependencies(ticketId: string) {
+    const res = await this.request(`/api/tickets/${ticketId}/dependencies`);
+    if (!res.ok) throw new Error(`get_dependencies ${res.status}`);
+    return res.json();
+  }
+
   async getComments(ticketId: string) {
     const res = await this.request(`/api/tickets/${ticketId}/comments`);
     if (!res.ok) throw new Error(`get_comments ${res.status}`);
