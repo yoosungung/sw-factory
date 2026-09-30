@@ -114,6 +114,31 @@ describe("YourWorkPage grid UX", () => {
     expect(row?.children).toHaveLength(4);
   });
 
+  it("Assigned tab shows tickets newest-created first across projects", async () => {
+    const older: Ticket = {
+      ...ticket,
+      id: "t-old",
+      title: "Older assigned",
+      created_at: "2026-01-01T00:00:00.000Z",
+    };
+    const newer: Ticket = {
+      ...ticket,
+      id: "t-new",
+      project_id: emptyProject.id,
+      title: "Newer assigned",
+      created_at: "2026-09-15T12:00:00.000Z",
+    };
+    ticketsApi.mockImplementation(async (projectId: string) => ({
+      tickets: projectId === project.id ? [older] : projectId === emptyProject.id ? [newer] : [],
+    }));
+    const { container } = renderPage();
+    await waitFor(() => expect(screen.getByText("Newer assigned")).toBeInTheDocument());
+    const titles = [...container.querySelectorAll(".your-work-issues a.list-row .your-work-issue-title")].map(
+      (el) => el.textContent,
+    );
+    expect(titles).toEqual(["Newer assigned", "Older assigned"]);
+  });
+
   it("Recently viewed adds the same 4-column header as Assigned", async () => {
     const { container } = renderPage();
     fireEvent.click(screen.getByRole("button", { name: "Recently viewed" }));
