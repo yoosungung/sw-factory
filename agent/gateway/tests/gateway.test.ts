@@ -6,6 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { tick } from "../src/loop";
 import { loadCheckpoint } from "../src/checkpoint";
 import { routeEvent } from "../src/router";
+import { clearProjectNameCache, formatTicketNo } from "../src/ticket-no";
 import type { AgentEvent, GatewayConfig, PromptTemplates } from "../src/types";
 
 const prompts: PromptTemplates = {
@@ -89,7 +90,10 @@ function startMockCursor(opts?: {
   });
 }
 
-function startMockFactory(events: AgentEvent[]) {
+function startMockFactory(
+  events: AgentEvent[],
+  projects: Record<string, string> = { "proj-1": "sw-factory" },
+) {
   const server = createServer(async (req, res) => {
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     if (url.pathname === "/api/agent/events") {
@@ -102,6 +106,15 @@ function startMockFactory(events: AgentEvent[]) {
       res.writeHead(200, { "content-type": "application/json" });
       res.end(JSON.stringify({ events: slice }));
       return;
+    }
+    const projMatch = url.pathname.match(/^\/api\/projects\/([^/]+)$/);
+    if (req.method === "GET" && projMatch) {
+      const name = projects[projMatch[1]];
+      if (name) {
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ project: { id: projMatch[1], name } }));
+        return;
+      }
     }
     res.writeHead(404);
     res.end();
@@ -124,10 +137,17 @@ function startMockFactory(events: AgentEvent[]) {
 
 const tempDirs: string[] = [];
 afterEach(async () => {
+  clearProjectNameCache();
   while (tempDirs.length) {
     const d = tempDirs.pop();
     if (d) await rm(d, { recursive: true, force: true });
   }
+});
+
+describe("formatTicketNo", () => {
+  it("matches UI issueKey (SWF-EA2D)", () => {
+    expect(formatTicketNo("sw-factory", "ea2d1b81-5582-4a25-a7dc-e9b2fc22b3e1")).toBe("SWF-EA2D");
+  });
 });
 
 describe("router", () => {
@@ -252,6 +272,20 @@ describe("A2 gateway e2e", () => {
     expect(result.processed).toBe(2);
     expect(result.acked_id).toBe("evt-2");
     expect(result.dispatched).toHaveLength(2);
+    expect(result.dispatched[0]).toMatchObject({
+      event_id: "evt-1",
+      persona: "pm",
+      ticket_id: "ticket-1",
+      ticket_no: "SWF-TICK",
+      agent_id: "agent-1",
+    });
+    expect(result.dispatched[1]).toMatchObject({
+      event_id: "evt-2",
+      persona: "pm",
+      ticket_id: "ticket-1",
+      ticket_no: "SWF-TICK",
+      agent_id: "agent-1",
+    });
 
     expect(cursor.calls[0].url).toBe("/sessions");
     expect(cursor.calls[0].body.persona).toBe("pm");
@@ -426,7 +460,13 @@ describe("A2 gateway e2e", () => {
     const result = await tick({ config });
     expect(result.acked_id).toBe("evt-rebind");
     expect(result.dispatched).toEqual([
-      { event_id: "evt-rebind", persona: "pm", agent_id: "agent-fresh" },
+      {
+        event_id: "evt-rebind",
+        persona: "pm",
+        agent_id: "agent-fresh",
+        ticket_id: "ticket-rebind",
+        ticket_no: "SWF-TICK",
+      },
     ]);
     expect(hits.some((h) => h.includes("/sessions/agent-dead/prompt"))).toBe(true);
     expect(hits.some((h) => h === "POST /sessions")).toBe(true);
