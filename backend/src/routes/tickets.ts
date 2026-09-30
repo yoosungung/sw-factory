@@ -8,7 +8,9 @@ import {
   defaultTicketStatus,
   listProjectStatuses,
   projectHasStatus,
+  statusCategory,
 } from "../lib/statuses";
+import { resolveTimelineDates } from "../lib/timeline-dates";
 import { requireAuth, requireProjectMember } from "../middleware/auth";
 
 type TicketRow = {
@@ -176,6 +178,20 @@ ticketRoutes.post("/projects/:projectId/tickets", async (c) => {
 
   const id = newId();
   const ts = nowIso();
+  const nextCat = await statusCategory(c.env.DB, projectId, status);
+  if (!nextCat) return c.json({ error: "invalid_input" }, 400);
+  const dates = resolveTimelineDates({
+    existingFrom: null,
+    existingTo: null,
+    bodyHasFrom: Boolean(body.date_from),
+    bodyHasTo: Boolean(body.date_to),
+    bodyFrom: body.date_from,
+    bodyTo: body.date_to,
+    createdAtIso: ts,
+    nowIso: ts,
+    nextCategory: nextCat,
+    prevCategory: null,
+  });
   await c.env.DB.prepare(
     `INSERT INTO tickets (
       id, project_id, title, description, type, status, priority, sort_order,
@@ -195,8 +211,8 @@ ticketRoutes.post("/projects/:projectId/tickets", async (c) => {
       body.milestone_id ?? null,
       body.assignee_id ?? null,
       body.due_at ?? null,
-      body.date_from ?? null,
-      body.date_to ?? null,
+      dates.date_from,
+      dates.date_to,
       user.id,
       ts,
       ts,
@@ -269,17 +285,35 @@ ticketRoutes.patch("/tickets/:id", async (c) => {
     if (!assigneeMember) return c.json({ error: "invalid_assignee" }, 400);
   }
 
+  const nextStatus = body.status ?? ticket.status;
+  const nextCat = await statusCategory(c.env.DB, ticket.project_id, nextStatus);
+  const prevCat = await statusCategory(c.env.DB, ticket.project_id, ticket.status);
+  if (!nextCat || !prevCat) return c.json({ error: "invalid_input" }, 400);
+  const updated_at = nowIso();
+  const dates = resolveTimelineDates({
+    existingFrom: ticket.date_from,
+    existingTo: ticket.date_to,
+    bodyHasFrom: Object.prototype.hasOwnProperty.call(body, "date_from"),
+    bodyHasTo: Object.prototype.hasOwnProperty.call(body, "date_to"),
+    bodyFrom: body.date_from,
+    bodyTo: body.date_to,
+    createdAtIso: ticket.created_at,
+    nowIso: updated_at,
+    nextCategory: nextCat,
+    prevCategory: prevCat,
+  });
+
   const next = {
     title: body.title?.trim() ?? ticket.title,
     description: body.description !== undefined ? body.description.trim() : ticket.description,
-    status: body.status ?? ticket.status,
+    status: nextStatus,
     priority: body.priority ?? ticket.priority,
     sort_order: body.sort_order ?? ticket.sort_order,
     assignee_id: body.assignee_id !== undefined ? body.assignee_id : ticket.assignee_id,
     due_at: body.due_at !== undefined ? body.due_at : ticket.due_at,
     milestone_id: body.milestone_id !== undefined ? body.milestone_id : ticket.milestone_id,
-    date_from: body.date_from !== undefined ? body.date_from : ticket.date_from,
-    date_to: body.date_to !== undefined ? body.date_to : ticket.date_to,
+    date_from: dates.date_from,
+    date_to: dates.date_to,
   };
 
   const tracked: Array<{ field: string; old_val: string | null; new_val: string | null }> = [];
@@ -299,7 +333,6 @@ ticketRoutes.patch("/tickets/:id", async (c) => {
   track("date_from", ticket.date_from, next.date_from);
   track("date_to", ticket.date_to, next.date_to);
 
-  const updated_at = nowIso();
   const newVersion = ticket.version + 1;
 
   let updateSql = `UPDATE tickets SET title = ?, description = ?, status = ?, priority = ?, sort_order = ?,

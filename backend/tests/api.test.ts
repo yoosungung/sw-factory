@@ -234,6 +234,91 @@ describe("projects and tickets", () => {
     expect(Array.isArray(timeline.json.items)).toBe(true);
     expect((timeline.json.items as Json[]).length).toBeGreaterThan(0);
   });
+
+  it("auto-fills UTC dates so tasks appear on the timeline without manual range", async () => {
+    const a = await register("Tline", { admin: true });
+    const clientId = await createClient(a.cookie, "TlineCo");
+    const created = await request(
+      "/api/projects",
+      { method: "POST", body: JSON.stringify({ name: "Tline", client_id: clientId }) },
+      a.cookie,
+    );
+    const projectId = (created.json.project as Json).id as string;
+    const today = new Date().toISOString().slice(0, 10);
+
+    const t = await request(
+      `/api/projects/${projectId}/tickets`,
+      { method: "POST", body: JSON.stringify({ title: "No dates", type: "task" }) },
+      a.cookie,
+    );
+    expect(t.status).toBe(201);
+    const ticket = t.json.ticket as Json;
+    expect(ticket.date_from).toBe(today);
+    expect(ticket.date_to).toBe(today);
+
+    const viaNull = await request(
+      `/api/projects/${projectId}/tickets`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          title: "Null dates from SPA",
+          type: "task",
+          date_from: null,
+          date_to: null,
+        }),
+      },
+      a.cookie,
+    );
+    expect((viaNull.json.ticket as Json).date_from).toBe(today);
+    expect((viaNull.json.ticket as Json).date_to).toBe(today);
+
+    const ticketId = ticket.id as string;
+
+    const timeline = await request(`/api/projects/${projectId}/timeline`, {}, a.cookie);
+    expect((timeline.json.items as Json[]).some((i) => i.id === ticketId)).toBe(true);
+
+    const keptFrom = "2026-01-01";
+    const keptTo = "2026-01-15";
+    const manual = await request(
+      `/api/projects/${projectId}/tickets`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          title: "Manual range",
+          type: "task",
+          date_from: keptFrom,
+          date_to: keptTo,
+        }),
+      },
+      a.cookie,
+    );
+    expect((manual.json.ticket as Json).date_from).toBe(keptFrom);
+    expect((manual.json.ticket as Json).date_to).toBe(keptTo);
+    const manualId = (manual.json.ticket as Json).id as string;
+
+    const patched = await request(
+      `/api/tickets/${manualId}`,
+      { method: "PATCH", body: JSON.stringify({ status: "done" }) },
+      a.cookie,
+    );
+    expect(patched.status).toBe(200);
+    expect((patched.json.ticket as Json).date_from).toBe(keptFrom);
+    expect((patched.json.ticket as Json).date_to).toBe(keptTo);
+
+    const toDone = await request(
+      `/api/tickets/${ticketId}`,
+      { method: "PATCH", body: JSON.stringify({ status: "in_progress" }) },
+      a.cookie,
+    );
+    expect(toDone.status).toBe(200);
+    expect((toDone.json.ticket as Json).date_from).toBe(today);
+    const finished = await request(
+      `/api/tickets/${ticketId}`,
+      { method: "PATCH", body: JSON.stringify({ status: "done" }) },
+      a.cookie,
+    );
+    expect((finished.json.ticket as Json).date_to).toBe(today);
+  });
 });
 
 describe("M6 collaboration", () => {
