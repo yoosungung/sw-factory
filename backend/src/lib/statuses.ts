@@ -100,6 +100,18 @@ export async function projectHasStatus(
   return !!row;
 }
 
+export async function statusCategory(
+  db: D1Database,
+  projectId: string,
+  key: string,
+): Promise<StatusCategory | null> {
+  const row = await db
+    .prepare(`SELECT category FROM project_statuses WHERE project_id = ? AND key = ?`)
+    .bind(projectId, key)
+    .first<{ category: StatusCategory }>();
+  return row?.category ?? null;
+}
+
 export type StatusInput = {
   key?: string;
   label?: string;

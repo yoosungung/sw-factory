@@ -99,8 +99,8 @@ export function CreateIssueDialog({
         priority,
         assignee_id: assigneeId || null,
         due_at: dueAt || null,
-        date_from: dateFrom || null,
-        date_to: dateTo || null,
+        ...(dateFrom ? { date_from: dateFrom } : {}),
+        ...(dateTo ? { date_to: dateTo } : {}),
       });
       onCreated(projectId, r.ticket.id);
     } catch (err) {

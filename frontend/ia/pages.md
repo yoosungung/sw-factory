@@ -82,7 +82,7 @@
 
 **Layout:** 날짜 축 + `date_from`/`date_to` 간트 바; milestone 강조.  
 **Empty State (필수):** Backlog와 동일 형태 — 제목 `Timeline is empty` + 안내 한 줄, CTA 없음. 티켓 생성은 탑바 **Create**(F14)만.  
-**Behavior:** 클릭 → issue; 바 드래그로 기간 `PATCH` (**Prod**).  
+**Behavior:** 클릭 → issue; 바 드래그로 기간 `PATCH` (**Prod**). 수동 기간이 없는 task도 status/생성 시각으로 채운 `date_from`/`date_to`로 행이 보인다.  
 **API:** `GET …/timeline`, `PATCH /api/tickets/:id`.  
 **Connections:** → Issue.
 

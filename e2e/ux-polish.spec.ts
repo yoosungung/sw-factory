@@ -7,6 +7,22 @@ import {
   loginAsAdmin,
 } from "./helpers";
 
+test("timeline shows a ticket created without a manual date range", async ({ page }) => {
+  await loginAsAdmin(page);
+  const stamp = Date.now();
+  await createSpace(page, `TL Space ${stamp}`);
+  await createSoftwareProject(page, `TL Proj ${stamp}`);
+  const title = `Timeline visible ${stamp}`;
+  await createIssue(page, title);
+  const closeIssue = page.getByRole("button", { name: "Close" });
+  if (await closeIssue.count()) await clickEl(closeIssue);
+
+  await clickEl(page.locator(".view-segment").getByRole("tab", { name: "Timeline" }));
+  await expect(page.getByRole("heading", { name: "Timeline", exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Timeline is empty" })).toHaveCount(0);
+  await expect(page.locator(".list-row").getByText(title)).toBeVisible();
+});
+
 test("UX2: empty timeline and list match backlog EmptyState form", async ({ page }) => {
   await loginAsAdmin(page);
   const stamp = Date.now();
