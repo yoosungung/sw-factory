@@ -157,9 +157,21 @@ project_id TEXT,
 actor_user_id TEXT NOT NULL REFERENCES users(id),
 assignee_user_id TEXT,
 payload_json TEXT NOT NULL DEFAULT '{}'
+
+-- ticket_dependencies (Finish-to-Start; ≠ parent/child milestone_id)
+successor_id TEXT NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+blocker_id TEXT NOT NULL REFERENCES tickets(id) ON DELETE CASCADE,
+created_at TEXT NOT NULL,
+created_by TEXT NOT NULL REFERENCES users(id),
+PRIMARY KEY (successor_id, blocker_id),
+CHECK (successor_id != blocker_id)
 ```
 
-인덱스: `sessions(user_id)`, `client_members(user_id)`, `project_members(user_id)`, `projects(client_id)`, `project_statuses(project_id, sort_order)`, `tickets(project_id, status, sort_order)`, `tickets(project_id, type)`, `tickets(assignee_id)`, `tickets(due_at)`, `comments(entity_type, entity_id)`, `files(entity_type, entity_id)`, `pending_uploads(ticket_id)`, `pending_uploads(expires_at)`, `ticket_activities(ticket_id, at)`, `agent_event_log(at)`, `agent_event_log(id)`(tail).
+인덱스: `sessions(user_id)`, `client_members(user_id)`, `project_members(user_id)`, `projects(client_id)`, `project_statuses(project_id, sort_order)`, `tickets(project_id, status, sort_order)`, `tickets(project_id, type)`, `tickets(assignee_id)`, `tickets(due_at)`, `comments(entity_type, entity_id)`, `files(entity_type, entity_id)`, `pending_uploads(ticket_id)`, `pending_uploads(expires_at)`, `ticket_activities(ticket_id, at)`, `agent_event_log(at)`, `agent_event_log(id)`(tail), `ticket_dependencies(blocker_id)`, `ticket_dependencies(successor_id)`.
+
+**FS vs parent:** `milestone_id`는 parent/child만. FS 선행은 `ticket_dependencies`만. `blocker_id === successor.milestone_id`(또는 역)이면 API가 `400 parent_not_fs`. 사이클이면 `400 dependency_cycle`.
+
+**SoR / soft marker:** write 경로는 1급 테이블만. `GET` 티켓의 `blocker_ids`는 한 릴리스 **dual-read**(테이블 ∪ description `<!-- blocked-by:… -->`). PUT dependencies 시 마커는 description에서 제거.
 
 기본 `project_statuses` (프로젝트 생성 시 시드; owner가 커스텀 가능):
 
@@ -231,9 +243,11 @@ payload_json TEXT NOT NULL DEFAULT '{}'
 | --- | --- | --- |
 | GET | `/api/projects/:id/tickets` | query: `type`, `status`, `assignee_id` (`me` = 현재 사용자), `created_by` (`me` = 현재 사용자), `milestone_id`, `limit`, `cursor` (Cursor 페이징), `include_archived` (기본 제외: archived Done) |
 | POST | `/api/projects/:id/tickets` | `{ title, description?, type, status?, priority?, assignee_id?, due_at?, milestone_id?, date_from?, date_to? }` |
-| GET | `/api/tickets/:id` | 멤버만 |
-| PATCH | `/api/tickets/:id` | body에 `{ status, sort_order, priority, assignee_id, due_at, version? }` 포함. 버전 전달 시 불일치하면 `409 Conflict`; 성공 시 `version` 증가 및 변경 필드 `ticket_activities` 기록 |
+| GET | `/api/tickets/:id` | 멤버만. 응답 `ticket`에 `blocker_ids: string[]`(dual-read) |
+| PATCH | `/api/tickets/:id` | body에 `{ status, sort_order, priority, assignee_id, due_at, version? }` 포함. 버전 전달 시 불일치하면 `409 Conflict`; 성공 시 `version` 증가 및 변경 필드 `ticket_activities` 기록. **status가 `category=done`으로 바뀌면** 이 티켓을 `blocker_id`로 갖는 FS 행을 제거하고, 후속이 남은 blocker가 없으며 `status=blocked`이면 **`in_progress`로 복귀**한 뒤 후속 `ticket_id`로 `ticket_updated` append(`dependency_cleared`, `unblocked_from`) |
 | DELETE | `/api/tickets/:id` | **작성자(`created_by`) 또는 project owner만 삭제 가능** |
+| GET | `/api/tickets/:id/dependencies` | 멤버; `{ blocker_ids, blockers: [{id,title,status}], blocking: [{id,title,status}] }` |
+| PUT | `/api/tickets/:id/dependencies` | 멤버; `{ blocker_ids: string[] }` 전체 교체(동일 project만). 사이클→`400 dependency_cycle`; parent 혼동→`400 parent_not_fs`; 없는/타 project→`400 invalid_blocker`. description soft 마커 제거 |
 | GET | `/api/tickets/:id/activities` | 티켓 변경 이력 (최신순) |
 | GET | `/api/projects/:id/kanban` | `{ columns, statuses }` — 컬럼 키=project statuses 순서. `category=done` 중 `updated_at`이 7일 초과인 건은 기본 제외(archived Done; `include_archived=true`로 포함) |
 | GET | `/api/projects/:id/timeline` | date_from/date_to 있는 항목 |
@@ -265,7 +279,7 @@ payload_json TEXT NOT NULL DEFAULT '{}'
 | GET | `/api/agent/events` | query `after_id`, `limit`(기본 100, 최대 500). **세션 인증 필수**(gateway 전용 시스템 유저로 로그인). 응답 `{ events }` — 각 항목에 `payload`(JSON 객체). Worker→agent push 없음. |
 | GET | `/api/agent/flow-gates` | 세션 필수. `{ in_progress, flow_active }` — 공장 전역 티켓 status EXISTS (`in_progress`; dual-loop 활성 컬럼). gateway 스케줄 게이트 전용. |
 
-티켓 create/update(필드 변경 시)/delete·코멘트 create 성공 시 Worker가 `agent_event_log`에 동기 append한다. tail은 `(at, id)` 키셋(`after_id`로 앵커). 라우팅·prompt는 gateway; 상세는 [agent/gateway/](agent/gateway/).
+티켓 create/update(필드 변경 시)/delete·코멘트 create 성공 시 Worker가 `agent_event_log`에 동기 append한다. FS 자동 해제 시 후속 티켓에 `ticket_updated`를 append하며 payload에 `dependency_cleared: true`, `unblocked_from: [blocker_id,…]`, 필요 시 `changed_fields`를 넣는다(전용 event_type 없음 — gateway 기존 assignee wake로 충분). tail은 `(at, id)` 키셋(`after_id`로 앵커). 라우팅·prompt는 gateway; 상세는 [agent/gateway/](agent/gateway/).
 
 **Comment @mention:** `comments.body`에서 `@Handle` 토큰을 추출한다(`@pm`/`@PM` 동일). Handle은 `users.name`과 **대소문자 무시 exact** 매칭이며, 대상은 해당 티켓의 **project_members**만. 이메일 중간 `@`(직전이 영숫자)는 제외. 매칭된 `users.id`를 `comment_added` payload의 `mention_user_ids`에 넣어 gateway가 assignee와 함께 라우팅한다.
 

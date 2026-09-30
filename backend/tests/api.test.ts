@@ -1325,6 +1325,152 @@ describe("A9 milestone_id filter", () => {
   });
 });
 
+describe("ticket FS dependencies", () => {
+  async function seedProject(cookie: string) {
+    const clientId = await createClient(cookie, "DepCo");
+    const proj = await request(
+      "/api/projects",
+      { method: "POST", body: JSON.stringify({ name: "DepProj", client_id: clientId }) },
+      cookie,
+    );
+    return (proj.json.project as Json).id as string;
+  }
+
+  async function createTask(cookie: string, projectId: string, title: string) {
+    const res = await request(
+      `/api/projects/${projectId}/tickets`,
+      { method: "POST", body: JSON.stringify({ title, type: "task" }) },
+      cookie,
+    );
+    expect(res.status).toBe(201);
+    return res.json.ticket as Json;
+  }
+
+  it("sets blockers, rejects cycles and parent-as-FS, dual-reads soft marker", async () => {
+    const owner = await register("DepOwner", { admin: true });
+    const projectId = await seedProject(owner.cookie);
+    const a = await createTask(owner.cookie, projectId, "A");
+    const b = await createTask(owner.cookie, projectId, "B");
+    const c = await createTask(owner.cookie, projectId, "C");
+
+    const put = await request(
+      `/api/tickets/${b.id}/dependencies`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ blocker_ids: [a.id as string] }),
+      },
+      owner.cookie,
+    );
+    expect(put.status).toBe(200);
+    expect(put.json.blocker_ids).toEqual([a.id]);
+
+    const got = await request(`/api/tickets/${b.id}`, {}, owner.cookie);
+    expect(got.status).toBe(200);
+    expect((got.json.ticket as Json).blocker_ids).toEqual([a.id]);
+
+    // cycle A←B when B already blocked by A
+    await request(
+      `/api/tickets/${c.id}/dependencies`,
+      { method: "PUT", body: JSON.stringify({ blocker_ids: [b.id as string] }) },
+      owner.cookie,
+    );
+    const cycle = await request(
+      `/api/tickets/${a.id}/dependencies`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ blocker_ids: [c.id as string] }),
+      },
+      owner.cookie,
+    );
+    expect(cycle.status).toBe(400);
+    expect(cycle.json.error).toBe("dependency_cycle");
+
+    const ms = await request(
+      `/api/projects/${projectId}/tickets`,
+      { method: "POST", body: JSON.stringify({ title: "Mile", type: "milestone" }) },
+      owner.cookie,
+    );
+    const milestoneId = (ms.json.ticket as Json).id as string;
+    const child = await createTask(owner.cookie, projectId, "Child");
+    await request(
+      `/api/tickets/${child.id}`,
+      { method: "PATCH", body: JSON.stringify({ milestone_id: milestoneId }) },
+      owner.cookie,
+    );
+    const parentFs = await request(
+      `/api/tickets/${child.id}/dependencies`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ blocker_ids: [milestoneId] }),
+      },
+      owner.cookie,
+    );
+    expect(parentFs.status).toBe(400);
+    expect(parentFs.json.error).toBe("parent_not_fs");
+
+    // dual-read soft marker
+    const soft = await createTask(owner.cookie, projectId, "Soft");
+    await request(
+      `/api/tickets/${soft.id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          description: `Work\n\n<!-- blocked-by:${a.id} -->\n`,
+        }),
+      },
+      owner.cookie,
+    );
+    const softGot = await request(`/api/tickets/${soft.id}`, {}, owner.cookie);
+    expect((softGot.json.ticket as Json).blocker_ids).toEqual([a.id]);
+  });
+
+  it("clears edges and unblocks successor when blocker reaches done", async () => {
+    const owner = await register("UnblockOwner", { admin: true });
+    const projectId = await seedProject(owner.cookie);
+    const blocker = await createTask(owner.cookie, projectId, "Blocker");
+    const successor = await createTask(owner.cookie, projectId, "Successor");
+
+    await request(
+      `/api/tickets/${successor.id}/dependencies`,
+      {
+        method: "PUT",
+        body: JSON.stringify({ blocker_ids: [blocker.id as string] }),
+      },
+      owner.cookie,
+    );
+    await request(
+      `/api/tickets/${successor.id}`,
+      { method: "PATCH", body: JSON.stringify({ status: "blocked" }) },
+      owner.cookie,
+    );
+
+    const done = await request(
+      `/api/tickets/${blocker.id}`,
+      { method: "PATCH", body: JSON.stringify({ status: "done" }) },
+      owner.cookie,
+    );
+    expect(done.status).toBe(200);
+
+    const after = await request(`/api/tickets/${successor.id}`, {}, owner.cookie);
+    expect(after.status).toBe(200);
+    const t = after.json.ticket as Json;
+    expect(t.status).toBe("in_progress");
+    expect(t.blocker_ids).toEqual([]);
+
+    const events = await request("/api/agent/events?limit=50", {}, owner.cookie);
+    expect(events.status).toBe(200);
+    const list = events.json.events as Json[];
+    const cleared = list.find(
+      (e) =>
+        e.ticket_id === successor.id &&
+        e.event_type === "ticket_updated" &&
+        (e.payload as Json)?.dependency_cleared === true,
+    );
+    expect(cleared).toBeTruthy();
+    expect((cleared!.payload as Json).unblocked_from).toEqual([blocker.id]);
+  });
+});
+
 describe("A8 flow-gates", () => {
   it("requires auth and reports in_progress / flow_active existence", async () => {
     const anon = await request("/api/agent/flow-gates");

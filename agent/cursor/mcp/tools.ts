@@ -1,4 +1,3 @@
-import { upsertBlockedByMarker } from "./blocked-by";
 import { FactoryClient } from "./client";
 
 export type McpToolName =
@@ -49,7 +48,7 @@ export function createFactoryMcp(client: FactoryClient) {
       {
         name: "set_blocked_by",
         description:
-          "Upsert <!-- blocked-by:id[,id] --> on ticket description; optional status=blocked",
+          "Replace FS blockers via PUT /api/tickets/:id/dependencies (1급 SoR); optional status=blocked",
       },
       { name: "list_projects", description: "GET /api/projects" },
       { name: "get_project", description: "GET /api/projects/:id" },
@@ -101,20 +100,21 @@ export function createFactoryMcp(client: FactoryClient) {
           );
         case "set_blocked_by": {
           const ticketId = String(args.ticket_id ?? args.id);
-          const got = (await client.getTicket(ticketId)) as {
-            ticket: { description?: string; version?: number };
-          };
-          const ticket = got.ticket;
-          const description = upsertBlockedByMarker(
-            ticket.description ?? "",
-            blockerIdsFromArgs(args),
-          );
-          const body: Record<string, unknown> = { description };
-          if (typeof ticket.version === "number") body.version = ticket.version;
+          const ids = blockerIdsFromArgs(args);
+          await client.putDependencies(ticketId, ids);
           if (typeof args.status === "string" && args.status.trim()) {
-            body.status = args.status.trim();
+            const got = (await client.getTicket(ticketId)) as {
+              ticket: { version?: number };
+            };
+            const body: Record<string, unknown> = {
+              status: args.status.trim(),
+            };
+            if (typeof got.ticket?.version === "number") {
+              body.version = got.ticket.version;
+            }
+            await client.updateTicket(ticketId, body);
           }
-          return textResult(await client.updateTicket(ticketId, body));
+          return textResult(await client.getTicket(ticketId));
         }
         case "list_projects":
           return textResult(await client.listProjects());

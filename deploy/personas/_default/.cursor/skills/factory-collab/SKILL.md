@@ -52,7 +52,7 @@ MCP 서버 `factory` 도구를 사용한다. 작업 전 읽기, 작업 후 코�
 | `get_comments` | 코멘트 |
 | `add_comment` | 코멘트 추가 (멘션 웨이크) |
 | `edit_comment` | 코멘트 수정 (웨이크 없음; status-board upsert) |
-| `set_blocked_by` | description `<!-- blocked-by:uuid[,uuid] -->` |
+| `set_blocked_by` | FS 선행 `PUT …/dependencies` (1급); 선택 status |
 | `update_ticket` | 필드·상태·담당자 |
 | `list_tickets` | 프로젝트 티켓 목록 (`milestone_id` = parent 자식) |
 | `search` | 검색 |

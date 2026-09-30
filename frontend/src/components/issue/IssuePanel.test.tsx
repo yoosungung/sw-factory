@@ -30,6 +30,12 @@ vi.mock("../../api", async () => {
       deleteFile: vi.fn(),
       deleteTicket: vi.fn(),
       getTicket: vi.fn(),
+      ticketDependencies: vi.fn(async () => ({
+        blocker_ids: [],
+        blockers: [],
+        blocking: [],
+      })),
+      putTicketDependencies: vi.fn(),
     },
   };
 });
@@ -120,7 +126,30 @@ describe("IssuePanel activity tabs", () => {
     expect(screen.getByText("Due date")).toBeInTheDocument();
     expect(screen.getByText("Priority")).toBeInTheDocument();
     expect(screen.getByText("Status")).toBeInTheDocument();
+    expect(screen.getByText("Blocked by")).toBeInTheDocument();
     expect(document.querySelector(".properties-panel")).toBeTruthy();
+  });
+
+  it("adds and removes FS blockers from Details", async () => {
+    const { client } = await import("../../api");
+    vi.mocked(client.ticketDependencies).mockResolvedValue({
+      blocker_ids: ["t2"],
+      blockers: [{ id: "t2", title: "Pred", status: "in_progress" }],
+      blocking: [],
+    });
+    vi.mocked(client.putTicketDependencies).mockImplementation(async (_id, ids) => ({
+      blocker_ids: ids,
+      blockers: ids.map((id) => ({ id, title: id === "t2" ? "Pred" : "New", status: "backlog" })),
+      blocking: [],
+      ticket: { ...ticket, blocker_ids: ids, version: ticket.version + 1 },
+    }));
+
+    renderPanel();
+    screen.getByRole("tab", { name: /^Details$/i }).click();
+    expect(await screen.findByText("Pred")).toBeInTheDocument();
+
+    screen.getByRole("button", { name: /Remove blocker Pred/i }).click();
+    expect(client.putTicketDependencies).toHaveBeenCalledWith("t1", []);
   });
 
   it("History rows put change text before timestamp inside history-list", async () => {

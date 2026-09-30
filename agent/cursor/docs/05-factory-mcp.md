@@ -15,7 +15,7 @@ GitHub `leantime-mcp`(JSON-RPC + PAT) 대신 Worker **REST + 세션 쿠키**를 
 | `get_comments` | `GET /api/tickets/:id/comments` |
 | `add_comment` | `POST /api/tickets/:id/comments` |
 | `edit_comment` | `PATCH /api/comments/:id` (이벤트 없음) |
-| `set_blocked_by` | description `<!-- blocked-by:uuid[,uuid] -->` upsert (+ 선택 status) |
+| `set_blocked_by` | `PUT /api/tickets/:id/dependencies` (1급 FS) + 선택 status; soft HTML 마커 write 안 함 |
 | `list_projects` / `get_project` | `/api/projects` … |
 | `list_project_members` | `GET /api/projects/:id/members` (`role` + `lane`) |
 | `search` | `GET /api/search?q=` |

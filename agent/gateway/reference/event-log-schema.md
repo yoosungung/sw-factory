@@ -32,6 +32,10 @@ Worker mutate 경로에서 동기 INSERT 후 응답. gateway pull.
 {
   "comment_id": "…",
   "mention_user_ids": ["…"],
-  "changed_fields": ["assignee_id", "status"]
+  "changed_fields": ["assignee_id", "status"],
+  "dependency_cleared": true,
+  "unblocked_from": ["blocker-ticket-id"]
 }
 ```
+
+FS auto-unblock은 전용 `event_type` 없이 `ticket_updated` + 위 payload 필드를 쓴다(gateway 라우팅 변경 없음).
