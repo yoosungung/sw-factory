@@ -37,7 +37,7 @@ agent/gateway/
 | `dispatch` | RunnerClient | cursor `POST /sessions` · `/prompt` (localhost) |
 | `retry` | ResilientRunnerClient | 409/5xx → `/data/gateway/retry/` 큐 |
 | `checkpoint` | SQLite sessions/ready | `acked_id`만 전진 (202/200 accept 후); `last_catch_up_at` |
-| `loop` | tick | pull → route → dispatch → checkpoint; stdout `msg: tick`의 `dispatched[]`에 `ticket_id`(이벤트 UUID, ticketless는 null) + `agent_id`(Cursor session) |
+| `loop` | tick | pull → route → dispatch → checkpoint; stdout `msg: tick`의 `dispatched[]`에 `ticket_id`(이벤트 UUID, ticketless는 null) + `ticket_no`(UI issueKey, 예: SWF-EA2D) + `agent_id`(Cursor session) |
 | `schedule-tick` | ScheduleTicker | 로컬 UTC cron · gates · `(id, minute)` dedupe → 티켓리스 `POST /sessions` |
 | `catch-up` | ReadyCatchupTicker | 기동 시 `prompts.catch_up` 1회 (sessions persona) |
 
