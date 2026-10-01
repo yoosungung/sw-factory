@@ -26,6 +26,6 @@ Worker가 티켓 도메인 mutate 시 append하는 **outbox**. gateway의 유일
 
 ## Tail 규칙
 
-1. `read_cursor`로 배치를 읽어도 **acked_id**는 202 accept 전에는 올리지 않는다 ([05-backpressure](05-backpressure.md)).
+1. `read_cursor`로 배치를 읽어도 **acked_id**는 202 accept, 또는 409 `busy`/`skipped_mutex`를 retry에 보관한 뒤에 올린다. 5xx는 올리지 않는다 ([05-backpressure](05-backpressure.md)).
 2. at-least-once: 재시작 시 미ack 구간 재배달 가능 → cursor prompt는 멱등·debounce와 맞춘다.
 3. debounce: 동일 `(ticket_id, target_persona)` 창 안 이벤트는 최신 1건으로 병합(`debounce_ms`).

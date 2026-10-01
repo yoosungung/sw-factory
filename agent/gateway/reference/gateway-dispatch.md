@@ -19,10 +19,12 @@ loop:
           map.save(…); ack_progress(e)  # all targets ok → acked_id=e.id
         elif r.reason == sdk_zombie:
           drop sticky; recreate; else enqueue_retry(e, persona)
+        elif r.status == 409 and r.reason in (busy, skipped_mutex, skipped_active_run):
+          enqueue_retry(e, persona, hold=true)  # attempts unchanged; ack_progress(e)
         else:
           enqueue_retry(e, persona)      # do not advance acked_id for this e
       catch timeout/5xx:
-        enqueue_retry(e, persona)
+        enqueue_retry(e, persona)        # do not advance acked_id
   flush_retry_queues_round_robin()
 ```
 

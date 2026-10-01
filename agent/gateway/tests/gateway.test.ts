@@ -5,6 +5,7 @@ import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { tick } from "../src/loop";
 import { loadCheckpoint } from "../src/checkpoint";
+import { listRetries } from "../src/retry";
 import { routeEvent } from "../src/router";
 import { clearProjectNameCache, formatTicketNo } from "../src/ticket-no";
 import type { AgentEvent, GatewayConfig, PromptTemplates } from "../src/types";
@@ -306,7 +307,7 @@ describe("A2 gateway e2e", () => {
     await cursor.close();
   });
 
-  it("does not advance acked_id on busy and retries later", async () => {
+  it("advances acked_id when busy is parked and retries in the same tick", async () => {
     const dataDir = await mkdtemp(path.join(os.tmpdir(), "gw-busy-"));
     tempDirs.push(dataDir);
 
@@ -388,12 +389,112 @@ describe("A2 gateway e2e", () => {
     });
 
     const second = await tick({ config });
-    // first prompt hit is busy → should not ack evt-busy-2
-    expect(second.acked_id).toBe("evt-busy");
-
-    const third = await tick({ config });
-    expect(third.acked_id).toBe("evt-busy-2");
+    // busy parks the follow-up and advances ack; same-tick flush delivers once cursor accepts
+    expect(second.acked_id).toBe("evt-busy-2");
     expect(promptHits).toBeGreaterThanOrEqual(2);
+
+    await factory.close();
+    await new Promise<void>((r) => cursorServer.close(() => r()));
+  });
+
+  it("accepts a later ticket for the same persona while an in-flight ticket is mutex-held", async () => {
+    const dataDir = await mkdtemp(path.join(os.tmpdir(), "gw-persona-parallel-"));
+    tempDirs.push(dataDir);
+
+    const events: AgentEvent[] = [
+      {
+        id: "evt-a",
+        at: "2026-01-01T00:00:01.000Z",
+        event_type: "ticket_created",
+        ticket_id: "ticket-a",
+        project_id: "proj-1",
+        actor_user_id: "human-1",
+        assignee_user_id: TA.user_id,
+        payload: {},
+      },
+      {
+        id: "evt-a-follow",
+        at: "2026-01-01T00:00:02.000Z",
+        event_type: "comment_added",
+        ticket_id: "ticket-a",
+        project_id: "proj-1",
+        actor_user_id: "human-1",
+        assignee_user_id: TA.user_id,
+        payload: {},
+      },
+      {
+        id: "evt-b",
+        at: "2026-01-01T00:00:03.000Z",
+        event_type: "ticket_created",
+        ticket_id: "ticket-b",
+        project_id: "proj-1",
+        actor_user_id: "human-1",
+        assignee_user_id: TA.user_id,
+        payload: {},
+      },
+    ];
+
+    const factory = await startMockFactory(events);
+    const acceptedTickets: string[] = [];
+    const cursorServer = createServer(async (req, res) => {
+      const url = req.url ?? "";
+      const body = req.method === "POST" ? await readJson(req) : {};
+      const ticketId = typeof body.ticket_id === "string" ? body.ticket_id : "";
+      if (url === "/sessions" || url.endsWith("/prompt")) {
+        if (ticketId === "ticket-a" && url.endsWith("/prompt")) {
+          res.writeHead(409, { "content-type": "application/json" });
+          res.end(JSON.stringify({ status: "skipped_mutex" }));
+          return;
+        }
+        acceptedTickets.push(ticketId);
+        res.writeHead(url === "/sessions" ? 200 : 202, { "content-type": "application/json" });
+        res.end(
+          JSON.stringify(
+            url === "/sessions"
+              ? { agent_id: `agent-${ticketId}` }
+              : { run_id: "r1", status: "accepted" },
+          ),
+        );
+        return;
+      }
+      res.writeHead(404);
+      res.end();
+    });
+
+    const cursorPort = await new Promise<number>((resolve) => {
+      cursorServer.listen(0, "127.0.0.1", () => {
+        const addr = cursorServer.address();
+        resolve(typeof addr === "object" && addr ? addr.port : 0);
+      });
+    });
+
+    const config: GatewayConfig = {
+      factoryBaseUrl: `http://127.0.0.1:${factory.port}`,
+      cursorBaseUrl: `http://127.0.0.1:${cursorPort}`,
+      dataDir,
+      sessionCookie: "lt_session=test",
+      agents: [PM, TA],
+      prompts,
+      debounceMs: 0,
+      pollLimit: 50,
+      retryMaxAttempts: 5,
+    };
+
+    const result = await tick({ config });
+    expect(result.acked_id).toBe("evt-b");
+    expect(result.dispatched.map((d) => d.ticket_id)).toEqual(["ticket-a", "ticket-b"]);
+    expect(acceptedTickets).toEqual(["ticket-a", "ticket-b"]);
+
+    const parked = await listRetries(dataDir);
+    expect(parked).toHaveLength(1);
+    expect(parked[0]?.ticket_id).toBe("ticket-a");
+    expect(parked[0]?.attempts).toBe(0);
+
+    const again = await tick({ config });
+    expect(again.acked_id).toBe("evt-b");
+    const still = await listRetries(dataDir);
+    expect(still).toHaveLength(1);
+    expect(still[0]?.attempts).toBe(0);
 
     await factory.close();
     await new Promise<void>((r) => cursorServer.close(() => r()));

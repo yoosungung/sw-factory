@@ -8,7 +8,7 @@
 |-------------|---------|
 | 202 accepted | 해당 event를 **acked**로 표시; sticky 갱신 |
 | 200 create `{agent_id}` | acked; sticky 저장 |
-| 409 `busy` / `skipped_mutex` | **단일 대상**이면 acked 정지 + retry 큐. **동일 이벤트 다중 대상**(assignee+@mention)에서 **한 persona라도 accept**되면 나머지는 retry에 넣고 **acked는 전진**(다른 티켓 outbox HOL 방지). |
+| 409 `busy` / `skipped_mutex` | retry 큐에 보관하고 **acked는 전진**. 같은 persona의 다른 티켓이 `max_active_per_persona`까지 배달된다. hold 항목은 attempt를 올리지 않는다. |
 | 409 `sdk_zombie` | sticky drop → create rebind 시도; 실패 시 retry 큐 |
 | 429 `create_throttled` | retry 큐에 **넣지 않음** (GH); 로그 후 skip/ack 정책 문서화 — 기본 **ack(poison 방지)** + 구조화 로그 |
 | 5xx / timeout | retry 큐; attempts < 5 |
@@ -26,7 +26,7 @@
 ```
 
 - `read_cursor`: 마지막으로 **읽어 본** event id (최적화).
-- `acked_id`: 성공적으로 cursor에 넘긴 구간. 재시작 시 tail은 `acked_id` 다음부터(at-least-once).
+- `acked_id`: cursor가 받은 구간, 또는 409 busy/mutex로 retry에 보관한 구간. 재시작 시 tail은 `acked_id` 다음부터. hold retry는 디스크에 남는다.
 
 ## Retry 큐
 

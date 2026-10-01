@@ -14,6 +14,7 @@ import { pullEvents } from "./tail";
 import { resolveTicketNo } from "./ticket-no";
 import { deliverTicketless } from "./ticketless";
 import type { AgentEvent, GatewayConfig, StickyMap } from "./types";
+import type { DispatchResult } from "./dispatch";
 
 export type TickDeps = {
   config: GatewayConfig;
@@ -37,6 +38,14 @@ export type TickResult = {
   }>;
 };
 
+/** 409 while a ticket or persona slot is busy: park and let the outbox move. */
+function isCapacityHold(result: DispatchResult): boolean {
+  if (result.ok || result.ackPoison || result.rebind) return false;
+  if (result.status !== 409) return false;
+  const reason = result.reason ?? "";
+  return reason === "busy" || reason === "skipped_mutex" || reason === "skipped_active_run";
+}
+
 async function deliverOne(opts: {
   config: GatewayConfig;
   sticky: StickyMap;
@@ -44,7 +53,7 @@ async function deliverOne(opts: {
   persona: string;
   prompt: string;
   fetchImpl?: typeof fetch;
-}): Promise<"ok" | "retry" | "poison"> {
+}): Promise<"ok" | "retry" | "poison" | "defer"> {
   const key = stickyKey(opts.event.ticket_id ?? "", opts.persona);
   let stickyId = opts.sticky[key] ?? null;
 
@@ -75,6 +84,7 @@ async function deliverOne(opts: {
 
   if (result.ackPoison) return "poison";
 
+  const hold = isCapacityHold(result);
   if (result.enqueue && opts.event.ticket_id) {
     await enqueueEventRetry(
       opts.config.dataDir,
@@ -82,8 +92,12 @@ async function deliverOne(opts: {
       opts.persona,
       opts.prompt,
       opts.event,
+      { hold },
     );
   }
+  // Persona may already be at max_active, or this ticket is in flight.
+  // Park the prompt and let a different ticket be accepted.
+  if (hold) return "defer";
   return "retry";
 }
 
@@ -136,10 +150,11 @@ export async function processEvent(
     } else if (outcome === "retry") {
       hadRetry = true;
     }
+    // defer: 409 busy/mutex is already in the retry queue. Ack still advances
+    // so this persona can accept another ticket up to max_active_per_persona.
     // poison → treat as ok for ack advancement (avoid infinite loop)
   }
-  // Block ack only when nothing accepted. If assignee accepted but @mention hit
-  // ticket mutex, mention stays in retry and outbox can move on.
+  // Block ack only on hard failure (5xx/network) when nothing was accepted.
   const allOk = !(hadRetry && deliveredOk === 0);
   return { allOk, dispatched };
 }

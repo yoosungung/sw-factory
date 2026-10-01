@@ -9,15 +9,15 @@ function retryKey(ticketId: string, persona: string): string {
 
 export async function upsertRetry(
   dataDir: string,
-  item: Omit<RetryItem, "updated_at" | "attempts"> & { attempts?: number },
+  item: Omit<RetryItem, "updated_at" | "attempts"> & { attempts?: number; hold?: boolean },
 ): Promise<void> {
   const dir = retryDir(dataDir);
   await mkdir(dir, { recursive: true });
   const file = path.join(dir, retryKey(item.ticket_id, item.persona));
-  let attempts = item.attempts ?? 1;
+  let attempts = item.hold ? 0 : (item.attempts ?? 1);
   try {
     const prev = JSON.parse(await readFile(file, "utf8")) as RetryItem;
-    attempts = (prev.attempts ?? 0) + 1;
+    attempts = item.hold ? (prev.attempts ?? 0) : (prev.attempts ?? 0) + 1;
   } catch {
     // new
   }
@@ -73,6 +73,13 @@ export async function enqueueEventRetry(
   persona: string,
   prompt: string,
   event: AgentEvent,
+  opts?: { hold?: boolean },
 ): Promise<void> {
-  await upsertRetry(dataDir, { ticket_id: ticketId, persona, prompt, event });
+  await upsertRetry(dataDir, {
+    ticket_id: ticketId,
+    persona,
+    prompt,
+    event,
+    hold: opts?.hold,
+  });
 }
