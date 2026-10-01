@@ -24,12 +24,25 @@ export function wrapSdkAgent(agent: SdkAgentLike): DisposableAgent {
   return {
     agentId,
     async send(text: string) {
-      const run = await agent.send(text);
-      const result = (await run.wait()) as { status?: string; id?: string } | undefined;
-      if (result && result.status === "error") {
-        throw new Error(`sdk_run_error:${result.id ?? run.id ?? "unknown"}`);
+      try {
+        const run = await agent.send(text);
+        const result = (await run.wait()) as { status?: string; id?: string } | undefined;
+        if (result && result.status === "error") {
+          throw new Error(`sdk_run_error:${result.id ?? run.id ?? "unknown"}`);
+        }
+        return { runId: run.id ?? result?.id ?? crypto.randomUUID() };
+      } catch (err) {
+        // Promise-path failures (incl. spawn ENOENT if SDK rejects). Uncaught
+        // ChildProcess 'error' events are handled by process-guard.
+        console.error(
+          JSON.stringify({
+            msg: "sdk_send_failed",
+            agentId,
+            detail: err instanceof Error ? err.message : String(err),
+          }),
+        );
+        throw err;
       }
-      return { runId: run.id ?? result?.id ?? crypto.randomUUID() };
     },
     async close() {
       try {

@@ -48,3 +48,8 @@ npm run local:stop                   # 둘 다 동일 중지
 | `FORCE_MOCK` | `0` | `1`이면 API key 있어도 mock |
 
 프로세스 로그: `.tools/local-logs/` (gitignore). PID: `.tools/local-pids/`.
+
+## macOS LaunchAgents (KeepAlive)
+
+크래시 시 자동 재기동: [macos/README.md](macos/README.md) · `./scripts/macos/install-launchagents.sh`.  
+`local:run`과 **동시 사용 금지**.

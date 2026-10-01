@@ -37,6 +37,7 @@ agent/cursor/
 | `pool` | SDK child slots | lease → backend send |
 | `session-map` | ticket↔agent_id | sticky session |
 | `recover` | R1–R5 | zombie `active_run` |
+| `process-guard` | (신규) | SDK `spawn … ENOENT` uncaught → parent keep-alive |
 | `pvc` | workspaces | persona cwd 보장 |
 | `factory-mcp` | leantime-mcp | Worker REST + 세션 쿠키 (`mcp/`) |
 

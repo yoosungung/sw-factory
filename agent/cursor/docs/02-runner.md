@@ -34,6 +34,8 @@ GH `agent-runner` DESIGN과 동일 정신: zombie `active_run` 후 같은 티켓
 
 `@cursor/sdk` 핸들은 `agent.send(...)` / `agent[Symbol.asyncDispose]()`처럼 **메서드 호출로 this를 유지**한다. 함수를 꺼내 호출하면 dispose가 `awaitPendingPrAttributions` TypeError로 프로세스를 죽일 수 있다 (`wrapSdkAgent`).
 
+**Process guard** (`process-guard.ts`, `cli` 기동 시 설치): SDK sandbox가 `spawn /bin/zsh ENOENT`처럼 uncaught ChildProcess 오류를 내면 parent HTTP가 죽지 않도록 keep-alive 로그 후 계속한다. 그 외 uncaught는 `exit(1)` (LaunchAgent/k8s가 재기동). R1–R5는 세션급; 이건 프로세스급.
+
 gateway는 `sdk_zombie`일 때만 sticky rebind ([gateway dispatch](../../gateway/docs/04-dispatch-to-cursor.md)).
 
 ## 실행 정책 (Goose A안 축약)

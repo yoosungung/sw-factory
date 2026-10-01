@@ -24,6 +24,8 @@ cp ../env.example .env
 
 루트: `npm run local:run` · `local:run:remote-ticket` · `local:stop`.
 
+macOS에서 크래시 자동 재기동: [../../scripts/macos/README.md](../../scripts/macos/README.md) (`local:run`과 동시 사용 금지).
+
 ## Agent `user_id` 등록
 
 `agents.yaml`의 `user_id`는 **factory `users.id`(UUID)** 다. gateway가 이벤트 assignee/mention과 이 값을 맞춰 persona에 prompt를 보낸다.

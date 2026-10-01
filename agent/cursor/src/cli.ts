@@ -3,6 +3,7 @@ import path from "node:path";
 import { loadAgentsYaml, parseListenAddr } from "../../shared/load-config";
 import { createRunner } from "./server";
 import { listenRunner } from "./listen";
+import { installProcessGuard } from "./process-guard";
 import { createSdkBackend } from "./sdk-backend";
 
 function usage(): never {
@@ -21,6 +22,9 @@ async function main() {
   const configPath = arg("--config") ?? process.env.AGENTS_YAML;
   if (!configPath) usage();
   const forceMock = process.argv.includes("--mock") || process.env.AGENT_BACKEND === "mock";
+
+  // SDK shell spawn ENOENT must not kill parent HTTP (R1–R5 need a live process).
+  installProcessGuard();
 
   const dataDir = arg("--data-dir") ?? process.env.DATA_DIR ?? "/data";
   const file = await loadAgentsYaml(configPath);

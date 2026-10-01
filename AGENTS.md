@@ -27,6 +27,7 @@ This file provides guidance to AI coding assistants (Claude Code, Codex, Gemini,
 | `deploy/k8s/`                                         | agent k8s 매니페스트·`apply.sh` (`NS=sw-factory`)        | `deploy/k8s/`                                                      |
 | `deploy/personas/`                                    | persona MEMORY·skills·rules (`_default`+overlay)    | `deploy/personas/`                                                 |
 | `scripts/`                                            | native 로컬 스택 (`local:run`/`local:stop`/`local:run:remote-ticket`, Docker 아님) | `scripts/`                                                         |
+| `scripts/macos/`                                      | macOS LaunchAgents (cursor+gateway KeepAlive) · [macos/README.md](scripts/macos/README.md) | `scripts/macos/`                                                   |
 
 
 규칙:
