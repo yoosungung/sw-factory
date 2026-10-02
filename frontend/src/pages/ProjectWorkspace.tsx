@@ -173,18 +173,6 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
 
   useEffect(() => {
     if (!issueId) return;
-    const all = [
-      ...Object.values(columns).flat(),
-      ...milestones,
-      ...listTickets,
-      ...timeline,
-    ];
-    const found = all.find((x) => x.id === issueId);
-    if (found) {
-      setSelected(found);
-      touchRecentTicket(found.id);
-      return;
-    }
     let cancelled = false;
     void client
       .getTicket(issueId)
@@ -199,7 +187,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
     return () => {
       cancelled = true;
     };
-  }, [issueId, columns, milestones, listTickets, timeline]);
+  }, [issueId]);
 
   const filteredColumns = useMemo(() => {
     const q = filter.trim().toLowerCase();

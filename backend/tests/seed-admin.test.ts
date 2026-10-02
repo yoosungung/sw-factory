@@ -15,13 +15,16 @@ describe("ensureSeedAdmin gate", () => {
       ADMIN_NAME: "GateAdmin",
     };
 
-    await ensureSeedAdmin(adminEnv);
-    await ensureSeedAdmin(adminEnv);
+    try {
+      await ensureSeedAdmin(adminEnv);
+      await ensureSeedAdmin(adminEnv);
 
-    const row = await env.DB.prepare(`SELECT id, is_admin FROM users WHERE email = ?`)
-      .bind(email)
-      .first<{ id: string; is_admin: number }>();
-    expect(row?.is_admin).toBe(1);
-    resetSeedAdminGate();
+      const row = await env.DB.prepare(`SELECT id, is_admin FROM users WHERE email = ?`)
+        .bind(email)
+        .first<{ id: string; is_admin: number }>();
+      expect(row?.is_admin).toBe(1);
+    } finally {
+      resetSeedAdminGate();
+    }
   });
 });
