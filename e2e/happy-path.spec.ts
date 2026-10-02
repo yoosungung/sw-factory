@@ -59,6 +59,23 @@ test.describe("happy path", () => {
     );
   });
 
+  test("compact Create saves Description without expand", async ({ page }) => {
+    await loginAsAdmin(page);
+
+    const space = `QC Space ${Date.now()}`;
+    const project = `QC Proj ${Date.now()}`;
+    await createSpace(page, space);
+    await createSoftwareProject(page, project);
+
+    const title = `QC Issue ${Date.now()}`;
+    const body = `Compact desc ${Date.now()}`;
+    await createIssue(page, title, { description: body });
+
+    const panel = page.getByRole("dialog");
+    await expect(panel).toBeVisible();
+    await expect(panel.locator(".issue-desc-view .rich-content")).toContainText(body);
+  });
+
   test("project settings people page loads for owner", async ({ page }) => {
     await loginAsAdmin(page);
     const space = `Settings Space ${Date.now()}`;
