@@ -1,7 +1,11 @@
 import { createHash } from "node:crypto";
 import { fireKey } from "./cron";
-import { claimScheduleFire } from "./schedule-fires";
+import { claimScheduleFire, releaseScheduleFire } from "./schedule-fires";
 import type { AgentEvent, PersonaConfig } from "./types";
+
+function manualPromptClaimId(event: AgentEvent): string {
+  return `manual_prompt:${manualPromptFingerprint(event)}`;
+}
 
 function sessionsAgents(agents: PersonaConfig[]): PersonaConfig[] {
   return agents.filter((a) => a.type === "sessions");
@@ -85,6 +89,14 @@ export async function claimManualPromptFire(
   event: AgentEvent,
   now: Date = new Date(),
 ): Promise<boolean> {
-  const fp = manualPromptFingerprint(event);
-  return claimScheduleFire(dataDir, `manual_prompt:${fp}`, fireKey(now));
+  return claimScheduleFire(dataDir, manualPromptClaimId(event), fireKey(now));
+}
+
+/** Release claim after a failed delivery so the same minute can retry. */
+export async function releaseManualPromptFire(
+  dataDir: string,
+  event: AgentEvent,
+  now: Date = new Date(),
+): Promise<void> {
+  await releaseScheduleFire(dataDir, manualPromptClaimId(event), fireKey(now));
 }

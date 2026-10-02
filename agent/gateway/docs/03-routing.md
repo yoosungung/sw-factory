@@ -11,7 +11,7 @@ gateway만 라우팅한다. cursor는 “누구 몫인지”를 다시 판단하
 5. **mention** — Worker가 코멘트 body의 `@user.name`(case-insensitive, project member)을 `payload.mention_user_ids`로 넣음 → 해당 persona.
 6. **handoff** — assignee 변경 시 신규 assignee에 handoff prompt; 이전 sticky는 cursor가 티켓 뮤텍스·매핑으로 정리.
 7. **catch-up (재기동=출근)** — gateway **프로세스 기동 시** `prompts.catch_up` 1회 (`type=sessions`). lookback=`last_catch_up_at` 또는 now−48h. `/readyz` 폴링은 하지 않음.
-8. **manual_prompt** — Worker `POST /api/agent/prompts` outbox. target은 `payload.target_user_id` / `target` / `target_name`(name·persona) 또는 `assignee_user_id`. assignee/mention/self-echo 규칙 미적용. 동일 `(target, ticket_id, prompt)`는 UTC 분당 1회만 배달(schedule claim 재사용).
+8. **manual_prompt** — Worker `POST /api/agent/prompts` outbox. target은 `payload.target_user_id` / `target` / `target_name`(name·persona) 또는 `assignee_user_id`. assignee/mention/self-echo 규칙 미적용. 동일 `(target, ticket_id, prompt)`는 UTC 분당 1회만 배달(schedule claim 재사용; 배달 실패 시 claim release 후 재시도).
 
 ## prompts 템플릿 키
 

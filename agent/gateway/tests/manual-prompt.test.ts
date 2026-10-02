@@ -279,6 +279,78 @@ describe("manual_prompt delivery", () => {
     await cursor.close();
   });
 
+  it("releases claim after deliver failure so the same event can retry", async () => {
+    const dataDir = await mkdtemp(path.join(os.tmpdir(), "gw-mp-retry-"));
+    tempDirs.push(dataDir);
+    const events: AgentEvent[] = [
+      {
+        id: "evt-mp-fail",
+        at: "2026-01-01T00:00:01.000Z",
+        event_type: "manual_prompt",
+        ticket_id: null,
+        project_id: "proj-1",
+        actor_user_id: "human-1",
+        assignee_user_id: TA.user_id,
+        payload: { prompt: "retry me", target_user_id: TA.user_id },
+      },
+    ];
+    let sessionHits = 0;
+    // First tick: processEvent + flushRetries both hit /sessions → fail both.
+    // Second tick: succeed once claim was released.
+    const failUntil = 2;
+    const factory = await startMockFactory(events);
+    const cursorServer = createServer(async (req, res) => {
+      const url = req.url ?? "";
+      if (req.method === "POST" && url === "/sessions") {
+        sessionHits += 1;
+        if (sessionHits <= failUntil) {
+          res.writeHead(503, { "content-type": "application/json" });
+          res.end(JSON.stringify({ reason: "unavailable" }));
+          return;
+        }
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ agent_id: "agent-retry" }));
+        return;
+      }
+      res.writeHead(404);
+      res.end();
+    });
+    const cursorPort = await new Promise<number>((resolve) => {
+      cursorServer.listen(0, "127.0.0.1", () => {
+        const addr = cursorServer.address();
+        resolve(typeof addr === "object" && addr ? addr.port : 0);
+      });
+    });
+    const config: GatewayConfig = {
+      factoryBaseUrl: `http://127.0.0.1:${factory.port}`,
+      cursorBaseUrl: `http://127.0.0.1:${cursorPort}`,
+      dataDir,
+      sessionCookie: "lt_session=test",
+      agents: [PM, TA],
+      prompts,
+      debounceMs: 0,
+      pollLimit: 50,
+      retryMaxAttempts: 5,
+    };
+    const first = await tick({ config });
+    expect(first.acked_id).toBeNull();
+    expect(first.dispatched).toHaveLength(0);
+    expect(sessionHits).toBe(failUntil);
+
+    const second = await tick({ config });
+    expect(second.acked_id).toBe("evt-mp-fail");
+    expect(second.dispatched).toEqual([
+      expect.objectContaining({
+        event_id: "evt-mp-fail",
+        persona: "ta",
+        agent_id: "agent-retry",
+      }),
+    ]);
+    expect(sessionHits).toBe(failUntil + 1);
+    await factory.close();
+    await new Promise<void>((r) => cursorServer.close(() => r()));
+  });
+
   it("dedupes identical payload within the same UTC minute but still acks", async () => {
     const dataDir = await mkdtemp(path.join(os.tmpdir(), "gw-mp-d-"));
     tempDirs.push(dataDir);

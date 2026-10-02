@@ -10,6 +10,7 @@ import { dispatchToCursor } from "./dispatch";
 import {
   claimManualPromptFire,
   composeManualPrompt,
+  releaseManualPromptFire,
 } from "./manual-prompt";
 import { renderPrompt, promptKindForTarget } from "./prompts";
 import { enqueueEventRetry, listRetries, removeRetry } from "./retry";
@@ -209,6 +210,8 @@ async function processManualPrompt(
       });
       return { allOk: true, dispatched };
     }
+    // Release claim so a hard retry (acked_id not advanced) can re-fire.
+    await releaseManualPromptFire(config.dataDir, event);
     if (outcome.status === "retry") {
       return { allOk: false, dispatched };
     }
@@ -241,6 +244,7 @@ async function processManualPrompt(
     });
     return { allOk: true, dispatched };
   }
+  await releaseManualPromptFire(config.dataDir, event);
   if (outcome === "retry") {
     return { allOk: false, dispatched };
   }
