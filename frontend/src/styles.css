@@ -738,6 +738,10 @@ select {
   max-width: 110px;
 }
 
+.issue-card .move-select {
+  display: none;
+}
+
 /* —— Lists (timeline / clients) —— */
 .content-panel {
   margin: 0 24px 24px;
@@ -2511,5 +2515,151 @@ select {
   .page-title-row h1,
   .breadcrumb {
     overflow-wrap: anywhere;
+  }
+
+  .list-issue {
+    grid-template-columns: 1fr !important;
+  }
+
+  .your-work-issues .list-row {
+    grid-template-columns: 1fr;
+  }
+
+  .overview-active-list .list-row {
+    grid-template-columns: 1fr;
+  }
+
+  .history-list .list-row {
+    grid-template-columns: 1fr;
+  }
+
+  .list-row.head.list-issue,
+  .your-work-issues .list-row.head,
+  .overview-active-list .list-row.head {
+    display: none;
+  }
+
+  .list-issue > span,
+  .your-work-issue-title,
+  .overview-active-list .list-row > span,
+  .history-list .list-row > span {
+    overflow-wrap: anywhere;
+  }
+
+  .backlog-row {
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  .backlog-row .grow {
+    flex: 1 1 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .backlog-row select {
+    min-height: 40px;
+  }
+
+  .drawer {
+    left: 0;
+    width: 100%;
+    border-left: none;
+  }
+
+  .drawer-top {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+
+  .project-breadcrumb-link {
+    max-width: 50%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .issue-modal-layer {
+    padding: 0;
+  }
+
+  .issue-modal {
+    width: 100%;
+    max-height: 100%;
+    height: 100%;
+    border-radius: 0;
+  }
+
+  .activity-tabs {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+  }
+
+  .activity-tab {
+    min-height: 40px;
+    flex-shrink: 0;
+  }
+
+  .issue-title-input,
+  .issue-desc,
+  .issue-desc-view,
+  .prop-select,
+  .prop-date-input,
+  .prop-text-input,
+  .comment-form textarea {
+    font-size: 16px;
+  }
+
+  .deps-add {
+    flex-wrap: wrap;
+  }
+
+  .file-row {
+    flex-wrap: wrap;
+  }
+
+  .btn-subtle.sm {
+    min-height: 40px;
+  }
+
+  .drawer-body,
+  .issue-page .drawer-body {
+    padding: 16px;
+    padding-bottom: calc(16px + env(safe-area-inset-bottom));
+  }
+
+  .toolbar {
+    align-items: stretch;
+  }
+
+  .view-segment {
+    width: 100%;
+    overflow-x: auto;
+  }
+
+  .quick-filter {
+    flex: 1 1 100%;
+    min-width: 0;
+    width: 100%;
+  }
+
+  .board-scroll {
+    scroll-snap-type: x mandatory;
+  }
+
+  .board-col {
+    scroll-snap-align: start;
+  }
+
+  .issue-card .footer {
+    flex-wrap: wrap;
+  }
+
+  .issue-card .move-select {
+    display: block;
+    width: 100%;
+    max-width: none;
+    height: auto;
+    min-height: 40px;
   }
 }

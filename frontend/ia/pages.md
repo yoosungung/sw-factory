@@ -112,6 +112,7 @@
 - **사이드 인스펙터 (`?issue=`):** 배경 딤(Backdrop) 없는 **논모달 패널**. 우측 480px 고정, 뒤쪽 보드/리스트와 실시간 동시 탐색 가능, 다른 카드 클릭 시 즉시 내용 갱신.
 - **모달 (`?issue=&issueUi=modal`):** 중앙 집중 팝업 + 어두운 오버레이 딤.
 - **전체 페이지 (`/browse/:ticketId`):** 메인 영역 가로 전폭. `.main`의 `overflow: hidden`(보드용)에 잘리지 않도록 `.issue-page`가 잔여 높이를 채우고 `.drawer-body`만 세로 스크롤. 우상단 ✕ / Esc → 프로젝트 Board.
+- **모바일 (`<768px`):** 인스펙터·모달은 탑바 아래 전체 폭 시트로 연다. Activity 탭은 가로 스크롤, 본문만 세로 스크롤.
 - **Activity tabs:** L→R 순서 **Comments → Details → Files → History**; 기본 선택 Comments. **Details** = 기존 properties(Status·Priority·Assignee·Due·Type·Project·Dates·**Blocked by**) — persistent 우측 aside 없음(필드·삭제 액션은 Details 탭). History 행 = 변경 본문(주) · 시각(우측 보조) — `.history-list`(공용 3열 `.list-row` 미사용).
 - **Behavior:** 인라인 저장 `PATCH` (낙관적 락 `version`); 투박한 네이티브 `<select>` 대신 커스텀 상태/우선순위 팝오버; 댓글 CRUD; 파일 업로드/다운로드/삭제; 삭제 시 작성자/owner만 가능; Esc로 닫기(page 포함 → Board). **Blocked by:** 선행 티켓 id 추가/제거(`GET|PUT /api/tickets/:id/dependencies`); parent(`milestone_id`)와 혼동 금지.
 - **Comments order:** 작성 폼 바로 아래에 **최신 → 오래된** 순으로 표시(`commentsNewestFirst`). API `GET …/comments`는 ASC 유지(agent/MCP 호환); FE 표시만 DESC.

@@ -387,6 +387,23 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
                       </div>
                       <p className="title">{t.title}</p>
                       <div className="footer">
+                        <select
+                          className="move-select"
+                          aria-label="Move"
+                          value={t.status}
+                          onClick={(e) => e.stopPropagation()}
+                          onMouseDown={(e) => e.stopPropagation()}
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            void move(t.id, e.target.value);
+                          }}
+                        >
+                          {statuses.map((s) => (
+                            <option key={s.key} value={s.key}>
+                              {s.label}
+                            </option>
+                          ))}
+                        </select>
                         {t.due_at ? (
                           <span className={dueClass(t.due_at)}>{t.due_at}</span>
                         ) : (

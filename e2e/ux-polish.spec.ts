@@ -111,3 +111,31 @@ test("UX4: mobile drawer exposes project sidebar links", async ({ page }) => {
   await page.waitForURL(/\/settings\/details/);
   await expect(page.locator(".mobile-nav-drawer")).toHaveCount(0);
 });
+
+test("mobile ticket list stacks and the issue sheet fits 390px", async ({ page }) => {
+  await loginAsAdmin(page);
+  const stamp = Date.now();
+  await createSpace(page, `Mob Space ${stamp}`);
+  await createSoftwareProject(page, `Mob Proj ${stamp}`);
+  const title = `Mobile ticket ${stamp}`;
+  await createIssue(page, title);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+
+  const card = page.locator(".issue-card").filter({ hasText: title });
+  await expect(card.getByRole("combobox", { name: "Move" })).toBeVisible();
+
+  await clickEl(page.locator(".view-segment").getByRole("tab", { name: "List" }));
+  const row = page.locator(".list-row.list-issue").filter({ hasText: title });
+  await expect(row).toBeVisible();
+  await expect(page.locator(".list-row.head.list-issue")).toBeHidden();
+  const columns = await row.evaluate((el) => getComputedStyle(el).gridTemplateColumns);
+  expect(columns.trim().split(/\s+/).length).toBe(1);
+
+  await clickEl(row);
+  const panel = page.getByRole("dialog");
+  await expect(panel.getByRole("tablist", { name: "Activity" })).toBeVisible();
+  const box = await panel.boundingBox();
+  expect(box).toBeTruthy();
+  expect(box!.width).toBeLessThanOrEqual(390);
+});

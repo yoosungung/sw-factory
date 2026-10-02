@@ -161,3 +161,7 @@ IA 구조는 [overview.md](overview.md), 메뉴는 [menus.md](menus.md), 화면�
   - 햄버거 메뉴 터치 시 슬라이드오버 드로어로 내비게이션 노출.
 - **Text Truncation 방지:** 컨테이너 `overflow-x: hidden` 및 패딩을 16px로 리셋하여 텍스트 첫 글자가 잘리는 현상("ROJECTS", "PACES") 원천 차단.
 - **터치 타겟:** 모든 버튼, 칩, 링크의 최소 터치 영역을 `40px x 40px` 이상 확보.
+- **티켓 목록 (`<768px`):** List · Your work · Overview · History 헤더는 숨기고 데이터 행은 1열로 쌓는다. 제목은 `overflow-wrap: anywhere`. Backlog 행은 제목이 한 줄을 차지하고 상태 select는 최소 높이 40px.
+- **이슈 시트 (`<768px`):** 사이드 인스펙터와 모달은 탑바 아래 전체 폭 시트. 헤더는 sticky, 프로젝트명은 ellipsis. Activity 탭은 가로 스크롤(`min-height: 40px`). 제목·설명·속성 입력은 `font-size: 16px`. 본문 하단은 `safe-area-inset-bottom`.
+- **보드 (`<768px`):** 컬럼 폭 240px·카드 높이 216px는 유지하고 `.board-scroll`은 가로 `scroll-snap`. 카드 푸터의 상태 select(`.move-select`)만 노출해 터치로 칸을 옮긴다. 데스크톱에서는 숨긴다.
+- **작업 툴바 (`<768px`):** 뷰 세그먼트는 가로 스크롤, 검색창은 다음 줄에서 폭 100%.
