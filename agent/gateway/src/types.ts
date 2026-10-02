@@ -4,7 +4,8 @@ export type AgentEventType =
   | "ticket_created"
   | "ticket_updated"
   | "ticket_deleted"
-  | "comment_added";
+  | "comment_added"
+  | "manual_prompt";
 
 export type AgentEvent = {
   id: string;
