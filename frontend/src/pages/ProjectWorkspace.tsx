@@ -18,6 +18,7 @@ import {
   type IssueOpenMode,
 } from "../components/issue/IssuePanel";
 import { EmptyState } from "../components/EmptyState";
+import { AgentPromptDialog } from "../components/agent/AgentPromptDialog";
 import { AppChrome } from "../components/chrome/AppChrome";
 import { dueClass } from "../lib/due";
 import { isTicketsView, parseViewMode } from "../lib/view-mode";
@@ -54,6 +55,8 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
   const [listTickets, setListTickets] = useState<Ticket[]>([]);
   const [listCursor, setListCursor] = useState<string | null>(null);
   const [listLoading, setListLoading] = useState(false);
+  const [promptOpen, setPromptOpen] = useState(false);
+  const [promptTicketId, setPromptTicketId] = useState<string | null>(null);
 
   const statusLabels = useMemo(
     () => Object.fromEntries(statuses.map((s) => [s.key, s.label])),
@@ -316,6 +319,16 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
             Include archived Done
           </label>
         )}
+        <button
+          type="button"
+          className="btn-subtle"
+          onClick={() => {
+            setPromptTicketId(null);
+            setPromptOpen(true);
+          }}
+        >
+          Prompt agent
+        </button>
         {fullscreen && (
           <button type="button" className="btn-subtle" onClick={() => setFullscreen(false)}>
             Exit full screen
@@ -562,6 +575,19 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
             closeIssue();
             void refresh();
           }}
+          onPromptAgent={() => {
+            setPromptTicketId(selected.id);
+            setPromptOpen(true);
+          }}
+        />
+      )}
+
+      {promptOpen && (
+        <AgentPromptDialog
+          projectId={id}
+          members={members}
+          defaultTicketId={promptTicketId}
+          onClose={() => setPromptOpen(false)}
         />
       )}
     </>

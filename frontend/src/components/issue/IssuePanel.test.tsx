@@ -81,7 +81,7 @@ const members: Member[] = [
   { user_id: "u1", role: "owner", email: "dev@example.com", name: "Dev" },
 ];
 
-function renderPanel() {
+function renderPanel(props: { onPromptAgent?: () => void } = {}) {
   return render(
     <MemoryRouter>
       <IssuePanel
@@ -94,6 +94,7 @@ function renderPanel() {
         onClose={() => {}}
         onChanged={() => {}}
         onDeleted={() => {}}
+        {...props}
       />
     </MemoryRouter>,
   );
@@ -115,6 +116,17 @@ describe("IssuePanel activity tabs", () => {
     expect(screen.getByPlaceholderText(/Add a comment/i)).toBeInTheDocument();
     expect(screen.queryByRole("complementary")).toBeNull();
     expect(document.querySelector(".issue-aside")).toBeNull();
+  });
+
+  it("shows Prompt agent only when onPromptAgent is provided", () => {
+    renderPanel();
+    expect(screen.queryByRole("button", { name: /Prompt agent/i })).toBeNull();
+
+    const onPromptAgent = vi.fn();
+    cleanup();
+    renderPanel({ onPromptAgent });
+    screen.getByRole("button", { name: /Prompt agent/i }).click();
+    expect(onPromptAgent).toHaveBeenCalledOnce();
   });
 
   it("shows properties fields only on Details tab", async () => {

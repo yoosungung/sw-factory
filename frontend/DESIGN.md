@@ -17,6 +17,7 @@ frontend/src/
     components/issue/IssuePanel.tsx     # F9 · non-modal inspector · 커스텀 픽커
     components/chrome/AppChrome.tsx     # TopNav · Sidebar · AppChrome · Quick Create
     components/create/CreateDialogs.tsx # Issue · Space · Project 생성
+    components/agent/AgentPromptDialog.tsx  # F16 · on-demand POST /api/agent/prompts
     pages/Auth.tsx · Home.tsx · ProjectWorkspace.tsx · Misc.tsx
     pages/Settings.tsx · Admin.tsx · Personal.tsx · Directory.tsx
     App.tsx                             # 라우트 + 세션 셸만
@@ -34,6 +35,7 @@ frontend/src/
 - Search: `GET /api/search`
 - Filters: localStorage 메타 + tickets API
 - Space hub: Space Switcher + Space settings(좌측). Project: Overview(이름·설명·수행 중) / Tickets(Board|Backlog|Timeline|List)
+- Agent prompt: Tickets 툴바·Issue 헤더 모달 → `POST /api/agent/prompts` (ack `id`/`at` only; no chat wait)
 
 ## Commands
 

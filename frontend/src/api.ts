@@ -343,4 +343,23 @@ export const client = {
       method: "PATCH",
       body: JSON.stringify(body),
     }),
+
+  /** On-demand agent wake → manual_prompt outbox (fire-and-forget). */
+  postAgentPrompt: (body: {
+    project_id: string;
+    target: string;
+    prompt: string;
+    ticket_id?: string | null;
+  }) => {
+    const payload: Record<string, string> = {
+      project_id: body.project_id,
+      target: body.target,
+      prompt: body.prompt,
+    };
+    if (body.ticket_id) payload.ticket_id = body.ticket_id;
+    return api<{ id: string; at: string }>("/api/agent/prompts", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  },
 };

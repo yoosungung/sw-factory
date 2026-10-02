@@ -15,6 +15,7 @@ macOS + Chromium 조합에서 Playwright 기본 `fill`/`click`이 hang 되는 �
 | `ux-polish.spec.ts` | UX2 Backlog/Timeline/List EmptyState 동일 형태(CTA 없음) · Timeline에 날짜 없는 생성 이슈가 보임 · UX3 non-modal inspector · UX4 mobile hamburger(+ 프로젝트 Work/Settings 드로어) |
 | `fe3-fe5.spec.ts` | Your work · Search · Account · Filters · History · Board Settings 커스텀 컬럼 |
 | `admin.spec.ts` | 시드 admin `/admin` · Space 생성 · 이메일 초대 |
+| `agent-prompt.spec.ts` | Tickets 툴바 Prompt agent → `POST /api/agent/prompts` ack · Issue 헤더 `ticket_id` 스코프 |
 
 API 단위 테스트는 `npm test`(Vitest). E2E는 브라우저 플로우만.
 

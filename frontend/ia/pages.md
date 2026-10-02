@@ -175,6 +175,22 @@ expand / dock(선택) / Esc. 성공 → 보드 Backlog 컬럼에 카드 + issue 
 
 ---
 
+## F16. Agent prompt compose (모달, project workspace)
+
+**Layout:** Tickets 툴바 **Prompt agent** → 컴팩트 모달 (`create-dialog` 패턴). 필드: Target(project member `name`) · Prompt(textarea) · optional Ticket scope 표시.
+
+| 필드 | 필수 | 비고 |
+| --- | --- | --- |
+| Target | ✓ | `GET …/members` 목록; 전송 값은 member `name`(또는 id) |
+| Prompt | ✓ | 자유 텍스트; 성공 후 응답 대기 UI 없음 |
+| Ticket | — | Issue 컨텍스트에서 열면 현재 `ticket_id` 기본; Tickets 툴바에서 열면 omit |
+
+**Behavior:** 세션 쿠키로 `POST /api/agent/prompts` `{ project_id, target, prompt, ticket_id? }` fire-and-forget. 성공 → `{ id, at }` ack(인라인). 실패 → 4xx `error` 메시지. 실시간 chat/WebSocket/폴링 금지.  
+**API:** `POST /api/agent/prompts` ([ARCHITECTURE §4](../../ARCHITECTURE.md)).  
+**Connections:** ← Tickets 툴바 · Issue 헤더 **Prompt agent**(optional `ticket_id`).
+
+---
+
 ## 화면 연결 요약
 
 ```mermaid
