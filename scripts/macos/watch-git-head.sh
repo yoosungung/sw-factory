@@ -10,7 +10,9 @@ STATE_FILE="${SWF_GIT_HEAD_STATE:-$TOOLS/git-head.watch}"
 INTERVAL="${SWF_GIT_HEAD_POLL_SEC:-60}"
 RESTART="$ROOT/scripts/macos/restart-launchagents.sh"
 
-export PATH="${SWF_LAUNCHD_PATH:-/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:/usr/bin:/bin}:$PATH"
+# shellcheck disable=SC1091
+source "$ROOT/scripts/macos/launch-env.sh"
+load_launch_env
 
 mkdir -p "$TOOLS" "$LOG_DIR"
 cd "$ROOT"

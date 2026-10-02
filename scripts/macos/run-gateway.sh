@@ -10,14 +10,13 @@ TOOLS="${LOCAL_TOOLS_DIR:-$ROOT/.tools}"
 LOG_DIR="${LOG_DIR:-$TOOLS/local-logs}"
 
 # shellcheck disable=SC1091
-[[ -f "$ENV_FILE" ]] && set -a && source "$ENV_FILE" && set +a
+source "$ROOT/scripts/macos/launch-env.sh"
+load_launch_env "$ENV_FILE"
 
 DATA_DIR="${DATA_DIR:-${DATA_HOST:-$LOCAL_DIR/.local-data}}"
 CONFIG="${AGENTS_FILE:-$DEPLOY/agents.yaml}"
 FACTORY_BASE_URL="${FACTORY_BASE_URL:-https://factory.askwho.net}"
 cookie="${GATEWAY_SESSION_COOKIE:-${FACTORY_SESSION_COOKIE:-}}"
-
-export PATH="${SWF_LAUNCHD_PATH:-/opt/homebrew/bin:/usr/local/bin:$HOME/.local/bin:/usr/bin:/bin}:$PATH"
 
 if [[ ! -f "$CONFIG" ]]; then
   echo "missing agents.yaml: $CONFIG" >&2
