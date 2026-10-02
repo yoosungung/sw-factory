@@ -16,7 +16,7 @@ sw-factory(Auth, Clients, Projects, Tickets/Milestones, Comments, Files)를 Clou
 8. 대량 데이터 및 동시성: 티켓 목록은 Cursor 기반 페이징을 지원하며, 칸반은 활성 티켓 중심(완료건은 최근 기간 필터)으로 조회한다. 티켓 수정 시 낙관적 락(Optimistic Concurrency Control, `version` 필드)을 지원한다.
 9. 스키마·REST·권한 규칙을 바꿀 때는 이 문서를 코드와 **함께(또는 먼저)** 갱신한다.
 10. **범위 밖(Exclude):** LDAP/OIDC, Hyperdrive, timesheets, calendar, notifications, canvas/ideas/wiki/goals(**제품 SPA·API 도메인**; 에이전트 **org-wiki** git/`ORG_WIKI_URL`·km은 [deploy/personas](deploy/personas/)로 유지), plugins, 전역 settings 키-값, access_tokens(PAT/`x-api-key`), 계정별 CRUD 매트릭스(전역 permission scheme). 인증은 세션 쿠키만.
-11. **Agent wake = pull:** Worker는 내부망 agent로 HTTP push하지 않는다. 티켓 mutate 시 D1 `agent_event_log`에 append하고, 내부망 **[agent/gateway](agent/gateway/)** 가 outbound로 tail한다.
+11. **Agent wake = pull:** Worker는 내부망 agent로 HTTP push하지 않는다. Worker 경유 wake는 D1 `agent_event_log` append뿐이며, 내부망 **[agent/gateway](agent/gateway/)** 가 outbound로 tail한다. 출처: (a) 티켓/코멘트 도메인 mutate, (b) 온디맨드 `POST /api/agent/prompts` → `manual_prompt`. 브라우저·외부는 **Worker HTTP만** 호출한다(#1). gateway 로컬 `schedules[]`·기동 catch-up은 내부망 전용(Worker push 아님).
 12. **gateway vs cursor:** gateway는 이벤트→prompt **배달만**(라우팅·self-echo·debounce·retry). **[agent/cursor](agent/cursor/)** 는 localhost runner + **factory-mcp**로 티켓을 읽고 작업한다. gateway는 MCP/티켓 mutate를 하지 않는다.
 13. **단일 컨테이너 병렬:** agent Pod/컨테이너는 기본 1개. cursor는 parent(SDK 미로드) + **공유 SDK worker pool**; `ticket_id` 뮤텍스. persona는 `max_active_per_persona`까지 서로 다른 티켓을 동시에 처리한다(기본 1). prompt는 **202** 비차단. gateway `acked_id`는 accept 또는 409 `busy`/`skipped_mutex`를 retry에 보관한 뒤 전진한다. 5xx·네트워크 실패는 ack를 멈춘다.
 14. **PVC:** 볼륨 **1개 공유**(`/data`). 작업 상태는 **경로 격리** — `gateway/` vs `workspaces/{persona}/`(MEMORY·chats·git·세션 쿠키 비공유). persona별 PVC N개는 후순위.
@@ -278,8 +278,11 @@ CHECK (successor_id != blocker_id)
 | --- | --- | --- |
 | GET | `/api/agent/events` | query `after_id`, `limit`(기본 100, 최대 500). **세션 인증 필수**(gateway 전용 시스템 유저로 로그인). 응답 `{ events }` — 각 항목에 `payload`(JSON 객체). Worker→agent push 없음. |
 | GET | `/api/agent/flow-gates` | 세션 필수. `{ in_progress, flow_active }` — 공장 전역 티켓 status EXISTS (`in_progress`; dual-loop 활성 컬럼). gateway 스케줄 게이트 전용. |
+| POST | `/api/agent/prompts` | body `{ project_id, target, prompt, ticket_id? }`. **세션 쿠키** 필수. 호출자와 `target` 해석 유저 **모두** 해당 `project_members`. `target`은 `users.name` 우선(대소문자 무시 exact) 또는 `users.id` UUID. `ticket_id`가 있으면 그 티켓은 `project_id` 소속이어야 한다. 성공 시 `agent_event_log`에 `event_type=manual_prompt` 동기 append 후 `{ id, at }` (event 행). Worker→agent push 없음. 구현은 후속; 본 행은 계약 초안. |
 
 티켓 create/update(필드 변경 시)/delete·코멘트 create 성공 시 Worker가 `agent_event_log`에 동기 append한다. FS 자동 해제 시 후속 티켓에 `ticket_updated`를 append하며 payload에 `dependency_cleared: true`, `unblocked_from: [blocker_id,…]`, 필요 시 `changed_fields`를 넣는다(전용 event_type 없음 — gateway 기존 assignee wake로 충분). tail은 `(at, id)` 키셋(`after_id`로 앵커). 라우팅·prompt는 gateway; 상세는 [agent/gateway/](agent/gateway/).
+
+**On-demand prompt (`manual_prompt`):** 스케줄형 온디맨드 wake(계획 parent `24d399f1-9f7d-43c2-912b-9092834c6227`, Option A). outbox 행: `event_type=manual_prompt`, `project_id`, `actor_user_id`=호출자, `assignee_user_id`=해석된 target, `ticket_id`=optional. `payload_json` 예: `{ "prompt": "…", "target": "sw-factory", "target_user_id": "…" }`. gateway는 `schedules[]`/`catch_up`과 같이 **`deliverTicketless`**로 배달한다(코드 후속). **Active ticket 스코프:** `ticket_id`가 있으면 prompt에 Active로 넣고 agent는 factory-mcp로 **그 티켓만** 읽고 쓴다. `ticket_id`가 없거나 null이면 티켓리스 — 회신 SoR은 PVC chat·gateway 로그만(신규 chat 테이블·WebSocket 없음; fire-and-forget).
 
 **Comment @mention:** `comments.body`에서 `@Handle` 토큰을 추출한다(`@pm`/`@PM` 동일). Handle은 `users.name`과 **대소문자 무시 exact** 매칭이며, 대상은 해당 티켓의 **project_members**만. 이메일 중간 `@`(직전이 영숫자)는 제외. 매칭된 `users.id`를 `comment_added` payload의 `mention_user_ids`에 넣어 gateway가 assignee와 함께 라우팅한다.
 
