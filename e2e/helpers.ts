@@ -101,10 +101,17 @@ export async function createSoftwareProject(
   if (opts.tickets !== false) await openTickets(page);
 }
 
-export async function createIssue(page: Page, title: string) {
+export async function createIssue(
+  page: Page,
+  title: string,
+  opts: { description?: string } = {},
+) {
   await clickEl(page.locator(".top-nav .btn-create"));
   const dialog = page.locator("form.create-dialog");
   await fillField(dialog.getByPlaceholder("What needs to be done?"), title);
+  if (opts.description !== undefined) {
+    await fillField(dialog.getByLabel(/^Description/), opts.description);
+  }
   await submitForm(dialog);
   await expect(dialog).toHaveCount(0);
   await expect(page.getByText(title).first()).toBeVisible();

@@ -171,6 +171,16 @@ export function CreateIssueDialog({
             />
           </label>
 
+          <label className="span-2">
+            Description
+            <textarea
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Add a description (Markdown)…"
+              rows={3}
+            />
+          </label>
+
           <label>
             Priority
             <select
@@ -202,14 +212,6 @@ export function CreateIssueDialog({
 
           {(expanded || type === "milestone") && (
             <>
-              <label className="span-2">
-                Description
-                <textarea
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Add a description (Markdown)…"
-                />
-              </label>
               <label>
                 Status
                 <select value={status} onChange={(e) => setStatus(e.target.value)}>
