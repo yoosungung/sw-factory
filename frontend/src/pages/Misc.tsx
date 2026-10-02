@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, Navigate, useNavigate, useParams } from "react-router-dom";
 import { client, type Member, type Project, type Ticket, type User } from "../api";
 import { IssuePanel, initials, issueKey } from "../components/issue/IssuePanel";
+import { AgentPromptDialog } from "../components/agent/AgentPromptDialog";
 import { AppChrome } from "../components/chrome/AppChrome";
 import { useAllProjects, useClients } from "../hooks/useSession";
 import { touchRecentProject, touchRecentTicket } from "../lib/recent";
@@ -67,6 +68,7 @@ export function BrowseIssuePage({ user, onLogout }: { user: User; onLogout: () =
   const [project, setProject] = useState<Project | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [error, setError] = useState("");
+  const [promptOpen, setPromptOpen] = useState(false);
 
   useEffect(() => {
     void (async () => {
@@ -131,7 +133,16 @@ export function BrowseIssuePage({ user, onLogout }: { user: User; onLogout: () =
           if (t) setTicket(t);
         }}
         onDeleted={() => navigate(`/projects/${project.id}?view=board`)}
+        onPromptAgent={() => setPromptOpen(true)}
       />
+      {promptOpen && (
+        <AgentPromptDialog
+          projectId={project.id}
+          members={members}
+          defaultTicketId={ticket.id}
+          onClose={() => setPromptOpen(false)}
+        />
+      )}
     </AppChrome>
   );
 }

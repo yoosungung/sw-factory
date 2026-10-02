@@ -179,6 +179,7 @@ type Props = {
   onClose: () => void;
   onChanged: (ticket?: Ticket) => void;
   onDeleted: () => void;
+  onPromptAgent?: () => void;
 };
 
 export function IssuePanel({
@@ -191,6 +192,7 @@ export function IssuePanel({
   onClose,
   onChanged,
   onDeleted,
+  onPromptAgent,
 }: Props) {
   const [ticket, setTicket] = useState(initial);
   const [title, setTitle] = useState(initial.title);
@@ -335,6 +337,16 @@ export function IssuePanel({
           </span>
         </div>
         <div className="row-gap">
+          {onPromptAgent && (
+            <button
+              type="button"
+              className="btn-subtle sm"
+              onClick={onPromptAgent}
+              title="Send on-demand prompt to an agent"
+            >
+              Prompt agent
+            </button>
+          )}
           {mode !== "page" && (
             <Link className="icon-btn" to={`/browse/${ticket.id}`} title="Open full page">
               ↗

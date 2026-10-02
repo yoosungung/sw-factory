@@ -102,7 +102,14 @@ Space switcher와 본문 제목이 같은 이름을 두 번 쓰지 않는다. �
 
 ---
 
-## 5. Issue 열기 모드 (보드 `•••`)
+## 5. Tickets 툴바 — Agent prompt
+
+Tickets 뷰(`?view=board|backlog|timeline|list`) 툴바에 **Prompt agent** 버튼. 클릭 → [pages F16](pages.md) 모달(project 스코프, `ticket_id` 없음).  
+Issue 인스펙터 헤더에도 동일 액션 — 열릴 때 현재 이슈 `ticket_id`를 기본값으로 넣는다.
+
+---
+
+## 6. Issue 열기 모드 (보드 `•••`)
 
 | 모드 | 경로/파라미터 | 인터랙션 규격 ([design-system §3.6](design-system.md#36-issue-panel-non-modal-inspector-vs-centered-modal)) |
 | --- | --- | --- |
@@ -113,7 +120,7 @@ Space switcher와 본문 제목이 같은 이름을 두 번 쓰지 않는다. �
 
 ---
 
-## 6. 메뉴 ↔ 도메인
+## 7. 메뉴 ↔ 도메인
 
 | 메뉴 표면 | Backend | Prod |
 | --- | --- | --- |
@@ -121,6 +128,7 @@ Space switcher와 본문 제목이 같은 이름을 두 번 쓰지 않는다. �
 | Spaces | clients | Adopt |
 | Projects | projects | Adopt |
 | Planning views / Issue | tickets, comments, files | Adopt |
+| Agent prompt (Tickets/Issue) | `POST /api/agent/prompts` | Adopt |
 | Your work | tickets `assignee_id=me` · `created_by=me` | Adopt |
 | Search | `GET /api/search` | Adopt |
 | People (settings) | client_members, project_members | Adopt |
