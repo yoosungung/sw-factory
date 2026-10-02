@@ -1,5 +1,5 @@
 import { newId, nowIso } from "./crypto";
-import { prepareAppendAgentEvent } from "./agent-events";
+import { appendAgentEvent } from "./agent-events";
 import { parseBlockedByIds, stripBlockedByMarker } from "./blocked-by-marker";
 
 /** When last FS blocker clears and status is blocked → this key (ARCHITECTURE). */
@@ -306,6 +306,7 @@ export async function onBlockerReachedDone(
 
   const at = nowIso();
   const stmts: D1PreparedStatement[] = [];
+  const eventInputs: Parameters<typeof appendAgentEvent>[1][] = [];
 
   for (const successor_id of successorIds) {
     const successor = successors.get(successor_id);
@@ -361,24 +362,26 @@ export async function onBlockerReachedDone(
       }
     }
 
-    stmts.push(
-      prepareAppendAgentEvent(db, {
-        event_type: "ticket_updated",
-        ticket_id: successor.id,
-        project_id: successor.project_id,
-        actor_user_id: actorUserId,
-        assignee_user_id: successor.assignee_id,
-        at,
-        payload: {
-          dependency_cleared: true,
-          unblocked_from: [blocker.id],
-          ...(changedFields.length ? { changed_fields: changedFields } : {}),
-        },
-      }).statement,
-    );
+    eventInputs.push({
+      event_type: "ticket_updated",
+      ticket_id: successor.id,
+      project_id: successor.project_id,
+      actor_user_id: actorUserId,
+      assignee_user_id: successor.assignee_id,
+      at,
+      payload: {
+        dependency_cleared: true,
+        unblocked_from: [blocker.id],
+        ...(changedFields.length ? { changed_fields: changedFields } : {}),
+      },
+    });
   }
 
   if (stmts.length > 0) {
     await db.batch(stmts);
   }
+  for (const input of eventInputs) {
+    await appendAgentEvent(db, input);
+  }
 }
+

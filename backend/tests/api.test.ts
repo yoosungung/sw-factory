@@ -1553,7 +1553,7 @@ describe("ticket FS dependencies", () => {
     expect(t.status).toBe("in_progress");
     expect(t.blocker_ids).toEqual([]);
 
-    const events = await request("/api/agent/events?limit=50", {}, owner.cookie);
+    const events = await request("/api/agent/events?limit=500", {}, owner.cookie);
     expect(events.status).toBe(200);
     const list = events.json.events as Json[];
     const cleared = list.find(
