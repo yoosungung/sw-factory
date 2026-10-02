@@ -278,7 +278,7 @@ CHECK (successor_id != blocker_id)
 | --- | --- | --- |
 | GET | `/api/agent/events` | query `after_id`, `limit`(기본 100, 최대 500). **세션 인증 필수**(gateway 전용 시스템 유저로 로그인). 응답 `{ events }` — 각 항목에 `payload`(JSON 객체). Worker→agent push 없음. |
 | GET | `/api/agent/flow-gates` | 세션 필수. `{ in_progress, flow_active }` — 공장 전역 티켓 status EXISTS (`in_progress`; dual-loop 활성 컬럼). gateway 스케줄 게이트 전용. |
-| POST | `/api/agent/prompts` | body `{ project_id, target, prompt, ticket_id? }`. **세션 쿠키** 필수. 호출자와 `target` 해석 유저 **모두** 해당 `project_members`. `target`은 `users.name` 우선(대소문자 무시 exact) 또는 `users.id` UUID. `ticket_id`가 있으면 그 티켓은 `project_id` 소속이어야 한다. 성공 시 `agent_event_log`에 `event_type=manual_prompt` 동기 append 후 `{ id, at }` (event 행). Worker→agent push 없음. 구현은 후속; 본 행은 계약 초안. |
+| POST | `/api/agent/prompts` | body `{ project_id, target, prompt, ticket_id? }`. **세션 쿠키** 필수. 호출자와 `target` 해석 유저 **모두** 해당 `project_members`. `target`은 `users.name` 우선(대소문자 무시 exact) 또는 `users.id` UUID. `ticket_id`가 있으면 그 티켓은 `project_id` 소속이어야 한다. 성공 시 `agent_event_log`에 `event_type=manual_prompt` 동기 append 후 `{ id, at }` (event 행). Worker→agent push 없음. |
 
 티켓 create/update(필드 변경 시)/delete·코멘트 create 성공 시 Worker가 `agent_event_log`에 동기 append한다. FS 자동 해제 시 후속 티켓에 `ticket_updated`를 append하며 payload에 `dependency_cleared: true`, `unblocked_from: [blocker_id,…]`, 필요 시 `changed_fields`를 넣는다(전용 event_type 없음 — gateway 기존 assignee wake로 충분). tail은 `(at, id)` 키셋(`after_id`로 앵커). 라우팅·prompt는 gateway; 상세는 [agent/gateway/](agent/gateway/).
 

@@ -201,6 +201,7 @@ erDiagram
 | --- | --- |
 | `GET /api/agent/events` | `after_id`, `limit`; 세션 필수; mutate append는 tickets/comments 경로 |
 | `GET /api/agent/flow-gates` | `{ in_progress, flow_active }` EXISTS; 세션 필수 |
+| `POST /api/agent/prompts` | `{ project_id, target, prompt, ticket_id? }` → `manual_prompt` append; 호출자·target project member |
 
 ### 4.7 에러
 
@@ -248,7 +249,7 @@ backend/src/
     tickets.ts          # kanban + timeline + activities + agent append
     comments.ts         # agent append on create
     files.ts
-    agent.ts            # GET /api/agent/events
+    agent.ts            # GET /api/agent/events · POST /api/agent/prompts
   lib/
     agent-events.ts     # appendAgentEvent
     seed-admin.ts       # ADMIN_EMAIL/PASSWORD 시드
@@ -268,6 +269,7 @@ backend/src/
 | Cursor 페이징 · Done 기간 필터 · Presigned upload · 세션 Cron | **구현됨** | M7 |
 | `version` 409 · `ticket_activities` | **구현됨** | M8 |
 | `agent_event_log` · `GET /api/agent/events` | **구현됨** | A1 |
+| `POST /api/agent/prompts` → `manual_prompt` | **구현됨** | Option A |
 | `GET /api/agent/flow-gates` · comment PATCH | **구현됨** | A8–A9 |
 | 플랫폼 admin · Space 생성 가드 | **구현됨** | M9 |
 | `project_statuses` · 동적 칸반 | **구현됨** | M10 |
