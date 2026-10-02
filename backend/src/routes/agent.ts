@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import type { AppVariables, Env } from "../env";
-import { requireAuth } from "../middleware/auth";
+import { appendAgentEvent } from "../lib/agent-events";
+import { nowIso } from "../lib/crypto";
+import { requireAuth, requireProjectMember } from "../middleware/auth";
 
 type AgentEventRow = {
   id: string;
@@ -12,6 +14,41 @@ type AgentEventRow = {
   assignee_user_id: string | null;
   payload_json: string;
 };
+
+const UUID_RE =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+async function resolveTargetUserId(
+  db: D1Database,
+  projectId: string,
+  target: string,
+): Promise<string | null> {
+  const byName = await db
+    .prepare(
+      `SELECT u.id
+       FROM users u
+       JOIN project_members pm ON pm.user_id = u.id
+       WHERE pm.project_id = ? AND LOWER(u.name) = LOWER(?)
+       LIMIT 1`,
+    )
+    .bind(projectId, target)
+    .first<{ id: string }>();
+  if (byName) return byName.id;
+
+  if (!UUID_RE.test(target)) return null;
+
+  const byId = await db
+    .prepare(
+      `SELECT u.id
+       FROM users u
+       JOIN project_members pm ON pm.user_id = u.id
+       WHERE pm.project_id = ? AND u.id = ?
+       LIMIT 1`,
+    )
+    .bind(projectId, target)
+    .first<{ id: string }>();
+  return byId?.id ?? null;
+}
 
 export const agentRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -80,4 +117,65 @@ agentRoutes.get("/flow-gates", async (c) => {
     in_progress: !!inProgress,
     flow_active: !!flowActive,
   });
+});
+
+agentRoutes.post("/prompts", async (c) => {
+  const user = c.get("user");
+  const body = (await c.req.json().catch(() => null)) as {
+    project_id?: unknown;
+    target?: unknown;
+    prompt?: unknown;
+    ticket_id?: unknown;
+  } | null;
+
+  const projectId =
+    typeof body?.project_id === "string" ? body.project_id.trim() : "";
+  const target = typeof body?.target === "string" ? body.target.trim() : "";
+  const prompt = typeof body?.prompt === "string" ? body.prompt : "";
+  const ticketIdRaw =
+    body?.ticket_id === undefined || body?.ticket_id === null
+      ? null
+      : typeof body.ticket_id === "string"
+        ? body.ticket_id.trim()
+        : "";
+
+  if (!projectId || !target || typeof body?.prompt !== "string" || !prompt.trim()) {
+    return c.json({ error: "invalid_body" }, 400);
+  }
+  if (ticketIdRaw === "") {
+    return c.json({ error: "invalid_body" }, 400);
+  }
+
+  const callerRole = await requireProjectMember(c.env.DB, projectId, user.id);
+  if (!callerRole) return c.json({ error: "forbidden" }, 403);
+
+  const targetUserId = await resolveTargetUserId(c.env.DB, projectId, target);
+  if (!targetUserId) return c.json({ error: "invalid_target" }, 400);
+
+  let ticketId: string | null = ticketIdRaw;
+  if (ticketId) {
+    const ticket = await c.env.DB.prepare(
+      `SELECT id FROM tickets WHERE id = ? AND project_id = ?`,
+    )
+      .bind(ticketId, projectId)
+      .first<{ id: string }>();
+    if (!ticket) return c.json({ error: "invalid_ticket" }, 400);
+  }
+
+  const at = nowIso();
+  const id = await appendAgentEvent(c.env.DB, {
+    event_type: "manual_prompt",
+    ticket_id: ticketId,
+    project_id: projectId,
+    actor_user_id: user.id,
+    assignee_user_id: targetUserId,
+    payload: {
+      prompt,
+      target,
+      target_user_id: targetUserId,
+    },
+    at,
+  });
+
+  return c.json({ id, at }, 201);
 });

@@ -1529,6 +1529,9 @@ describe("ticket FS dependencies", () => {
       owner.cookie,
     );
 
+    const baseline = await request("/api/agent/events?limit=500", {}, owner.cookie);
+    const afterId = (baseline.json.events as Json[]).at(-1)?.id as string | undefined;
+
     const done = await request(
       `/api/tickets/${blocker.id}`,
       { method: "PATCH", body: JSON.stringify({ status: "done" }) },
@@ -1542,7 +1545,10 @@ describe("ticket FS dependencies", () => {
     expect(t.status).toBe("in_progress");
     expect(t.blocker_ids).toEqual([]);
 
-    const events = await request("/api/agent/events?limit=50", {}, owner.cookie);
+    const pullPath = afterId
+      ? `/api/agent/events?after_id=${afterId}&limit=50`
+      : "/api/agent/events?limit=50";
+    const events = await request(pullPath, {}, owner.cookie);
     expect(events.status).toBe(200);
     const list = events.json.events as Json[];
     const cleared = list.find(
@@ -1598,5 +1604,190 @@ describe("A8 flow-gates", () => {
     const active = await request("/api/agent/flow-gates", {}, owner.cookie);
     expect(active.json.in_progress).toBe(true);
     expect(active.json.flow_active).toBe(true);
+  });
+});
+
+describe("POST /api/agent/prompts (manual_prompt)", () => {
+  async function seedPromptProject(ownerCookie: string) {
+    const clientId = await createClient(ownerCookie, "PromptCo");
+    const proj = await request(
+      "/api/projects",
+      { method: "POST", body: JSON.stringify({ name: "PromptProj", client_id: clientId }) },
+      ownerCookie,
+    );
+    return {
+      clientId,
+      projectId: (proj.json.project as Json).id as string,
+    };
+  }
+
+  async function addProjectMember(
+    ownerCookie: string,
+    clientId: string,
+    projectId: string,
+    userId: string,
+    lane?: string,
+  ) {
+    const clientAdd = await request(
+      `/api/clients/${clientId}/members`,
+      { method: "POST", body: JSON.stringify({ user_id: userId, role: "member" }) },
+      ownerCookie,
+    );
+    expect(clientAdd.status).toBe(201);
+    const projAdd = await request(
+      `/api/projects/${projectId}/members`,
+      {
+        method: "POST",
+        body: JSON.stringify({ user_id: userId, role: "member", ...(lane ? { lane } : {}) }),
+      },
+      ownerCookie,
+    );
+    expect(projAdd.status).toBe(201);
+  }
+
+  it("requires auth and validates body", async () => {
+    const anon = await request("/api/agent/prompts", {
+      method: "POST",
+      body: JSON.stringify({ project_id: "x", target: "a", prompt: "hi" }),
+    });
+    expect(anon.status).toBe(401);
+
+    const owner = await register("PromptAuth", { admin: true });
+    const { projectId } = await seedPromptProject(owner.cookie);
+    const missing = await request(
+      "/api/agent/prompts",
+      { method: "POST", body: JSON.stringify({ project_id: projectId }) },
+      owner.cookie,
+    );
+    expect(missing.status).toBe(400);
+    expect(missing.json.error).toBe("invalid_body");
+  });
+
+  it("appends manual_prompt by name and surfaces on events tail", async () => {
+    const owner = await register("PromptOwner", { admin: true });
+    const target = await register("PromptTarget");
+    const { clientId, projectId } = await seedPromptProject(owner.cookie);
+    await addProjectMember(owner.cookie, clientId, projectId, target.userId, "developer");
+
+    const baseline = await request("/api/agent/events?limit=500", {}, owner.cookie);
+    const afterId = (baseline.json.events as Json[]).at(-1)?.id as string | undefined;
+
+    const created = await request(
+      `/api/projects/${projectId}/tickets`,
+      { method: "POST", body: JSON.stringify({ title: "Scoped", type: "task" }) },
+      owner.cookie,
+    );
+    const ticketId = (created.json.ticket as Json).id as string;
+
+    const res = await request(
+      "/api/agent/prompts",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          project_id: projectId,
+          target: "PromptTarget",
+          prompt: "Please catch up",
+          ticket_id: ticketId,
+        }),
+      },
+      owner.cookie,
+    );
+    expect(res.status).toBe(201);
+    expect(typeof res.json.id).toBe("string");
+    expect(typeof res.json.at).toBe("string");
+
+    const pullPath = afterId
+      ? `/api/agent/events?after_id=${afterId}&limit=50`
+      : "/api/agent/events?limit=50";
+    const pull = await request(pullPath, {}, owner.cookie);
+    const events = (pull.json.events as Json[]).filter(
+      (e) => e.event_type === "manual_prompt" && e.id === res.json.id,
+    );
+    expect(events).toHaveLength(1);
+    const ev = events[0]!;
+    expect(ev.project_id).toBe(projectId);
+    expect(ev.ticket_id).toBe(ticketId);
+    expect(ev.actor_user_id).toBe(owner.userId);
+    expect(ev.assignee_user_id).toBe(target.userId);
+    expect(ev.payload).toEqual({
+      prompt: "Please catch up",
+      target: "PromptTarget",
+      target_user_id: target.userId,
+    });
+  });
+
+  it("resolves target by user_id UUID and rejects non-members", async () => {
+    const owner = await register("PromptUuidOwner", { admin: true });
+    const member = await register("PromptUuidMember");
+    const outsider = await register("PromptOutsider");
+    const { clientId, projectId } = await seedPromptProject(owner.cookie);
+    await addProjectMember(owner.cookie, clientId, projectId, member.userId);
+
+    const byId = await request(
+      "/api/agent/prompts",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          project_id: projectId,
+          target: member.userId,
+          prompt: "uuid wake",
+        }),
+      },
+      owner.cookie,
+    );
+    expect(byId.status).toBe(201);
+    expect(byId.json.id).toBeTruthy();
+
+    const badTarget = await request(
+      "/api/agent/prompts",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          project_id: projectId,
+          target: outsider.userId,
+          prompt: "nope",
+        }),
+      },
+      owner.cookie,
+    );
+    expect(badTarget.status).toBe(400);
+    expect(badTarget.json.error).toBe("invalid_target");
+
+    const asOutsider = await request(
+      "/api/agent/prompts",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          project_id: projectId,
+          target: member.userId,
+          prompt: "nope",
+        }),
+      },
+      outsider.cookie,
+    );
+    expect(asOutsider.status).toBe(403);
+
+    const other = await register("OtherProjOwner", { admin: true });
+    const otherSeed = await seedPromptProject(other.cookie);
+    const ticket = await request(
+      `/api/projects/${otherSeed.projectId}/tickets`,
+      { method: "POST", body: JSON.stringify({ title: "Other", type: "task" }) },
+      other.cookie,
+    );
+    const badTicket = await request(
+      "/api/agent/prompts",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          project_id: projectId,
+          target: member.userId,
+          prompt: "wrong ticket project",
+          ticket_id: (ticket.json.ticket as Json).id,
+        }),
+      },
+      owner.cookie,
+    );
+    expect(badTicket.status).toBe(400);
+    expect(badTicket.json.error).toBe("invalid_ticket");
   });
 });
