@@ -42,6 +42,7 @@ agent/gateway/
 | `loop` | tick | pull → route → dispatch → checkpoint; stdout `msg: tick`의 `dispatched[]`에 `ticket_id`(이벤트 UUID, ticketless는 null) + `ticket_no`(UI issueKey, 예: SWF-EA2D) + `agent_id`(Cursor session) |
 | `schedule-tick` | ScheduleTicker | 로컬 UTC cron · gates · `(id, minute)` dedupe → 티켓리스 `POST /sessions` |
 | `catch-up` | ReadyCatchupTicker | 기동 시 `prompts.catch_up` 1회 (sessions persona) |
+| `manual-prompt` | (outbox) | `event_type=manual_prompt` → target resolve → `deliverTicketless`(티켓리스) 또는 Active 스코프 `deliverOne`; 동일 payload 분단위 claim dedupe(배달 실패 시 claim release) |
 
 ## Commands
 

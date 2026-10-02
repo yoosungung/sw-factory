@@ -1,4 +1,4 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, unlink, writeFile } from "node:fs/promises";
 import path from "node:path";
 
 export function scheduleFiresDir(dataDir: string): string {
@@ -29,5 +29,20 @@ export async function claimScheduleFire(
     const code = (err as NodeJS.ErrnoException).code;
     if (code === "EEXIST") return false;
     throw err;
+  }
+}
+
+/** Drop a claim so a failed delivery can retry in the same UTC minute. */
+export async function releaseScheduleFire(
+  dataDir: string,
+  scheduleId: string,
+  minuteKey: string,
+): Promise<void> {
+  const file = scheduleFirePath(dataDir, scheduleId, minuteKey);
+  try {
+    await unlink(file);
+  } catch (err) {
+    const code = (err as NodeJS.ErrnoException).code;
+    if (code !== "ENOENT") throw err;
   }
 }

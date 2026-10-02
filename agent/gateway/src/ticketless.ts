@@ -2,6 +2,10 @@ import { dispatchToCursor } from "./dispatch";
 import { enqueueEventRetry, removeRetry } from "./retry";
 import type { AgentEvent, GatewayConfig } from "./types";
 
+export type TicketlessResult =
+  | { status: "ok"; agent_id: string }
+  | { status: "retry" | "poison" };
+
 export async function deliverTicketless(opts: {
   config: GatewayConfig;
   persona: string;
@@ -10,7 +14,7 @@ export async function deliverTicketless(opts: {
   eventType: string;
   payload?: Record<string, unknown>;
   fetchImpl?: typeof fetch;
-}): Promise<"ok" | "retry" | "poison"> {
+}): Promise<TicketlessResult> {
   const event: AgentEvent = {
     id: opts.retryKey,
     at: new Date().toISOString(),
@@ -33,9 +37,9 @@ export async function deliverTicketless(opts: {
 
   if (result.ok) {
     await removeRetry(opts.config.dataDir, opts.retryKey, opts.persona);
-    return "ok";
+    return { status: "ok", agent_id: result.agent_id };
   }
-  if (result.ackPoison) return "poison";
+  if (result.ackPoison) return { status: "poison" };
   if (result.enqueue) {
     await enqueueEventRetry(
       opts.config.dataDir,
@@ -45,5 +49,5 @@ export async function deliverTicketless(opts: {
       event,
     );
   }
-  return "retry";
+  return { status: "retry" };
 }
