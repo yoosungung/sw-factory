@@ -7,10 +7,11 @@ gateway만 라우팅한다. cursor는 “누구 몫인지”를 다시 판단하
 1. **대상** — `type=sessions` persona의 factory `user_id`가 assignee이거나 @mention된 경우. **`assignee_user_id`가 null(Unassigned)이면 `persona: pm`으로 triage 배달.**
 2. **self-echo** — bot이 **자기 담당 티켓**에 남긴 이벤트는 그 bot으로 재디스패치하지 않는다. 다른 bot·human 이벤트는 전달.
 3. **human** — `type=human`은 prompt 대상 아님.
-4. **Active ticket 스코프** — 이벤트 prompt에 `Active ticket_id=…`를 붙여 MCP 읽기/쓰기를 해당 티켓으로 유도. `catch_up`·스케줄(티켓리스)에는 붙이지 않음.
+4. **Active ticket 스코프** — 이벤트 prompt에 `Active ticket_id=…`를 붙여 MCP 읽기/쓰기를 해당 티켓으로 유도. `catch_up`·스케줄(티켓리스)·`manual_prompt`(ticket_id 없음)에는 붙이지 않음. `manual_prompt`에 `ticket_id`가 있으면 payload prompt에 Active를 append.
 5. **mention** — Worker가 코멘트 body의 `@user.name`(case-insensitive, project member)을 `payload.mention_user_ids`로 넣음 → 해당 persona.
 6. **handoff** — assignee 변경 시 신규 assignee에 handoff prompt; 이전 sticky는 cursor가 티켓 뮤텍스·매핑으로 정리.
 7. **catch-up (재기동=출근)** — gateway **프로세스 기동 시** `prompts.catch_up` 1회 (`type=sessions`). lookback=`last_catch_up_at` 또는 now−48h. `/readyz` 폴링은 하지 않음.
+8. **manual_prompt** — Worker `POST /api/agent/prompts` outbox. target은 `payload.target_user_id` / `target` / `target_name`(name·persona) 또는 `assignee_user_id`. assignee/mention/self-echo 규칙 미적용. 동일 `(target, ticket_id, prompt)`는 UTC 분당 1회만 배달(schedule claim 재사용).
 
 ## prompts 템플릿 키
 

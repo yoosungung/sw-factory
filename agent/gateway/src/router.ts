@@ -1,3 +1,4 @@
+import { resolveManualPromptTarget } from "./manual-prompt";
 import type { AgentEvent, PersonaConfig } from "./types";
 
 function sessionsAgents(agents: PersonaConfig[]): PersonaConfig[] {
@@ -18,6 +19,7 @@ function mentionUserIds(event: AgentEvent): string[] {
 /**
  * Route an outbox event to sessions personas (assignee + mentions), applying self-echo skip.
  * Unassigned (`assignee_user_id` null) → `persona: pm` triage when that sessions agent exists.
+ * `manual_prompt` → payload target only (not assignee/mention rules).
  */
 export function routeEvent(
   event: AgentEvent,
@@ -25,6 +27,11 @@ export function routeEvent(
 ): PersonaConfig[] {
   if (event.event_type === "ticket_deleted") {
     return [];
+  }
+
+  if (event.event_type === "manual_prompt") {
+    const target = resolveManualPromptTarget(event, agents);
+    return target ? [target] : [];
   }
 
   const targets = new Map<string, PersonaConfig>();

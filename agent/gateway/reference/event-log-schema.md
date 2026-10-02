@@ -44,4 +44,4 @@ Worker mutate 경로·`POST /api/agent/prompts`에서 동기 INSERT 후 응답. 
 
 FS auto-unblock은 전용 `event_type` 없이 `ticket_updated` + 위 payload 필드를 쓴다(gateway 라우팅 변경 없음).
 
-`manual_prompt`는 `prompt`·`target`·`target_user_id`를 쓴다. gateway는 schedule/`catch_up`과 같이 `deliverTicketless`로 배달(구현 후속). `ticket_id` 있으면 Active 스코프, 없으면 티켓리스(회신 SoR = PVC/로그).
+`manual_prompt`는 `prompt`·`target`·`target_user_id`를 쓴다. gateway는 schedule/`catch_up`과 같이 `deliverTicketless`로 배달한다(`ticket_id` 있으면 Active 스코프 `deliverOne`). `ticket_id` 없으면 티켓리스(회신 SoR = PVC/로그).

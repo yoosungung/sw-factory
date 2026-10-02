@@ -7,6 +7,10 @@ import {
   stickyKey,
 } from "./checkpoint";
 import { dispatchToCursor } from "./dispatch";
+import {
+  claimManualPromptFire,
+  composeManualPrompt,
+} from "./manual-prompt";
 import { renderPrompt, promptKindForTarget } from "./prompts";
 import { enqueueEventRetry, listRetries, removeRetry } from "./retry";
 import { routeEvent } from "./router";
@@ -107,6 +111,10 @@ export async function processEvent(
   event: AgentEvent,
   fetchImpl?: typeof fetch,
 ): Promise<{ allOk: boolean; dispatched: TickResult["dispatched"] }> {
+  if (event.event_type === "manual_prompt") {
+    return processManualPrompt(config, sticky, event, fetchImpl);
+  }
+
   const targets = routeEvent(event, config.agents);
   const dispatched: TickResult["dispatched"] = [];
 
@@ -159,6 +167,86 @@ export async function processEvent(
   return { allOk, dispatched };
 }
 
+async function processManualPrompt(
+  config: GatewayConfig,
+  sticky: StickyMap,
+  event: AgentEvent,
+  fetchImpl?: typeof fetch,
+): Promise<{ allOk: boolean; dispatched: TickResult["dispatched"] }> {
+  const dispatched: TickResult["dispatched"] = [];
+  const targets = routeEvent(event, config.agents);
+  if (targets.length === 0) {
+    return { allOk: true, dispatched };
+  }
+
+  const claimed = await claimManualPromptFire(config.dataDir, event);
+  if (!claimed) {
+    // Identical payload already fired this UTC minute — ack without re-dispatch.
+    return { allOk: true, dispatched };
+  }
+
+  const prompt = composeManualPrompt(event);
+  const target = targets[0]!;
+  const ticketless = !event.ticket_id;
+
+  if (ticketless) {
+    const outcome = await deliverTicketless({
+      config,
+      persona: target.persona,
+      prompt,
+      retryKey: event.id,
+      eventType: "manual_prompt",
+      payload: event.payload,
+      fetchImpl,
+    });
+    if (outcome.status === "ok") {
+      dispatched.push({
+        event_id: event.id,
+        persona: target.persona,
+        agent_id: outcome.agent_id,
+        ticket_id: null,
+        ticket_no: null,
+      });
+      return { allOk: true, dispatched };
+    }
+    if (outcome.status === "retry") {
+      return { allOk: false, dispatched };
+    }
+    return { allOk: true, dispatched };
+  }
+
+  const outcome = await deliverOne({
+    config,
+    sticky,
+    event,
+    persona: target.persona,
+    prompt,
+    fetchImpl,
+  });
+  if (outcome === "ok") {
+    const agent_id = sticky[stickyKey(event.ticket_id ?? "", target.persona)] ?? "";
+    const ticket_no = await resolveTicketNo({
+      factoryBaseUrl: config.factoryBaseUrl,
+      sessionCookie: config.sessionCookie,
+      projectId: event.project_id,
+      ticketId: event.ticket_id,
+      fetchImpl,
+    });
+    dispatched.push({
+      event_id: event.id,
+      persona: target.persona,
+      agent_id,
+      ticket_id: event.ticket_id,
+      ticket_no,
+    });
+    return { allOk: true, dispatched };
+  }
+  if (outcome === "retry") {
+    return { allOk: false, dispatched };
+  }
+  return { allOk: true, dispatched };
+}
+
 export async function flushRetries(
   config: GatewayConfig,
   sticky: StickyMap,
@@ -172,7 +260,8 @@ export async function flushRetries(
     }
     const ticketless =
       item.event.event_type === "schedule" ||
-      item.event.event_type === "catch_up";
+      item.event.event_type === "catch_up" ||
+      (item.event.event_type === "manual_prompt" && !item.event.ticket_id);
     if (ticketless) {
       await deliverTicketless({
         config,
