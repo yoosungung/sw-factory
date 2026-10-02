@@ -75,7 +75,13 @@ const chrome: ChromeFn = ({ children }) => <div>{children}</div>;
 function renderPage() {
   return render(
     <MemoryRouter>
-      <YourWorkPage user={user} onLogout={() => {}} chrome={chrome} />
+      <YourWorkPage
+        user={user}
+        onLogout={() => {}}
+        chrome={chrome}
+        clients={[]}
+        projects={[project, emptyProject]}
+      />
     </MemoryRouter>,
   );
 }

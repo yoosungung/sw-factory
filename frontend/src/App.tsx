@@ -91,7 +91,15 @@ export function App() {
       <Route path="/register" element={<Navigate to="/" replace />} />
       <Route
         path="/"
-        element={<YourWorkPage user={user} onLogout={onLogout} chrome={pageChrome} />}
+        element={
+          <YourWorkPage
+            user={user}
+            onLogout={onLogout}
+            clients={clients}
+            projects={projects}
+            chrome={pageChrome}
+          />
+        }
       />
       <Route path="/your-work" element={<Navigate to="/" replace />} />
       <Route path="/projects" element={<ProjectsHome user={user} onLogout={onLogout} />} />
@@ -103,6 +111,8 @@ export function App() {
             user={user}
             onLogout={onLogout}
             onUserUpdate={setUser}
+            clients={clients}
+            projects={projects}
             chrome={pageChrome}
           />
         }
@@ -113,15 +123,39 @@ export function App() {
       />
       <Route
         path="/search"
-        element={<SearchPage user={user} onLogout={onLogout} chrome={pageChrome} />}
+        element={
+          <SearchPage
+            user={user}
+            onLogout={onLogout}
+            clients={clients}
+            projects={projects}
+            chrome={pageChrome}
+          />
+        }
       />
       <Route
         path="/filters"
-        element={<FiltersPage user={user} onLogout={onLogout} chrome={pageChrome} />}
+        element={
+          <FiltersPage
+            user={user}
+            onLogout={onLogout}
+            clients={clients}
+            projects={projects}
+            chrome={pageChrome}
+          />
+        }
       />
       <Route
         path="/filters/:id"
-        element={<FiltersPage user={user} onLogout={onLogout} chrome={pageChrome} />}
+        element={
+          <FiltersPage
+            user={user}
+            onLogout={onLogout}
+            clients={clients}
+            projects={projects}
+            chrome={pageChrome}
+          />
+        }
       />
       <Route path="/clients/:id" element={<ClientPage user={user} onLogout={onLogout} />} />
       <Route

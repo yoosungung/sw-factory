@@ -45,7 +45,10 @@ export async function cleanupExpiredSessions(db: D1Database): Promise<number> {
 
 const worker = {
   async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-    await ensureSeedAdmin(env);
+    const path = new URL(request.url).pathname;
+    if (path.startsWith("/api/")) {
+      await ensureSeedAdmin(env);
+    }
     return app.fetch(request, env, ctx);
   },
   async scheduled(

@@ -1,7 +1,16 @@
 import type { Env } from "../env";
 import { hashPassword, newId, nowIso } from "./crypto";
 
+let seedAdminDone = false;
+
+/** Test helper: clear isolate-level gate between cases. */
+export function resetSeedAdminGate(): void {
+  seedAdminDone = false;
+}
+
 export async function ensureSeedAdmin(env: Env): Promise<void> {
+  if (seedAdminDone) return;
+
   const email = env.ADMIN_EMAIL?.trim().toLowerCase();
   const password = env.ADMIN_PASSWORD ?? "";
   if (!email || password.length < 8) return;
@@ -9,13 +18,17 @@ export async function ensureSeedAdmin(env: Env): Promise<void> {
   const existingAdmin = await env.DB.prepare(
     `SELECT id FROM users WHERE is_admin = 1 LIMIT 1`,
   ).first();
-  if (existingAdmin) return;
+  if (existingAdmin) {
+    seedAdminDone = true;
+    return;
+  }
 
   const existing = await env.DB.prepare(`SELECT id FROM users WHERE email = ?`)
     .bind(email)
     .first<{ id: string }>();
   if (existing) {
     await env.DB.prepare(`UPDATE users SET is_admin = 1 WHERE id = ?`).bind(existing.id).run();
+    seedAdminDone = true;
     return;
   }
 
@@ -33,4 +46,5 @@ export async function ensureSeedAdmin(env: Env): Promise<void> {
   } catch {
     await env.DB.prepare(`UPDATE users SET is_admin = 1 WHERE email = ?`).bind(email).run();
   }
+  seedAdminDone = true;
 }

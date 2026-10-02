@@ -26,7 +26,9 @@ frontend/src/
 
 - Top nav (직접 링크): Spaces(`/spaces`) / Projects(`/projects`) / Your work(`/`) / Search(⌘K) / Account / Create. Filters·Teams는 Top nav에 없음.
 - Issue description/comments: 저장은 Markdown 문자열; 읽기는 `RichContent`(GFM + sanitize). Description은 click-to-edit textarea. Comments 탭은 FE에서 `created_at` DESC 표시(API ASC 유지).
-- Issue: assignee · due · priority 인라인 `PATCH`(+`version` 409), Activity 탭 Comments/Details/Files/History(Details=properties), 작성자·owner 삭제
+- Issue: assignee · due · priority 인라인 `PATCH`(+`version` 409), Activity 탭 Comments/Details/Files/History(Details=properties), 작성자·owner 삭제. 사이드로드는 `ticket.id` 기준; 저장은 PATCH 응답 `activities` 사용(추가 GET 없음). 보드 `onChanged`는 status/sort_order만 full refresh, 그 외 로컬 머지.
+- ProjectWorkspace: view별 로드(board/backlog/overview→kanban, timeline→timeline, list→tickets+statuses). `?issue=` 오픈은 mega-refresh 없음.
+- Your work / Filters: App 세션 `clients`/`projects` props 재사용; Your work는 활성 탭만 fetch; Filters text는 debounce 후 클라이언트 필터.
 - `/browse/:ticketId` 전폭 페이지(`.issue-page` 잔여 높이 + `.drawer-body` 스크롤 · ✕/Esc → Board); 보드 `?issue=` sidebar/modal
 - Space/Project settings: Details · People · Board(statuses CRUD) · Danger
 - `/admin`: 플랫폼 admin 계정 목록 · Space 생성

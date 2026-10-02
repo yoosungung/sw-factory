@@ -228,11 +228,16 @@ describe("projects and tickets", () => {
     expect((kanban.json.statuses as Json[]).length).toBe(9);
     expect((kanban.json.columns as Record<string, Json[]>).backlog).toBeDefined();
     expect((kanban.json.columns as Record<string, Json[]>).review).toBeDefined();
+    const backlogCards = (kanban.json.columns as Record<string, Json[]>).backlog;
+    if (backlogCards.length > 0) {
+      expect(backlogCards[0].description).toBe("");
+    }
 
     const timeline = await request(`/api/projects/${projectId}/timeline`, {}, a.cookie);
     expect(timeline.status).toBe(200);
     expect(Array.isArray(timeline.json.items)).toBe(true);
     expect((timeline.json.items as Json[]).length).toBeGreaterThan(0);
+    expect(((timeline.json.items as Json[])[0] as Json).description).toBe("");
   });
 
   it("auto-fills UTC dates so tasks appear on the timeline without manual range", async () => {
@@ -797,6 +802,11 @@ describe("M8 concurrency and history", () => {
     expect(ok.status).toBe(200);
     expect((ok.json.ticket as Json).version).toBe(2);
     expect((ok.json.ticket as Json).status).toBe("in_progress");
+    const patchActivities = ok.json.activities as Json[];
+    expect(Array.isArray(patchActivities)).toBe(true);
+    expect(patchActivities.some((a) => a.field === "status" && a.new_val === "in_progress")).toBe(
+      true,
+    );
 
     const conflict = await request(
       `/api/tickets/${ticketId}`,
@@ -1232,7 +1242,8 @@ describe("platform admin", () => {
   });
 
   it("seeds admin from ADMIN_EMAIL when none exist and refuses demoting the last admin", async () => {
-    const { ensureSeedAdmin } = await import("../src/lib/seed-admin");
+    const { ensureSeedAdmin, resetSeedAdminGate } = await import("../src/lib/seed-admin");
+    resetSeedAdminGate();
     await env.DB.prepare(`UPDATE users SET is_admin = 0`).run();
     await ensureSeedAdmin({
       ...env,

@@ -43,6 +43,11 @@ const TICKET_SELECT = `id, project_id, title, description, type, status, priorit
               milestone_id, assignee_id, due_at, date_from, date_to, version,
               created_by, created_at, updated_at`;
 
+/** List/kanban/timeline cards — description body is not transferred (detail via GET /tickets/:id). */
+const TICKET_CARD_SELECT = `id, project_id, title, '' AS description, type, status, priority, sort_order,
+              milestone_id, assignee_id, due_at, date_from, date_to, version,
+              created_by, created_at, updated_at`;
+
 export const ticketRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
 ticketRoutes.use("/projects/*", requireAuth);
@@ -77,7 +82,7 @@ ticketRoutes.get("/projects/:projectId/tickets", async (c) => {
     : 50;
   const cursor = c.req.query("cursor");
 
-  let sql = `SELECT ${TICKET_SELECT} FROM tickets WHERE project_id = ?`;
+  let sql = `SELECT ${TICKET_CARD_SELECT} FROM tickets WHERE project_id = ?`;
   const binds: (string | number)[] = [projectId];
   if (type) {
     sql += ` AND type = ?`;
@@ -299,14 +304,12 @@ ticketRoutes.put("/tickets/:id/dependencies", async (c) => {
     return c.json({ error: result.error }, status);
   }
 
-  const view = await listDependencyView(c.env.DB, ticket.id);
   const fresh = await loadTicket(c.env.DB, ticket.id);
-  const blocker_ids = await resolveBlockerIds(
-    c.env.DB,
-    ticket.id,
-    fresh?.description ?? "",
-  );
-  return c.json({ ...view, blocker_ids, ticket: fresh ? { ...fresh, blocker_ids } : null });
+  const view = await listDependencyView(c.env.DB, ticket.id);
+  return c.json({
+    ...view,
+    ticket: fresh ? { ...fresh, blocker_ids: view.blocker_ids } : null,
+  });
 });
 
 ticketRoutes.patch("/tickets/:id", async (c) => {
@@ -354,8 +357,14 @@ ticketRoutes.patch("/tickets/:id", async (c) => {
   }
 
   const nextStatus = body.status ?? ticket.status;
-  const nextCat = await statusCategory(c.env.DB, ticket.project_id, nextStatus);
-  const prevCat = await statusCategory(c.env.DB, ticket.project_id, ticket.status);
+  const { results: statusCats } = await c.env.DB.prepare(
+    `SELECT key, category FROM project_statuses WHERE project_id = ? AND key IN (?, ?)`,
+  )
+    .bind(ticket.project_id, nextStatus, ticket.status)
+    .all<{ key: string; category: "backlog" | "active" | "done" }>();
+  const catByKey = new Map((statusCats ?? []).map((r) => [r.key, r.category]));
+  const nextCat = catByKey.get(nextStatus) ?? null;
+  const prevCat = catByKey.get(ticket.status) ?? null;
   if (!nextCat || !prevCat) return c.json({ error: "invalid_input" }, 400);
   const updated_at = nowIso();
   const dates = resolveTimelineDates({
@@ -453,34 +462,48 @@ ticketRoutes.patch("/tickets/:id", async (c) => {
     });
   }
 
+  const updatedRow: TicketRow = {
+    ...ticket,
+    ...next,
+    version: newVersion,
+    updated_at,
+  };
+
   if (tracked.some((t) => t.field === "status")) {
-    const updated = await loadTicket(c.env.DB, ticket.id);
-    if (updated) {
-      await onBlockerReachedDone(
-        c.env.DB,
-        {
-          id: updated.id,
-          title: updated.title,
-          status: updated.status,
-          project_id: updated.project_id,
-          milestone_id: updated.milestone_id,
-          assignee_id: updated.assignee_id,
-          version: updated.version,
-          description: updated.description,
-        },
-        user.id,
-      );
-    }
+    await onBlockerReachedDone(
+      c.env.DB,
+      {
+        id: updatedRow.id,
+        title: updatedRow.title,
+        status: updatedRow.status,
+        project_id: updatedRow.project_id,
+        milestone_id: updatedRow.milestone_id,
+        assignee_id: updatedRow.assignee_id,
+        version: updatedRow.version,
+        description: updatedRow.description,
+      },
+      user.id,
+    );
   }
 
-  const fresh = await loadTicket(c.env.DB, ticket.id);
+  const fresh =
+    tracked.some((t) => t.field === "status")
+      ? await loadTicket(c.env.DB, ticket.id)
+      : updatedRow;
   if (!fresh) return c.json({ error: "not_found" }, 404);
   const blocker_ids = await resolveBlockerIds(
     c.env.DB,
     fresh.id,
     fresh.description,
   );
-  return c.json({ ticket: { ...fresh, blocker_ids } });
+  const { results: activities } = await c.env.DB.prepare(
+    `SELECT id, ticket_id, actor_id, field, old_val, new_val, at
+     FROM ticket_activities WHERE ticket_id = ?
+     ORDER BY at DESC, id DESC`,
+  )
+    .bind(ticket.id)
+    .all();
+  return c.json({ ticket: { ...fresh, blocker_ids }, activities: activities ?? [] });
 });
 
 ticketRoutes.get("/tickets/:id/activities", async (c) => {
@@ -532,7 +555,7 @@ ticketRoutes.get("/projects/:projectId/kanban", async (c) => {
   const statuses = await listProjectStatuses(c.env.DB, projectId);
   const includeArchived = c.req.query("include_archived") === "true";
 
-  let sql = `SELECT ${TICKET_SELECT} FROM tickets WHERE project_id = ? AND type = 'task'`;
+  let sql = `SELECT ${TICKET_CARD_SELECT} FROM tickets WHERE project_id = ? AND type = 'task'`;
   const binds: string[] = [projectId];
   const archive = archivedDoneFilter(includeArchived);
   sql += archive.sql;
@@ -556,7 +579,7 @@ ticketRoutes.get("/projects/:projectId/timeline", async (c) => {
   if (!role) return c.json({ error: "forbidden" }, 403);
 
   const { results } = await c.env.DB.prepare(
-    `SELECT ${TICKET_SELECT} FROM tickets
+    `SELECT ${TICKET_CARD_SELECT} FROM tickets
      WHERE project_id = ? AND date_from IS NOT NULL AND date_to IS NOT NULL
      ORDER BY date_from ASC`,
   )

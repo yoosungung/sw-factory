@@ -232,6 +232,17 @@ export function IssuePanel({
       setActivities(a.activities);
       setBlockers(d.blockers);
     });
+  }, [initial.id]);
+
+  const editingDescRef = useRef(editingDesc);
+  editingDescRef.current = editingDesc;
+
+  useEffect(() => {
+    setTicket(initial);
+    setTitle(initial.title);
+    if (!editingDescRef.current) {
+      setDescription(initial.description);
+    }
   }, [initial]);
 
   useEffect(() => {
@@ -247,7 +258,7 @@ export function IssuePanel({
     try {
       const r = await client.patchTicket(ticket.id, { ...patch, version: ticket.version });
       setTicket(r.ticket);
-      setActivities((await client.ticketActivities(ticket.id)).activities);
+      if (r.activities) setActivities(r.activities);
       onChanged(r.ticket);
       return r.ticket;
     } catch (err) {

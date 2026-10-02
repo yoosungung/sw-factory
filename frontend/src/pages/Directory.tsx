@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { client, type Client, type Project, type Ticket, type User } from "../api";
 import { statusLabel } from "../components/issue/IssuePanel";
@@ -10,22 +10,6 @@ import {
 } from "../lib/savedViews";
 import type { ChromeFn } from "./Personal";
 
-function useClients() {
-  const [clients, setClients] = useState<Client[]>([]);
-  useEffect(() => {
-    void client.clients().then((r) => setClients(r.clients));
-  }, []);
-  return clients;
-}
-
-function useAllProjects() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  useEffect(() => {
-    void client.projects().then((r) => setProjects(r.projects));
-  }, []);
-  return projects;
-}
-
 function newId() {
   return crypto.randomUUID();
 }
@@ -34,23 +18,46 @@ export function FiltersPage({
   user,
   onLogout,
   chrome,
+  clients,
+  projects,
 }: {
   user: User;
   onLogout: () => void;
   chrome: ChromeFn;
+  clients: Client[];
+  projects: Project[];
 }) {
   const { id } = useParams();
   const navigate = useNavigate();
-  const clients = useClients();
-  const projects = useAllProjects();
   const [filters, setFilters] = useState(listFilters);
-  const [results, setResults] = useState<Array<Ticket & { project?: Project }>>([]);
+  const [fetched, setFetched] = useState<Array<Ticket & { project?: Project }>>([]);
+  const [debouncedText, setDebouncedText] = useState("");
 
   const active = filters.find((f) => f.id === id) ?? null;
+  const queryKey = active
+    ? [
+        active.id,
+        active.query.project_id ?? "",
+        active.query.status ?? "",
+        active.query.type ?? "",
+        active.query.assignee ?? "",
+      ].join("|")
+    : "";
 
   useEffect(() => {
     if (!active) {
-      setResults([]);
+      setDebouncedText("");
+      return;
+    }
+    const handle = window.setTimeout(() => {
+      setDebouncedText(active.query.text ?? "");
+    }, 250);
+    return () => window.clearTimeout(handle);
+  }, [active?.id, active?.query.text]);
+
+  useEffect(() => {
+    if (!active) {
+      setFetched([]);
       return;
     }
     void (async () => {
@@ -64,15 +71,18 @@ export function FiltersPage({
             type: active.query.type || undefined,
             assignee_id: active.query.assignee === "me" ? "me" : undefined,
           });
-          const text = (active.query.text ?? "").trim().toLowerCase();
-          return r.tickets
-            .filter((t) => !text || t.title.toLowerCase().includes(text))
-            .map((t) => ({ ...t, project: p }));
+          return r.tickets.map((t) => ({ ...t, project: p }));
         }),
       );
-      setResults(lists.flat());
+      setFetched(lists.flat());
     })();
-  }, [active, projects]);
+  }, [queryKey, projects]);
+
+  const results = useMemo(() => {
+    const text = debouncedText.trim().toLowerCase();
+    if (!text) return fetched;
+    return fetched.filter((t) => t.title.toLowerCase().includes(text));
+  }, [fetched, debouncedText]);
 
   function createFilter() {
     const f: SavedFilter = {
@@ -219,14 +229,13 @@ export function FiltersPage({
                 type="button"
                 className="btn-danger"
                 onClick={() => {
-                  deleteFilter(active.id);
-                  setFilters(listFilters());
+                  setFilters(deleteFilter(active.id));
                   navigate("/filters");
                 }}
               >
-                Delete
+                Delete filter
               </button>
-              <h2 className="section-title">Results</h2>
+              <h3>Results ({results.length})</h3>
               <div className="tableish">
                 {results.map((t) => (
                   <Link key={t.id} to={`/browse/${t.id}`} className="list-row linkish">
@@ -243,8 +252,4 @@ export function FiltersPage({
       </>
     ),
   });
-}
-
-export function starredFilters() {
-  return listFilters().filter((f) => f.starred);
 }

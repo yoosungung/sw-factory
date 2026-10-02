@@ -167,7 +167,9 @@ PRIMARY KEY (successor_id, blocker_id),
 CHECK (successor_id != blocker_id)
 ```
 
-인덱스: `sessions(user_id)`, `client_members(user_id)`, `project_members(user_id)`, `projects(client_id)`, `project_statuses(project_id, sort_order)`, `tickets(project_id, status, sort_order)`, `tickets(project_id, type)`, `tickets(assignee_id)`, `tickets(due_at)`, `comments(entity_type, entity_id)`, `files(entity_type, entity_id)`, `pending_uploads(ticket_id)`, `pending_uploads(expires_at)`, `ticket_activities(ticket_id, at)`, `agent_event_log(at)`, `agent_event_log(id)`(tail), `ticket_dependencies(blocker_id)`, `ticket_dependencies(successor_id)`.
+인덱스: `sessions(user_id)`, `sessions(expires_at)`, `client_members(user_id)`, `project_members(user_id)`, `projects(client_id)`, `project_statuses(project_id, sort_order)`, `tickets(project_id, status, sort_order)`, `tickets(project_id, type)`, `tickets(project_id, date_from)`, `tickets(project_id, created_at, id)`, `tickets(assignee_id)`, `tickets(due_at)`, `comments(entity_type, entity_id)`, `files(entity_type, entity_id)`, `pending_uploads(ticket_id)`, `pending_uploads(expires_at)`, `ticket_activities(ticket_id, at)`, `agent_event_log(at)`, `agent_event_log(at, id)`(tail), `ticket_dependencies(blocker_id)`, `ticket_dependencies(successor_id)`.
+
+**List/kanban/timeline 응답:** `description` 본문은 보장하지 않는다(빈 문자열일 수 있음). 상세 본문은 `GET /api/tickets/:id`.
 
 **FS vs parent:** `milestone_id`는 parent/child만. FS 선행은 `ticket_dependencies`만. `blocker_id === successor.milestone_id`(또는 역)이면 API가 `400 parent_not_fs`. 사이클이면 `400 dependency_cycle`.
 
@@ -244,7 +246,7 @@ CHECK (successor_id != blocker_id)
 | GET | `/api/projects/:id/tickets` | query: `type`, `status`, `assignee_id` (`me` = 현재 사용자), `created_by` (`me` = 현재 사용자), `milestone_id`, `limit`, `cursor` (Cursor 페이징), `include_archived` (기본 제외: archived Done) |
 | POST | `/api/projects/:id/tickets` | `{ title, description?, type, status?, priority?, assignee_id?, due_at?, milestone_id?, date_from?, date_to? }` |
 | GET | `/api/tickets/:id` | 멤버만. 응답 `ticket`에 `blocker_ids: string[]`(dual-read) |
-| PATCH | `/api/tickets/:id` | body에 `{ status, sort_order, priority, assignee_id, due_at, version? }` 포함. 버전 전달 시 불일치하면 `409 Conflict`; 성공 시 `version` 증가 및 변경 필드 `ticket_activities` 기록. **status가 `category=done`으로 바뀌면** 이 티켓을 `blocker_id`로 갖는 FS 행을 제거하고, 후속이 남은 blocker가 없으며 `status=blocked`이면 **`in_progress`로 복귀**한 뒤 후속 `ticket_id`로 `ticket_updated` append(`dependency_cleared`, `unblocked_from`) |
+| PATCH | `/api/tickets/:id` | body에 `{ status, sort_order, priority, assignee_id, due_at, version? }` 포함. 버전 전달 시 불일치하면 `409 Conflict`; 성공 시 `version` 증가 및 변경 필드 `ticket_activities` 기록. 응답 `{ ticket, activities }` — `activities`는 `GET …/activities`와 동일 shape(최신순). **status가 `category=done`으로 바뀌면** 이 티켓을 `blocker_id`로 갖는 FS 행을 제거하고, 후속이 남은 blocker가 없으며 `status=blocked`이면 **`in_progress`로 복귀**한 뒤 후속 `ticket_id`로 `ticket_updated` append(`dependency_cleared`, `unblocked_from`) |
 | DELETE | `/api/tickets/:id` | **작성자(`created_by`) 또는 project owner만 삭제 가능** |
 | GET | `/api/tickets/:id/dependencies` | 멤버; `{ blocker_ids, blockers: [{id,title,status}], blocking: [{id,title,status}] }` |
 | PUT | `/api/tickets/:id/dependencies` | 멤버; `{ blocker_ids: string[] }` 전체 교체(동일 project만). 사이클→`400 dependency_cycle`; parent 혼동→`400 parent_not_fs`; 없는/타 project→`400 invalid_blocker`. description soft 마커 제거 |

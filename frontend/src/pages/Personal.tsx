@@ -6,22 +6,6 @@ import { EmptyState } from "../components/EmptyState";
 import { recentProjectIds, recentTicketIds } from "../lib/recent";
 import { ticketsNewestFirst } from "../lib/ticketOrder";
 
-function useClients() {
-  const [clients, setClients] = useState<Client[]>([]);
-  useEffect(() => {
-    void client.clients().then((r) => setClients(r.clients));
-  }, []);
-  return clients;
-}
-
-function useAllProjects() {
-  const [projects, setProjects] = useState<Project[]>([]);
-  useEffect(() => {
-    void client.projects().then((r) => setProjects(r.projects));
-  }, []);
-  return projects;
-}
-
 export type ChromeProps = {
   user: User;
   onLogout: () => void;
@@ -37,13 +21,15 @@ export function YourWorkPage({
   user,
   onLogout,
   chrome,
+  clients,
+  projects,
 }: {
   user: User;
   onLogout: () => void;
   chrome: ChromeFn;
+  clients: Client[];
+  projects: Project[];
 }) {
-  const clients = useClients();
-  const projects = useAllProjects();
   const [tab, setTab] = useState<"assigned" | "created" | "viewed" | "projects">("assigned");
   const [assigned, setAssigned] = useState<Array<Ticket & { project?: Project }>>([]);
   const [created, setCreated] = useState<Array<Ticket & { project?: Project }>>([]);
@@ -57,6 +43,7 @@ export function YourWorkPage({
   }, [projects]);
 
   useEffect(() => {
+    if (tab !== "assigned") return;
     void (async () => {
       const lists = await Promise.all(
         projects.map(async (p) => {
@@ -66,9 +53,10 @@ export function YourWorkPage({
       );
       setAssigned(ticketsNewestFirst(lists.flat()));
     })();
-  }, [projects]);
+  }, [projects, tab]);
 
   useEffect(() => {
+    if (tab !== "created") return;
     void (async () => {
       const lists = await Promise.all(
         projects.map(async (p) => {
@@ -78,28 +66,30 @@ export function YourWorkPage({
       );
       setCreated(ticketsNewestFirst(lists.flat()));
     })();
-  }, [projects]);
+  }, [projects, tab]);
 
   useEffect(() => {
+    if (tab !== "viewed") return;
     const ids = recentTicketIds();
     if (ids.length === 0) {
       setViewed([]);
       return;
     }
     void (async () => {
-      const rows: Array<Ticket & { project?: Project }> = [];
-      for (const id of ids) {
-        try {
-          const t = await client.getTicket(id);
-          const p = projects.find((x) => x.id === t.ticket.project_id);
-          rows.push({ ...t.ticket, project: p });
-        } catch {
-          /* ignore missing */
-        }
-      }
-      setViewed(rows);
+      const rows = await Promise.all(
+        ids.map(async (id) => {
+          try {
+            const t = await client.getTicket(id);
+            const p = projects.find((x) => x.id === t.ticket.project_id);
+            return { ...t.ticket, project: p } as Ticket & { project?: Project };
+          } catch {
+            return null;
+          }
+        }),
+      );
+      setViewed(rows.filter(Boolean) as Array<Ticket & { project?: Project }>);
     })();
-  }, [projects]);
+  }, [projects, tab]);
 
   return chrome({
     user,
@@ -234,14 +224,16 @@ export function AccountPage({
   onLogout,
   onUserUpdate,
   chrome,
+  clients,
+  projects,
 }: {
   user: User;
   onLogout: () => void;
   onUserUpdate: (u: User) => void;
   chrome: ChromeFn;
+  clients: Client[];
+  projects: Project[];
 }) {
-  const clients = useClients();
-  const projects = useAllProjects();
   const [name, setName] = useState(user.name);
   const [email, setEmail] = useState(user.email);
   const [currentPassword, setCurrentPassword] = useState("");
@@ -355,13 +347,15 @@ export function SearchPage({
   user,
   onLogout,
   chrome,
+  clients,
+  projects,
 }: {
   user: User;
   onLogout: () => void;
   chrome: ChromeFn;
+  clients: Client[];
+  projects: Project[];
 }) {
-  const clients = useClients();
-  const projects = useAllProjects();
   const [params, setParams] = useSearchParams();
   const qParam = params.get("q") ?? "";
   const [q, setQ] = useState(qParam);

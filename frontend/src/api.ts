@@ -253,7 +253,7 @@ export const client = {
     }),
   getTicket: (id: string) => api<{ ticket: Ticket }>(`/api/tickets/${id}`),
   patchTicket: (id: string, body: TicketPatch) =>
-    api<{ ticket: Ticket }>(`/api/tickets/${id}`, {
+    api<{ ticket: Ticket; activities?: TicketActivity[] }>(`/api/tickets/${id}`, {
       method: "PATCH",
       body: JSON.stringify(body),
     }),

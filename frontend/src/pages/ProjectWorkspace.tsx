@@ -85,38 +85,64 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
     navigate(`/projects/${id}${q ? `?${q}` : ""}`, { replace: true });
   }
 
-  async function refresh() {
-    const [p, k, t, m, mem] = await Promise.all([
-      client.project(id),
-      client.kanban(id, includeArchived),
-      client.timeline(id),
-      client.tickets(id, { type: "milestone" }),
-      client.projectMembers(id),
-    ]);
+  function mergeTicketInWorkspace(t: Ticket) {
+    setSelected((prev) => (prev?.id === t.id ? t : prev));
+    setColumns((cols) => {
+      const next: Record<string, Ticket[]> = {};
+      for (const [k, list] of Object.entries(cols)) {
+        next[k] = list.map((x) => (x.id === t.id ? { ...x, ...t } : x));
+      }
+      return next;
+    });
+    setListTickets((list) => list.map((x) => (x.id === t.id ? { ...x, ...t } : x)));
+    setTimeline((list) => list.map((x) => (x.id === t.id ? { ...x, ...t } : x)));
+    setMilestones((list) => list.map((x) => (x.id === t.id ? { ...x, ...t } : x)));
+  }
+
+  async function loadMeta() {
+    const [p, mem] = await Promise.all([client.project(id), client.projectMembers(id)]);
     setProject(p.project);
     touchRecentProject(p.project.id);
-    setStatuses(k.statuses);
-    setColumns(k.columns);
-    setTimeline(t.items);
-    setMilestones(m.tickets);
     setMembers(mem.members);
     setOrg((await client.getClient(p.project.client_id)).client);
-    if (issueId) {
-      const all = [...Object.values(k.columns).flat(), ...m.tickets];
-      const found = all.find((x) => x.id === issueId);
-      if (found) {
-        setSelected(found);
-        touchRecentTicket(found.id);
-      } else {
-        try {
-          const r = await client.getTicket(issueId);
-          setSelected(r.ticket);
-          touchRecentTicket(r.ticket.id);
-        } catch {
-          setSelected(null);
-        }
-      }
+    return p.project;
+  }
+
+  async function loadBoard() {
+    const k = await client.kanban(id, includeArchived);
+    setStatuses(k.statuses);
+    setColumns(k.columns);
+  }
+
+  async function loadTimeline() {
+    const t = await client.timeline(id);
+    setTimeline(t.items);
+  }
+
+  async function loadMilestones() {
+    const m = await client.tickets(id, { type: "milestone" });
+    setMilestones(m.tickets);
+  }
+
+  async function refresh() {
+    await loadMeta();
+    const tasks: Promise<void>[] = [];
+    if (view === "board" || view === "backlog" || view === "overview") {
+      tasks.push(loadBoard());
+    } else {
+      tasks.push(
+        client.projectStatuses(id).then((r) => {
+          setStatuses(r.statuses);
+        }),
+      );
     }
+    if (view === "timeline" || view === "overview") {
+      tasks.push(loadTimeline());
+    }
+    if (view === "backlog" || view === "overview" || view === "board" || view === "timeline") {
+      tasks.push(loadMilestones());
+    }
+    await Promise.all(tasks);
   }
 
   async function loadList(reset = false) {
@@ -136,7 +162,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
 
   useEffect(() => {
     void refresh();
-  }, [id, issueId, includeArchived]);
+  }, [id, includeArchived, view]);
 
   useEffect(() => {
     if (view === "list") {
@@ -144,6 +170,36 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
       void loadList(true);
     }
   }, [id, view, includeArchived]);
+
+  useEffect(() => {
+    if (!issueId) return;
+    const all = [
+      ...Object.values(columns).flat(),
+      ...milestones,
+      ...listTickets,
+      ...timeline,
+    ];
+    const found = all.find((x) => x.id === issueId);
+    if (found) {
+      setSelected(found);
+      touchRecentTicket(found.id);
+      return;
+    }
+    let cancelled = false;
+    void client
+      .getTicket(issueId)
+      .then((r) => {
+        if (cancelled) return;
+        setSelected(r.ticket);
+        touchRecentTicket(r.ticket.id);
+      })
+      .catch(() => {
+        if (!cancelled) setSelected(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [issueId, columns, milestones, listTickets, timeline]);
 
   const filteredColumns = useMemo(() => {
     const q = filter.trim().toLowerCase();
@@ -555,8 +611,21 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
           ticket={selected}
           onClose={closeIssue}
           onChanged={(t) => {
-            if (t) setSelected(t);
-            void refresh();
+            if (!t) {
+              void refresh();
+              return;
+            }
+            const prev = selected;
+            const layoutChanged =
+              !!prev &&
+              prev.id === t.id &&
+              (prev.status !== t.status || prev.sort_order !== t.sort_order);
+            setSelected(t);
+            if (layoutChanged) {
+              void refresh();
+              return;
+            }
+            mergeTicketInWorkspace(t);
           }}
           onDeleted={() => {
             closeIssue();

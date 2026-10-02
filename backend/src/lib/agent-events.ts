@@ -16,13 +16,13 @@ export type AppendAgentEventInput = {
   at?: string;
 };
 
-export async function appendAgentEvent(
+export function prepareAppendAgentEvent(
   db: D1Database,
   input: AppendAgentEventInput,
-): Promise<string> {
+): { id: string; statement: D1PreparedStatement } {
   const id = newId();
   const at = input.at ?? nowIso();
-  await db
+  const statement = db
     .prepare(
       `INSERT INTO agent_event_log (
         id, at, event_type, ticket_id, project_id,
@@ -38,7 +38,15 @@ export async function appendAgentEvent(
       input.actor_user_id,
       input.assignee_user_id ?? null,
       JSON.stringify(input.payload ?? {}),
-    )
-    .run();
+    );
+  return { id, statement };
+}
+
+export async function appendAgentEvent(
+  db: D1Database,
+  input: AppendAgentEventInput,
+): Promise<string> {
+  const { id, statement } = prepareAppendAgentEvent(db, input);
+  await statement.run();
   return id;
 }

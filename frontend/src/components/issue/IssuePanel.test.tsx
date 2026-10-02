@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Member, Project, Ticket, User } from "../../api";
@@ -81,7 +81,7 @@ const members: Member[] = [
   { user_id: "u1", role: "owner", email: "dev@example.com", name: "Dev" },
 ];
 
-function renderPanel() {
+function renderPanel(ticketProp: Ticket = ticket, onChanged: (t?: Ticket) => void = () => {}) {
   return render(
     <MemoryRouter>
       <IssuePanel
@@ -90,9 +90,9 @@ function renderPanel() {
         project={project}
         projectRole="owner"
         members={members}
-        ticket={ticket}
+        ticket={ticketProp}
         onClose={() => {}}
-        onChanged={() => {}}
+        onChanged={onChanged}
         onDeleted={() => {}}
       />
     </MemoryRouter>,
@@ -177,5 +177,72 @@ describe("IssuePanel activity tabs", () => {
     expect(cells).toHaveLength(2);
     expect(cells[0].textContent).toMatch(/status.*backlog.*in_progress/i);
     expect(cells[1].classList.contains("muted")).toBe(true);
+  });
+
+  it("does not re-fetch side loads when ticket prop identity changes for the same id", async () => {
+    const { client } = await import("../../api");
+    const { rerender } = renderPanel();
+    await waitFor(() => expect(client.comments).toHaveBeenCalledTimes(1));
+    expect(client.listFiles).toHaveBeenCalledTimes(1);
+    expect(client.ticketActivities).toHaveBeenCalledTimes(1);
+    expect(client.ticketDependencies).toHaveBeenCalledTimes(1);
+
+    rerender(
+      <MemoryRouter>
+        <IssuePanel
+          mode="page"
+          user={user}
+          project={project}
+          projectRole="owner"
+          members={members}
+          ticket={{ ...ticket, title: "Renamed", version: 2 }}
+          onClose={() => {}}
+          onChanged={() => {}}
+          onDeleted={() => {}}
+        />
+      </MemoryRouter>,
+    );
+
+    await waitFor(() => expect(screen.getByDisplayValue("Renamed")).toBeInTheDocument());
+    expect(client.comments).toHaveBeenCalledTimes(1);
+    expect(client.listFiles).toHaveBeenCalledTimes(1);
+    expect(client.ticketActivities).toHaveBeenCalledTimes(1);
+    expect(client.ticketDependencies).toHaveBeenCalledTimes(1);
+  });
+
+  it("save uses PATCH activities and does not call ticketActivities again", async () => {
+    const { client } = await import("../../api");
+    const onChanged = vi.fn();
+    vi.mocked(client.patchTicket).mockResolvedValue({
+      ticket: { ...ticket, title: "Saved title", version: 2 },
+      activities: [
+        {
+          id: "a1",
+          ticket_id: "t1",
+          actor_id: "u1",
+          field: "title",
+          old_val: "Sample",
+          new_val: "Saved title",
+          at: "2026-09-29T04:00:00.000Z",
+        },
+      ],
+    });
+
+    renderPanel(ticket, onChanged);
+    await waitFor(() => expect(client.comments).toHaveBeenCalled());
+    const titleCalls = vi.mocked(client.ticketActivities).mock.calls.length;
+
+    const titleInput = screen.getByPlaceholderText(/Issue title/i);
+    fireEvent.change(titleInput, { target: { value: "Saved title" } });
+    fireEvent.blur(titleInput);
+
+    await waitFor(() => expect(client.patchTicket).toHaveBeenCalled());
+    expect(client.ticketActivities).toHaveBeenCalledTimes(titleCalls);
+    expect(onChanged).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Saved title", version: 2 }),
+    );
+
+    screen.getByRole("tab", { name: /^History$/i }).click();
+    expect(await screen.findByText(/Saved title/i)).toBeInTheDocument();
   });
 });

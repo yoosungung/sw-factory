@@ -177,10 +177,10 @@ erDiagram
 | --- | --- |
 | `GET /api/tickets/:id` | |
 | `POST /api/projects/:id/tickets` | title, type, … |
-| `PATCH /api/tickets/:id` | status/sort/priority/assignee/due/`version` → 409 |
-| `GET /api/projects/:id/tickets` | type, status, assignee_id, created_by, limit, cursor, `include_archived` |
-| `GET /api/projects/:id/kanban` | `{ columns, statuses }`; 기본 최근 7일 `category=done` (초과분은 archived Done; list와 동일 필터) |
-| `GET …/timeline` | |
+| `PATCH /api/tickets/:id` | status/sort/priority/assignee/due/`version` → 409; 응답 `{ ticket, activities }` (activities는 GET과 동일 shape) |
+| `GET /api/projects/:id/tickets` | type, status, assignee_id, created_by, limit, cursor, `include_archived`; **description 미전송**(빈 문자열) |
+| `GET /api/projects/:id/kanban` | `{ columns, statuses }`; 기본 최근 7일 `category=done` (초과분은 archived Done; list와 동일 필터); **description 미전송** |
+| `GET …/timeline` | **description 미전송** |
 | `DELETE /api/tickets/:id` | 작성자 또는 project owner |
 | `GET /api/tickets/:id/activities` | 이력 |
 
@@ -251,7 +251,7 @@ backend/src/
     agent.ts            # GET /api/agent/events
   lib/
     agent-events.ts     # appendAgentEvent
-    seed-admin.ts       # ADMIN_EMAIL/PASSWORD 시드
+    seed-admin.ts       # ADMIN_EMAIL/PASSWORD 시드; isolate당 1회 + `/api/`만
 ```
 
 가드 순서: 세션 → 리소스 load → membership → owner/creator 검사 → 변이.
