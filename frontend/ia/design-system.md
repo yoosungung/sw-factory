@@ -90,7 +90,7 @@ IA 구조는 [overview.md](overview.md), 메뉴는 [menus.md](menus.md), 화면�
 
 ### 3.1 Top Navigation & Chrome
 - **라이트 모던 크롬:** 탑바 높이 48px 고정, 배경은 `#ffffff`, 하단 `border-bottom: 1px solid var(--color-border-subtle)`.
-- **단일 브랜드 로고:** 에메랄드/네이비 충돌을 없애고 로고와 Primary 컬러(`--color-brand`)를 일치시킴.
+- **단일 브랜드 로고:** 에메랄드/네이비 충돌을 없애고 로고와 Primary 컬러(`--color-brand` `#2563eb`)를 일치시킴. 앱 마크는 software+factory 실루엣(`frontend/icons/app-icon.svg`) 하나다. 탭 favicon·apple-touch-icon·인앱 `BrandMark`가 같은 파일을 쓴다.
 - **검색창:** 탑바 검색창은 ⌘K 단축키 힌트를 우측에 노출하는 컴팩트한 인풋으로 유지하고, 전역 검색 페이지(`/search`) 진입 시에는 탑바 검색창이 아닌 중앙 포커스 인풋을 메인으로 동작시킴.
 
 ### 3.2 View Switching (뷰 전환 일원화)

@@ -15,6 +15,18 @@ test.describe("smoke", () => {
     await expect(page.locator("h1")).toContainText(/Log in/i);
   });
 
+  test("login document links software+factory favicon assets", async ({ page }) => {
+    await page.goto("/login");
+    const iconHref = await page.locator('link[rel="icon"]').first().getAttribute("href");
+    expect(iconHref).toMatch(/app-icon\.svg/);
+    const iconRes = await page.request.get(new URL(iconHref!, page.url()).toString());
+    expect(iconRes.ok()).toBeTruthy();
+    const touchHref = await page.locator('link[rel="apple-touch-icon"]').getAttribute("href");
+    expect(touchHref).toMatch(/apple-touch-icon\.png/);
+    const touchRes = await page.request.get(new URL(touchHref!, page.url()).toString());
+    expect(touchRes.ok()).toBeTruthy();
+  });
+
   test("register then logout then login", async ({ page }) => {
     const email = uniqueEmail("smoke");
     const password = "password123";

@@ -23,6 +23,8 @@ frontend/src/
     App.tsx                             # 라우트 + 세션 셸만
 ```
 
+정적 앱 아이콘: `frontend/icons/app-icon.svg`(원본) · `apple-touch-icon.png`. `index.html` favicon과 `BrandMark`가 같은 SVG를 쓴다.
+
 ## 사용 흐름
 
 - Top nav (직접 링크): Spaces(`/spaces`) / Projects(`/projects`) / Your work(`/`) / Search(⌘K) / Account / Create. Filters·Teams는 Top nav에 없음.
