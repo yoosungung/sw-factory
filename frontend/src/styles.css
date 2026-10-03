@@ -358,6 +358,10 @@ select {
   grid-template-columns: 1fr;
 }
 
+.shell-body.sidebar-collapsed {
+  grid-template-columns: 40px 1fr;
+}
+
 .sidebar {
   background: var(--ds-surface);
   border-right: 1px solid var(--ds-border);
@@ -1743,6 +1747,22 @@ select {
   width: 40px;
   align-items: center;
   padding-top: 8px;
+  overflow: hidden;
+}
+
+.sidebar.collapsed .side-rail {
+  width: 100%;
+  padding: 8px 0 12px;
+  gap: 4px;
+  justify-items: center;
+}
+
+.sidebar.collapsed .side-link {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  justify-content: center;
+  gap: 0;
 }
 
 .sidebar-top {

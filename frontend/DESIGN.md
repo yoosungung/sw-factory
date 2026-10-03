@@ -36,7 +36,7 @@ frontend/src/
 - Your work: Assigned / Created by me / Recently viewed / Recent projects. Assigned·Created는 `created_at` DESC(`GET …/tickets` 기본도 DESC)
 - Search: `GET /api/search`
 - Filters: localStorage 메타 + tickets API
-- Space hub: Space Switcher + Space settings(좌측). Project: Overview(이름·설명·수행 중) / Tickets(Board|Backlog|Timeline|List)
+- Space hub: Space Switcher + Space settings(좌측). Project: Overview(이름·설명·수행 중) / Tickets(Board|Backlog|Timeline|List). 접힌 사이드바는 40px 아이콘 레일.
 - Agent prompt: Tickets 툴바·Issue 헤더 모달 → `POST /api/agent/prompts` (ack `id`/`at` only; no chat wait)
 
 ## Commands

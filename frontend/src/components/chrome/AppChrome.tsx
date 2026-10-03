@@ -39,6 +39,34 @@ function navItemClass(active: boolean) {
   return `nav-item${active ? " active" : ""}`;
 }
 
+function SideRailLink({
+  to,
+  label,
+  icon,
+  active,
+  collapsed,
+}: {
+  to: string;
+  label: string;
+  icon: string;
+  active?: boolean;
+  collapsed: boolean;
+}) {
+  return (
+    <Link
+      className={`side-link${active ? " active" : ""}`}
+      to={to}
+      aria-label={collapsed ? label : undefined}
+      title={collapsed ? label : undefined}
+    >
+      <span className="side-ico" aria-hidden>
+        {icon}
+      </span>
+      {collapsed ? null : label}
+    </Link>
+  );
+}
+
 export function TopNav({
   user,
   onLogout,
@@ -262,6 +290,41 @@ export function Sidebar({
 }) {
   const [spaceOpen, setSpaceOpen] = useState(false);
   const spaceRef = useClickOutside(() => setSpaceOpen(false));
+  const base = activeProject ? `/projects/${activeProject.id}` : "";
+  const spaceLabel = activeClient?.name ?? clients.find((c) => c.id === activeProject?.client_id)?.name ?? "Space";
+  const workNav = activeProject ? (
+    <>
+      <SideRailLink
+        to={base}
+        label="Overview"
+        icon="▦"
+        active={view === "overview"}
+        collapsed={collapsed}
+      />
+      <SideRailLink
+        to={`${base}?view=board`}
+        label="Tickets"
+        icon="☰"
+        active={view !== "overview"}
+        collapsed={collapsed}
+      />
+    </>
+  ) : null;
+  const settingsNav = activeProject ? (
+    <SideRailLink
+      to={`/projects/${activeProject.id}/settings/details`}
+      label="Project settings"
+      icon="⚙"
+      collapsed={collapsed}
+    />
+  ) : activeClient ? (
+    <SideRailLink
+      to={`/clients/${activeClient.id}/settings/details`}
+      label="Space settings"
+      icon="⚙"
+      collapsed={collapsed}
+    />
+  ) : null;
 
   if (collapsed) {
     return (
@@ -275,12 +338,15 @@ export function Sidebar({
         >
           <IconChevron dir="right" />
         </button>
+        {(workNav || settingsNav) && (
+          <nav className="side-nav side-rail" aria-label="Sidebar">
+            {workNav}
+            {settingsNav}
+          </nav>
+        )}
       </aside>
     );
   }
-
-  const base = activeProject ? `/projects/${activeProject.id}` : "";
-  const spaceLabel = activeClient?.name ?? clients.find((c) => c.id === activeProject?.client_id)?.name ?? "Space";
 
   return (
     <aside className="sidebar">
@@ -342,34 +408,16 @@ export function Sidebar({
       {activeProject && (
         <>
           <div className="side-section">Work</div>
-          <nav className="side-nav">
-            <Link className={`side-link${view === "overview" ? " active" : ""}`} to={base}>
-              <span className="side-ico">▦</span> Overview
-            </Link>
-            <Link
-              className={`side-link${view !== "overview" ? " active" : ""}`}
-              to={`${base}?view=board`}
-            >
-              <span className="side-ico">☰</span> Tickets
-            </Link>
-          </nav>
+          <nav className="side-nav">{workNav}</nav>
           <div className="side-section">Settings</div>
-          <nav className="side-nav">
-            <Link className="side-link" to={`/projects/${activeProject.id}/settings/details`}>
-              Project settings
-            </Link>
-          </nav>
+          <nav className="side-nav">{settingsNav}</nav>
         </>
       )}
 
       {activeClient && !activeProject && (
         <>
           <div className="side-section">Settings</div>
-          <nav className="side-nav">
-            <Link className="side-link" to={`/clients/${activeClient.id}/settings/details`}>
-              Space settings
-            </Link>
-          </nav>
+          <nav className="side-nav">{settingsNav}</nav>
         </>
       )}
     </aside>
@@ -416,7 +464,9 @@ export function AppChrome({
         activeProject={activeProject}
         view={view}
       />
-      <div className={`shell-body ${showSidebar ? "" : "no-sidebar"}`.trim()}>
+      <div
+        className={`shell-body ${showSidebar ? "" : "no-sidebar"} ${showSidebar && sidebarCollapsed ? "sidebar-collapsed" : ""}`.trim()}
+      >
         {showSidebar && (
           <Sidebar
             clients={clients}
