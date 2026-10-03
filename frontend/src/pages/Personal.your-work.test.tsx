@@ -103,6 +103,7 @@ describe("YourWorkPage grid UX", () => {
   it("Assigned tab keeps Issue · Project · Status · Due headers aligned with rows", async () => {
     const { container } = renderPage();
     await waitFor(() => expect(screen.getByText(ticket.title)).toBeInTheDocument());
+    expect(container.querySelector(".page-scroll .your-work-issues")).toBeTruthy();
     const panel = container.querySelector(".your-work-issues");
     expect(panel).toBeTruthy();
     const head = panel!.querySelector(".list-row.head");

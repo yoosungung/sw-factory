@@ -338,6 +338,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
       )}
 
       {view === "overview" && (
+        <div className="page-scroll">
         <section className="overview-section">
           <h2>In progress</h2>
           {activeTickets.length === 0 ? (
@@ -360,6 +361,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
             </div>
           )}
         </section>
+        </div>
       )}
 
       {view === "board" && (
@@ -506,6 +508,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
       )}
 
       {view === "list" && (
+        <div className="page-scroll">
         <div className="content-panel tableish">
           {(() => {
             const rows = listTickets.filter(
@@ -555,6 +558,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
               </>
             );
           })()}
+        </div>
         </div>
       )}
 

@@ -52,6 +52,7 @@ export function ProjectsHome({ user, onLogout }: { user: User; onLogout: () => v
           onChange={(e) => setFilter(e.target.value)}
         />
       </div>
+      <div className="page-scroll">
       <div className="content-panel tableish cols-3">
         <div className="list-row head">
           <span>Name</span>
@@ -77,6 +78,7 @@ export function ProjectsHome({ user, onLogout }: { user: User; onLogout: () => v
               : "No projects yet."}
           </div>
         )}
+      </div>
       </div>
       {createSpace && (
         <CreateSpaceDialog
@@ -131,6 +133,7 @@ export function SpacesPage({ user, onLogout }: { user: User; onLogout: () => voi
           onChange={(e) => setFilter(e.target.value)}
         />
       </div>
+      <div className="page-scroll">
       <div className="content-panel tableish cols-2">
         <div className="list-row head">
           <span>Name</span>
@@ -150,6 +153,7 @@ export function SpacesPage({ user, onLogout }: { user: User; onLogout: () => voi
             {user.is_admin ? "Create a space to get started." : "Ask an admin to add you to a space."}
           </div>
         )}
+      </div>
       </div>
       {createSpace && (
         <CreateSpaceDialog
@@ -215,6 +219,7 @@ export function ClientPage({ user, onLogout }: { user: User; onLogout: () => voi
         </div>
         <p className="overview-desc">{org.description?.trim() ? org.description : "No description yet."}</p>
       </div>
+      <div className="page-scroll">
       <div className="content-panel tableish">
         <div className="list-row head">
           <span>Name</span>
@@ -232,6 +237,7 @@ export function ClientPage({ user, onLogout }: { user: User; onLogout: () => voi
           </Link>
         ))}
         {projects.length === 0 && <div className="empty">No projects yet.</div>}
+      </div>
       </div>
       {createOpen && (
         <CreateProjectUnderClientDialog

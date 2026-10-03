@@ -131,6 +131,7 @@ export function YourWorkPage({
             ))}
           </div>
         </div>
+        <div className="page-scroll">
         {tab === "assigned" && (
           <div className="content-panel tableish your-work-issues">
             <div className="list-row head">
@@ -224,6 +225,7 @@ export function YourWorkPage({
             ))}
           </div>
         )}
+        </div>
       </>
     ),
   });
@@ -420,6 +422,7 @@ export function SearchPage({
             />
           </form>
         </div>
+        <div className="page-scroll">
         {busy && <p className="muted pad">Searching…</p>}
         {!qParam.trim() && (
           <EmptyState
@@ -465,6 +468,7 @@ export function SearchPage({
             </div>
           </>
         )}
+        </div>
       </>
     ),
   });

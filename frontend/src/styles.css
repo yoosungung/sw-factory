@@ -456,8 +456,15 @@ select {
 }
 
 .page-header {
+  flex-shrink: 0;
   padding: 16px 24px 8px;
   background: var(--ds-surface-sunken);
+}
+
+.page-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .breadcrumb {
@@ -493,6 +500,7 @@ select {
   gap: 8px;
   padding: 8px 24px 12px;
   flex-wrap: wrap;
+  flex-shrink: 0;
 }
 
 .chip {

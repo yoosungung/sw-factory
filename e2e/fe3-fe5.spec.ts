@@ -32,6 +32,35 @@ test("FE3: your-work, search, account", async ({ page }) => {
 
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Your work" })).toBeVisible();
+  await expect
+    .poll(async () => page.locator(".page-scroll").evaluate((el) => getComputedStyle(el).overflowY))
+    .toMatch(/auto|scroll/);
+  await expect
+    .poll(async () => page.locator("main.main").evaluate((el) => getComputedStyle(el).overflow))
+    .toBe("hidden");
+  const scroll = page.locator(".page-scroll");
+  const metrics = await scroll.evaluate((el) => {
+    for (let i = 0; i < 60; i++) {
+      const row = document.createElement("div");
+      row.className = "list-row";
+      row.dataset.scrollPad = String(i);
+      row.textContent = `Scroll pad ${i}`;
+      row.style.minHeight = "40px";
+      el.appendChild(row);
+    }
+    el.scrollTop = el.scrollHeight;
+    const result = {
+      overflowY: getComputedStyle(el).overflowY,
+      canScroll: el.scrollHeight > el.clientHeight,
+      atBottom: el.scrollTop > 0,
+    };
+    el.querySelectorAll("[data-scroll-pad]").forEach((n) => n.remove());
+    el.scrollTop = 0;
+    return result;
+  });
+  expect(metrics.overflowY).toMatch(/auto|scroll/);
+  expect(metrics.canScroll).toBe(true);
+  expect(metrics.atBottom).toBe(true);
   await expect(page.locator(".your-work-issues .list-row.head")).toContainText("Issue");
   await clickEl(page.getByRole("button", { name: "Created by me" }));
   await expect(page.getByText(title)).toBeVisible();
