@@ -6,6 +6,7 @@ import { APP_NAME, BrandMark } from "../../lib/brand";
 import type { ViewMode } from "../../lib/view-mode";
 import { useClickOutside, useEscape } from "../../hooks/useDom";
 import { CreateIssueDialog } from "../create/CreateDialogs";
+import { IconChevron } from "./icons";
 
 export function MenuDropdown({
   label,
@@ -265,8 +266,14 @@ export function Sidebar({
   if (collapsed) {
     return (
       <aside className="sidebar collapsed">
-        <button type="button" className="icon-btn side-toggle" onClick={onToggle} title="Expand">
-          »
+        <button
+          type="button"
+          className="icon-btn side-toggle"
+          onClick={onToggle}
+          title="Expand sidebar"
+          aria-label="Expand sidebar"
+        >
+          <IconChevron dir="right" />
         </button>
       </aside>
     );
@@ -281,8 +288,14 @@ export function Sidebar({
         <Link to="/projects" className="back-link">
           ← Back to projects
         </Link>
-        <button type="button" className="icon-btn" onClick={onToggle} title="Collapse sidebar">
-          «
+        <button
+          type="button"
+          className="icon-btn"
+          onClick={onToggle}
+          title="Collapse sidebar"
+          aria-label="Collapse sidebar"
+        >
+          <IconChevron dir="left" />
         </button>
       </div>
 

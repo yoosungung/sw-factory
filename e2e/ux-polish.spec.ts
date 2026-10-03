@@ -111,3 +111,33 @@ test("UX4: mobile drawer exposes project sidebar links", async ({ page }) => {
   await page.waitForURL(/\/settings\/details/);
   await expect(page.locator(".mobile-nav-drawer")).toHaveCount(0);
 });
+
+test("sidebar collapse and issue panel chrome are icon-only", async ({ page }) => {
+  await loginAsAdmin(page);
+  const stamp = Date.now();
+  await createSpace(page, `Icon Space ${stamp}`);
+  await createSoftwareProject(page, `Icon Proj ${stamp}`);
+
+  const collapse = page.getByRole("button", { name: "Collapse sidebar" });
+  await expect(collapse).toBeVisible();
+  await expect(collapse).not.toHaveText(/접기|펴기|Collapse|Expand/);
+  await clickEl(collapse);
+  const expand = page.getByRole("button", { name: "Expand sidebar" });
+  await expect(expand).toBeVisible();
+  await clickEl(expand);
+  await expect(page.locator(".space-switcher")).toBeVisible();
+
+  const title = `Icon issue ${stamp}`;
+  await createIssue(page, title);
+  const panel = page.getByRole("dialog");
+  const full = panel.getByRole("link", { name: "Open full page" });
+  const close = panel.getByRole("button", { name: "Close" });
+  await expect(full).toBeVisible();
+  await expect(close).toBeVisible();
+  await expect(full).not.toHaveText(/닫기|크게|전체 화면으로 열기/);
+  await expect(close).not.toHaveText(/닫기|크게|전체 화면으로 열기/);
+  await clickEl(full);
+  await expect(page).toHaveURL(new RegExp(`/browse/`));
+  await clickEl(page.getByRole("button", { name: "Back to board" }));
+  await expect(page).toHaveURL(/\/projects\//);
+});

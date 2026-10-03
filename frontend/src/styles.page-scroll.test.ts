@@ -28,3 +28,14 @@ describe("page list scrollport", () => {
     expect(body).toMatch(/overflow-y:\s*auto/);
   });
 });
+
+describe("chrome icon touch targets", () => {
+  it("sidebar and issue drawer icon buttons are at least 40px", () => {
+    const sidebar = ruleBody(".sidebar .icon-btn");
+    const drawer = ruleBody(".drawer-top .icon-btn");
+    expect(sidebar).toMatch(/min-width:\s*40px/);
+    expect(sidebar).toMatch(/min-height:\s*40px/);
+    expect(drawer).toMatch(/min-width:\s*40px/);
+    expect(drawer).toMatch(/min-height:\s*40px/);
+  });
+});

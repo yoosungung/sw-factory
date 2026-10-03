@@ -81,7 +81,9 @@ const members: Member[] = [
   { user_id: "u1", role: "owner", email: "dev@example.com", name: "Dev" },
 ];
 
-function renderPanel(props: { onPromptAgent?: () => void } = {}) {
+function renderPanel(
+  props: { onPromptAgent?: () => void; mode?: "sidebar" | "modal" | "page" } = {},
+) {
   return render(
     <MemoryRouter>
       <IssuePanel
@@ -99,6 +101,8 @@ function renderPanel(props: { onPromptAgent?: () => void } = {}) {
     </MemoryRouter>,
   );
 }
+
+const VISIBLE_CHROME = /닫기|크게|전체 화면으로 열기/;
 
 describe("IssuePanel activity tabs", () => {
   beforeEach(() => {
@@ -189,5 +193,29 @@ describe("IssuePanel activity tabs", () => {
     expect(cells).toHaveLength(2);
     expect(cells[0].textContent).toMatch(/status.*backlog.*in_progress/i);
     expect(cells[1].classList.contains("muted")).toBe(true);
+  });
+});
+
+describe("IssuePanel chrome icons", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("sidebar close and full-page link are icon-only with accessible names", () => {
+    renderPanel({ mode: "sidebar" });
+    const full = screen.getByRole("link", { name: "Open full page" });
+    const close = screen.getByRole("button", { name: "Close" });
+    expect(full.textContent).not.toMatch(VISIBLE_CHROME);
+    expect(close.textContent).not.toMatch(VISIBLE_CHROME);
+    expect(full.querySelector("svg")).toBeTruthy();
+    expect(close.querySelector("svg")).toBeTruthy();
+  });
+
+  it("page mode uses Back to board icon without full-page link", () => {
+    renderPanel({ mode: "page" });
+    expect(screen.queryByRole("link", { name: "Open full page" })).toBeNull();
+    const back = screen.getByRole("button", { name: "Back to board" });
+    expect(back.textContent).not.toMatch(VISIBLE_CHROME);
+    expect(back.querySelector("svg")).toBeTruthy();
   });
 });
