@@ -12,6 +12,7 @@ import { fileRoutes } from "./routes/files";
 import { userRoutes } from "./routes/users";
 import { searchRoutes } from "./routes/search";
 import { agentRoutes } from "./routes/agent";
+import { purgeExpiredDoneTickets } from "./lib/done-purge";
 
 const app = new Hono<{ Bindings: Env; Variables: AppVariables }>();
 
@@ -54,6 +55,7 @@ const worker = {
     _ctx: ExecutionContext,
   ): Promise<void> {
     await cleanupExpiredSessions(env.DB);
+    await purgeExpiredDoneTickets(env.DB, env.FILES);
   },
 };
 

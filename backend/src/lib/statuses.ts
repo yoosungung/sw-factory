@@ -3,6 +3,9 @@ export type StatusCategory = "backlog" | "active" | "done";
 /** `category=done` 티켓이 이 일수를 넘기면 archived Done (기본 칸반·리스트 제외). */
 export const DONE_ARCHIVE_DAYS = 7;
 
+/** `category=done` 이고 `updated_at`이 이 일수를 넘기면 Cron이 물리 삭제. */
+export const DONE_PURGE_DAYS = 28;
+
 /** Soft-archive filter for Done tickets older than DONE_ARCHIVE_DAYS. */
 export function archivedDoneFilter(includeArchived: boolean): {
   sql: string;
