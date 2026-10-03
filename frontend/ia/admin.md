@@ -25,7 +25,7 @@ Space/Project settings·People을 **멤버십 모델**(`owner`\|`member`)로 구
 
 ## 2. Platform admin — `/admin`
 
-**Layout:** Top nav(사이드바 없음). Users 테이블 (name, email, is_admin, created_at) + is_admin 토글. Create space.  
+**Layout:** Top nav(사이드바 없음). 제목·Create space 툴바는 `.page-header`에 고정, Users 테이블은 `.page-scroll`(`.main` overflow hidden 유지)로 세로 스크롤. 컬럼: name, email, is_admin, created_at + is_admin 토글. Create space.  
 **Behavior:** 비admin → `/`. 마지막 admin 강등 시 에러 표시. Create space → `POST /api/clients` 후 hub.  
 **API:** `GET /api/admin/users`, `PATCH /api/admin/users/:id` `{ is_admin }`, `POST /api/clients`.  
 **Connections:** Avatar ▾ **Admin**.
@@ -46,7 +46,7 @@ Space/사이트 관리 축소.
 
 ### 3.2 People — `.../people`
 
-**Layout:** 멤버 테이블 (name, email, role), Add people(검색→선택), role 셀렉트 (`owner`\|`member`), Remove.  
+**Layout:** 멤버 테이블 (name, email, role), Add people(검색→선택), role 셀렉트 (`owner`\|`member`), Remove. 제목은 고정, 테이블은 `.page-scroll`.  
 **Behavior:** name/email **검색 타입어헤드**로 가입 계정을 골라 `user_id`로 추가(미가입·미매칭은 결과 없음); 마지막 owner 제거 금지; 본인 owner 강등 시 경고.  
 **API(ARCHITECTURE §4 / M6·M9):**
 
@@ -104,7 +104,7 @@ PM 배정: factory-mcp `list_project_members` → `lane`.
 
 ## 5. Account — `/account`
 
-계정 프로필.
+계정 프로필. 제목 고정, 폼은 `.page-scroll`.
 
 | 섹션 | 필드 | API |
 | --- | --- | --- |

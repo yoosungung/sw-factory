@@ -27,6 +27,13 @@ describe("page list scrollport", () => {
     expect(body).toMatch(/min-height:\s*0/);
     expect(body).toMatch(/overflow-y:\s*auto/);
   });
+
+  it("settings layout fills the main column so People can scroll", () => {
+    const body = ruleBody(".main > .settings-layout");
+    expect(body).toMatch(/flex:\s*1/);
+    expect(body).toMatch(/min-height:\s*0/);
+    expect(body).toMatch(/overflow:\s*hidden/);
+  });
 });
 
 describe("chrome icon touch targets", () => {

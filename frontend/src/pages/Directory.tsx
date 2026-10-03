@@ -100,6 +100,7 @@ export function FiltersPage({
             Create filter
           </button>
         </div>
+        <div className="page-scroll">
         <p className="muted pad">Saved locally in this browser (server sync later).</p>
         <div className="settings-layout">
           <div className="content-panel tableish">
@@ -239,6 +240,7 @@ export function FiltersPage({
               </div>
             </div>
           )}
+        </div>
         </div>
       </>
     ),

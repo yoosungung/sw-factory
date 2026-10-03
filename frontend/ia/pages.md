@@ -123,7 +123,7 @@
 
 ## F10. Filters — `/filters`, `/filters/:id`, `/filters/new`
 
-**Layout:** 필터 목록(이름, starred, owner) / 빌더(project, type, status, assignee, text) / 결과 이슈 테이블.  
+**Layout:** 필터 목록(이름, starred, owner) / 빌더(project, type, status, assignee, text) / 결과 이슈 테이블. 제목·Create는 고정, 본문은 `.page-scroll`.  
 **Behavior:** 저장·복제·삭제·star; 결과 행 → issue.  
 **Data:** Prod — localStorage (`lt_saved_filters`)로 저장·실행; 서버 `saved_filters` 승격은 후속.  
 **API:** 실행은 `GET …/tickets` query (+ 클라이언트 text 필터).  
@@ -133,7 +133,7 @@
 
 ## F12. Teams — `/teams`
 
-**Layout:** People 테이블 (name, email, Spaces/Projects 소속 요약). 검색.  
+**Layout:** People 테이블 (name, email, Spaces/Projects 소속 요약). 검색. 제목 고정, 테이블 `.page-scroll`.  
 **Behavior:** 행 → 해당 사용자가 속한 Space/Project 목록 패널; Add to project(owner 컨텍스트).  
 **API:** members 목록 API 보강(설계: `GET /api/people` = 내가 볼 수 있는 멤버 합집합).  
 **Connections:** → Space/Project People. Top nav에는 없음 — Space settings **People**.

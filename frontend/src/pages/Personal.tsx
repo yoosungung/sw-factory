@@ -297,6 +297,7 @@ export function AccountPage({
         <div className="page-header">
           <h1>Account</h1>
         </div>
+        <div className="page-scroll">
         <div className="content-panel settings-form">
           {error && <p className="error">{error}</p>}
           {msg && <p className="muted">{msg}</p>}
@@ -347,6 +348,7 @@ export function AccountPage({
           <button type="button" className="btn-subtle" onClick={onLogout}>
             Log out
           </button>
+        </div>
         </div>
       </>
     ),
