@@ -24,6 +24,11 @@ import { dueClass } from "../lib/due";
 import { isTicketsView, parseViewMode } from "../lib/view-mode";
 import { useAllProjects, useClients } from "../hooks/useSession";
 import { touchRecentProject, touchRecentTicket } from "../lib/recent";
+import {
+  kanbanColumnNewestFirst,
+  ticketsNewestFirst,
+  timelineNewestFirst,
+} from "../lib/ticketOrder";
 
 export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () => void }) {
   const { id = "" } = useParams();
@@ -99,8 +104,12 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
     setProject(p.project);
     touchRecentProject(p.project.id);
     setStatuses(k.statuses);
-    setColumns(k.columns);
-    setTimeline(t.items);
+    const orderedColumns: Record<string, Ticket[]> = {};
+    for (const [key, col] of Object.entries(k.columns)) {
+      orderedColumns[key] = kanbanColumnNewestFirst(col);
+    }
+    setColumns(orderedColumns);
+    setTimeline(timelineNewestFirst(t.items));
     setMilestones(m.tickets);
     setMembers(mem.members);
     setOrg((await client.getClient(p.project.client_id)).client);
@@ -130,7 +139,8 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
         cursor: reset ? undefined : listCursor ?? undefined,
         include_archived: includeArchived || undefined,
       });
-      setListTickets((prev) => (reset ? r.tickets : [...prev, ...r.tickets]));
+      const page = ticketsNewestFirst(r.tickets);
+      setListTickets((prev) => (reset ? page : [...prev, ...page]));
       setListCursor(r.next_cursor ?? null);
     } finally {
       setListLoading(false);
@@ -483,8 +493,10 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
       {view === "timeline" && (
         <div className="content-panel">
           {(() => {
-            const items = [...timeline, ...milestones.filter((m) => m.date_from && m.date_to)].filter(
-              (item, idx, arr) => arr.findIndex((x) => x.id === item.id) === idx,
+            const items = timelineNewestFirst(
+              [...timeline, ...milestones.filter((m) => m.date_from && m.date_to)].filter(
+                (item, idx, arr) => arr.findIndex((x) => x.id === item.id) === idx,
+              ),
             );
             if (items.length === 0) {
               return (

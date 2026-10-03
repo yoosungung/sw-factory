@@ -14,6 +14,7 @@ macOS + Chromium 조합에서 Playwright 기본 `fill`/`click`이 hang 되는 �
 | `ux-nav.spec.ts` | UX1: view-segment 단일 소스 · space switcher · settings hideSidebar · UX5 Overview vs Tickets · Create project description · Space settings 좌측 |
 | `ux-polish.spec.ts` | UX2 Backlog/Timeline/List EmptyState 동일 형태(CTA 없음) · Timeline에 날짜 없는 생성 이슈가 보임 · UX3 non-modal inspector · UX4 mobile hamburger(+ 프로젝트 Work/Settings 드로어) · 사이드바 접기/펴기·이슈 닫기/전체페이지 아이콘 전용 |
 | `fe3-fe5.spec.ts` | Your work(`.page-scroll`) · Search · Account · Filters · History · Board Settings 커스텀 컬럼 |
+| `projects-newest.spec.ts` | `/projects` 헤더 고정 스크롤 · List/Board 최신 티켓이 위 |
 | `admin.spec.ts` | 시드 admin `/admin` · `.page-scroll` 사용자 테이블 · Space 생성 · 이메일 초대 |
 | `agent-prompt.spec.ts` | Tickets 툴바 Prompt agent → `POST /api/agent/prompts` ack · Issue 헤더 `ticket_id` 스코프 |
 
