@@ -16,7 +16,7 @@ clientRoutes.get("/clients", async (c) => {
      FROM clients c
      JOIN client_members cm ON cm.client_id = c.id
      WHERE cm.user_id = ?
-     ORDER BY c.created_at DESC`,
+     ORDER BY c.created_at DESC, c.id DESC`,
   )
     .bind(user.id)
     .all();
@@ -117,7 +117,7 @@ clientRoutes.get("/clients/:id/projects", async (c) => {
      FROM projects p
      JOIN project_members pm ON pm.project_id = p.id
      WHERE p.client_id = ? AND pm.user_id = ?
-     ORDER BY p.created_at DESC`,
+     ORDER BY p.created_at DESC, p.id DESC`,
   )
     .bind(id, user.id)
     .all();

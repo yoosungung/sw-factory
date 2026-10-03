@@ -16,8 +16,8 @@
 
 ## F2. Projects — `/projects`
 
-**Layout:** Top nav(사이드바 없음) + 제목 Projects + Create space · Create project + 테이블 (Name, Space, Role).  
-**Behavior:** 행 → `/projects/:id` (Overview). Create space → `POST /api/clients` 후 hub (**admin만**); Create project → space 선택 후 `POST /api/projects`. 비admin·무멤버십 빈 화면: admin 초대 안내.  
+**Layout:** Top nav(사이드바 없음) + 제목 Projects + Create space · Create project + 검색 툴바 고정, 테이블은 `.page-scroll`(`.main` overflow hidden). 테이블 (Name, Space, Role).  
+**Behavior:** 행 → `/projects/:id` (Overview). Create space → `POST /api/clients` 후 hub (**admin만**); Create project → space 선택 후 `POST /api/projects`. 비admin·무멤버십 빈 화면: admin 초대 안내. 목록 `created_at` DESC(동일 시각 `id` DESC).  
 **API:** `GET /api/projects`, `GET /api/clients`.  
 **Connections:** → Project Overview. Top nav **Projects**.
 
@@ -25,8 +25,8 @@
 
 ## F2b. Spaces — `/spaces`
 
-**Layout:** Top nav + 제목 Spaces + Create space(**admin만**) + Client 테이블 (Name, Role).  
-**Behavior:** 행 → `/clients/:id`. 비admin은 Create space 없음.  
+**Layout:** Top nav + 제목 Spaces + Create space(**admin만**) + Client 테이블 (Name, Role). 제목·Create·검색 고정, 테이블 `.page-scroll`.  
+**Behavior:** 행 → `/clients/:id`. 비admin은 Create space 없음. 목록 `created_at` DESC.  
 **API:** `GET/POST /api/clients`.  
 **Connections:** → Space hub. Top nav **Spaces**.
 
@@ -35,7 +35,7 @@
 ## F3. Your work — `/` (alias `/your-work` → `/`)
 
 **Layout:** 탭 — Assigned to me | Created by me | Recently viewed | Recent projects. Assigned/Created/Viewed = `.your-work-issues` 4열(Issue `minmax(0,1fr)` · Project · Status · Due); Recent projects = `.your-work-projects` 3열(Project(+icon) · Description 1줄/`No description` · Open). 헤더·탭은 고정, 그리드는 `.page-scroll`(`.main` overflow hidden 유지)로 세로 스크롤.  
-**Behavior:** 이슈 행 → `/browse/:id` 또는 프로젝트 보드+`?issue=`; 프로젝트 행 → Board. Assigned/Created는 FE에서 `created_at` DESC(동일 시각 id DESC)로 한 목록 정렬(API ASC 유지). Recently viewed·Recent projects 순서는 기존 유지.  
+**Behavior:** 이슈 행 → `/browse/:id` 또는 프로젝트 보드+`?issue=`; 프로젝트 행 → Board. Assigned/Created는 `created_at` DESC(동일 시각 id DESC). List API 기본도 DESC. Recently viewed·Recent projects 순서는 기존 유지.  
 **API:** `GET /api/projects`; tickets by `assignee_id=me` / `created_by=me` (ARCHITECTURE §4); recent은 클라이언트 저장.  
 **Connections:** → Issue · Project board. Top nav **Your work**. 로그인·로고 홈.
 
@@ -44,7 +44,7 @@
 ## F4. Space hub — `/clients/:id`
 
 **Layout:** 좌측 Space Switcher + Space settings. 본문 Breadcrumb, 이름·설명, Create project, 프로젝트 테이블 (Name, Type).  
-**Behavior:** 행 → `/projects/:id` (Overview). Space settings → `.../settings/details`.  
+**Behavior:** 행 → `/projects/:id` (Overview). Space settings → `.../settings/details`. 프로젝트 테이블 `created_at` DESC.  
 **API:** `GET /api/clients/:id`, `GET …/projects`, `POST /api/projects`.  
 **Connections:** → Project Overview · Tickets · Space settings.
 
@@ -63,7 +63,7 @@
 
 **Layout:** Tickets 작업 뷰. 툴바(타이틀 + 세그먼트 탭 `Board|Backlog|Timeline|List` + 검색·•••) + **프로젝트 statuses 순서** 컬럼 + 카드. 컬럼(회색 서피스)은 툴바 아래 **잔여 뷰포트 높이를 채우고**, 카드가 넘치면 컬럼 본문만 세로 스크롤. 컬럼 폭·카드 높이는 breakpoint 상수(DS §3.4).  
 **카드 규격:** 타입 아이콘 + 키(`MOB-F416`) + 우선순위 뱃지(High/Medium/Low 컬러 태그) + 고정 높이 `216px` · 제목 4줄 clamp/`…` + 마감일 태그 + 우측 정렬된 담당자 아바타.  
-**Behavior:** 드래그 → `PATCH` `{ status, sort_order, version }`; 카드 클릭 → **논모달 사이드 인스펙터** 오픈; Group by(assignee/milestone/type) **Prod 포함**(클라이언트 그룹핑); 가로 스크롤(오버레이 페이드 없음). 티켓 생성은 탑바 **Create**(F14)만 — 컬럼 인라인 생성은 보류.  
+**Behavior:** 드래그 → `PATCH` `{ status, sort_order, version }`; 카드 클릭 → **논모달 사이드 인스펙터** 오픈; Group by(assignee/milestone/type) **Prod 포함**(클라이언트 그룹핑); 가로 스크롤(오버레이 페이드 없음). 티켓 생성은 탑바 **Create**(F14)만 — 컬럼 인라인 생성은 보류. 컬럼 안 **최신 `created_at`/높은 `sort_order`가 위**(생성 append·드롭은 맨 위).  
 **API:** `GET …/kanban` (`columns`+`statuses`; `category=done` 최근건 기본), `POST …/tickets`.  
 **Connections:** → Issue · Settings Board.
 
@@ -72,7 +72,7 @@
 ## F6. Backlog — `?view=backlog`
 
 **Layout:** 좌측 = `category=backlog` 이슈 리스트 + 우측 = 나머지 status. 빈 백로그는 EmptyState(제목+안내, CTA 없음). 티켓 생성은 탑바 **Create**(F14)만.  
-**Behavior:** 행 → issue 인스펙터; 인라인 status 변경(프로젝트 statuses). Sprint 섹션은 Defer.  
+**Behavior:** 행 → issue 인스펙터; 인라인 status 변경(프로젝트 statuses). Sprint 섹션은 Defer. 백로그 행은 보드와 같이 최신 위.  
 **API:** `GET …/kanban` 또는 tickets + statuses.  
 **Connections:** → Issue.
 
@@ -82,7 +82,7 @@
 
 **Layout:** 날짜 축 + `date_from`/`date_to` 간트 바; milestone 강조.  
 **Empty State (필수):** Backlog와 동일 형태 — 제목 `Timeline is empty` + 안내 한 줄, CTA 없음. 티켓 생성은 탑바 **Create**(F14)만.  
-**Behavior:** 클릭 → issue; 바 드래그로 기간 `PATCH` (**Prod**). 수동 기간이 없는 task도 status/생성 시각으로 채운 `date_from`/`date_to`로 행이 보인다.  
+**Behavior:** 클릭 → issue; 바 드래그로 기간 `PATCH` (**Prod**). 수동 기간이 없는 task도 status/생성 시각으로 채운 `date_from`/`date_to`로 행이 보인다. **행**은 최신 `date_from`(없으면 `created_at`)이 위; 간트 축은 과거→미래 LTR.  
 **API:** `GET …/timeline`, `PATCH /api/tickets/:id`.  
 **Connections:** → Issue.
 
@@ -91,7 +91,7 @@
 ## F8. List — `?view=list`
 
 **Layout:** 테이블 Type | Title | Status(컬러 뱃지) | Assignee | Due | Priority(아이콘+태그) | Updated. 컬럼 표시 토글. 빈 리스트는 Backlog와 동일 EmptyState(제목 `List is empty` + 안내, CTA 없음).  
-**Behavior:** 행 → issue; 헤더 정렬(정렬 방향 화살표 표시); 필터 칩(status/type). Board와 동일 **Include archived Done** (기본 제외, 칸반과 같은 `include_archived` 필터).  
+**Behavior:** 행 → issue; 헤더 정렬(정렬 방향 화살표 표시); 필터 칩(status/type). 기본 표시 `created_at` DESC(페이징 커서 동일). Board와 동일 **Include archived Done** (기본 제외, 칸반과 같은 `include_archived` 필터).  
 **API:** `GET …/tickets` (`include_archived`).  
 **Connections:** → Issue.
 

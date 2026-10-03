@@ -59,7 +59,7 @@ projectRoutes.get("/projects", async (c) => {
     sql += ` AND p.client_id = ?`;
     binds.push(clientId);
   }
-  sql += ` ORDER BY p.created_at DESC`;
+  sql += ` ORDER BY p.created_at DESC, p.id DESC`;
 
   const { results } = await c.env.DB.prepare(sql).bind(...binds).all();
   return c.json({ projects: results });

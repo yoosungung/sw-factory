@@ -695,6 +695,92 @@ describe("M7 scale and durability", () => {
     expect((listArchived.json.tickets as Json[]).map((t) => t.id)).toContain(archivedId);
   });
 
+  it("lists tickets, kanban columns, and timeline rows newest-first", async () => {
+    const { cookie } = await register("NewestFirst", { admin: true });
+    const clientId = await createClient(cookie, "NewestCo");
+    const proj = await request(
+      "/api/projects",
+      { method: "POST", body: JSON.stringify({ name: "Newest", client_id: clientId }) },
+      cookie,
+    );
+    const projectId = (proj.json.project as Json).id as string;
+    const ids: string[] = [];
+    for (let i = 0; i < 3; i++) {
+      const res = await request(
+        `/api/projects/${projectId}/tickets`,
+        {
+          method: "POST",
+          body: JSON.stringify({ title: `N${i}`, type: "task", status: "backlog" }),
+        },
+        cookie,
+      );
+      expect(res.status).toBe(201);
+      const id = (res.json.ticket as Json).id as string;
+      ids.push(id);
+      const created = `2026-02-0${i + 1}T00:00:00.000Z`;
+      const from = `2026-03-0${i + 1}`;
+      await env.DB.prepare(
+        `UPDATE tickets SET created_at = ?, date_from = ?, date_to = ? WHERE id = ?`,
+      )
+        .bind(created, from, from, id)
+        .run();
+    }
+
+    const page1 = await request(
+      `/api/projects/${projectId}/tickets?limit=2`,
+      {},
+      cookie,
+    );
+    expect(page1.status).toBe(200);
+    expect((page1.json.tickets as Json[]).map((t) => t.title)).toEqual(["N2", "N1"]);
+    expect(typeof page1.json.next_cursor).toBe("string");
+
+    const page2 = await request(
+      `/api/projects/${projectId}/tickets?limit=2&cursor=${encodeURIComponent(page1.json.next_cursor as string)}`,
+      {},
+      cookie,
+    );
+    expect(page2.status).toBe(200);
+    expect((page2.json.tickets as Json[]).map((t) => t.title)).toEqual(["N0"]);
+    expect(page2.json.next_cursor).toBeNull();
+
+    const kanban = await request(`/api/projects/${projectId}/kanban`, {}, cookie);
+    expect(kanban.status).toBe(200);
+    const backlog = (kanban.json.columns as Record<string, Json[]>).backlog;
+    expect(backlog.map((t) => t.title)).toEqual(["N2", "N1", "N0"]);
+
+    const timeline = await request(`/api/projects/${projectId}/timeline`, {}, cookie);
+    expect(timeline.status).toBe(200);
+    expect((timeline.json.items as Json[]).map((t) => t.title)).toEqual(["N2", "N1", "N0"]);
+  });
+
+  it("lists projects newest-first with id tiebreak", async () => {
+    const { cookie } = await register("ProjNewest", { admin: true });
+    const clientId = await createClient(cookie, "ProjNewestCo");
+    const names = ["P0", "P1", "P2"];
+    const ids: string[] = [];
+    for (const name of names) {
+      const res = await request(
+        "/api/projects",
+        { method: "POST", body: JSON.stringify({ name, client_id: clientId }) },
+        cookie,
+      );
+      expect(res.status).toBe(201);
+      ids.push((res.json.project as Json).id as string);
+    }
+    const same = "2026-04-01T00:00:00.000Z";
+    await env.DB.prepare(`UPDATE projects SET created_at = ? WHERE id IN (?, ?, ?)`)
+      .bind(same, ids[0], ids[1], ids[2])
+      .run();
+    const listed = await request("/api/projects", {}, cookie);
+    expect(listed.status).toBe(200);
+    const ordered = [...ids].sort((a, b) => (a < b ? 1 : a > b ? -1 : 0));
+    expect((listed.json.projects as Json[]).map((p) => p.id)).toEqual(ordered);
+
+    const hub = await request(`/api/clients/${clientId}/projects`, {}, cookie);
+    expect((hub.json.projects as Json[]).map((p) => p.id)).toEqual(ordered);
+  });
+
   it("supports direct upload url + confirm and session cleanup", async () => {
     const { cookie, userId } = await register("Uploader", { admin: true });
     const clientId = await createClient(cookie, "UpCo");

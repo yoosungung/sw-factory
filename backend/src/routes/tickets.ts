@@ -107,13 +107,13 @@ ticketRoutes.get("/projects/:projectId/tickets", async (c) => {
   if (cursor) {
     try {
       const decoded = JSON.parse(atob(cursor)) as { created_at: string; id: string };
-      sql += ` AND (created_at > ? OR (created_at = ? AND id > ?))`;
+      sql += ` AND (created_at < ? OR (created_at = ? AND id < ?))`;
       binds.push(decoded.created_at, decoded.created_at, decoded.id);
     } catch {
       return c.json({ error: "invalid_cursor" }, 400);
     }
   }
-  sql += ` ORDER BY created_at ASC, id ASC LIMIT ?`;
+  sql += ` ORDER BY created_at DESC, id DESC LIMIT ?`;
   binds.push(limit + 1);
 
   const { results } = await c.env.DB.prepare(sql).bind(...binds).all<TicketRow>();
@@ -537,7 +537,7 @@ ticketRoutes.get("/projects/:projectId/kanban", async (c) => {
   const archive = archivedDoneFilter(includeArchived);
   sql += archive.sql;
   binds.push(...archive.binds);
-  sql += ` ORDER BY sort_order ASC, created_at ASC`;
+  sql += ` ORDER BY sort_order DESC, created_at DESC, id DESC`;
 
   const { results } = await c.env.DB.prepare(sql).bind(...binds).all<TicketRow>();
 
@@ -558,7 +558,7 @@ ticketRoutes.get("/projects/:projectId/timeline", async (c) => {
   const { results } = await c.env.DB.prepare(
     `SELECT ${TICKET_SELECT} FROM tickets
      WHERE project_id = ? AND date_from IS NOT NULL AND date_to IS NOT NULL
-     ORDER BY date_from ASC`,
+     ORDER BY date_from DESC, created_at DESC, id DESC`,
   )
     .bind(projectId)
     .all();

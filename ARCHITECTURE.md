@@ -211,12 +211,12 @@ CHECK (successor_id != blocker_id)
 
 | Method | Path | 비고 |
 | --- | --- | --- |
-| GET | `/api/clients` | 내가 멤버인 목록 |
+| GET | `/api/clients` | 내가 멤버인 목록. `created_at DESC, id DESC` |
 | POST | `/api/clients` | `{ name, description? }` — **플랫폼 admin만**; 생성자 = owner |
 | GET | `/api/clients/:id` | 멤버만 |
 | PATCH | `/api/clients/:id` | 멤버 |
 | DELETE | `/api/clients/:id` | owner만 (소속 projects CASCADE) |
-| GET | `/api/clients/:id/projects` | 해당 client 소속이면서 내가 project 멤버인 목록 |
+| GET | `/api/clients/:id/projects` | 해당 client 소속이면서 내가 project 멤버인 목록. `created_at DESC, id DESC` |
 | GET | `/api/clients/:id/members` | 소속 멤버 목록 (`owner`, `member`) |
 | POST | `/api/clients/:id/members` | `{ user_id?, email?, role }` — owner만. `user_id` 또는 `email`(가입된 계정) 중 하나 |
 | DELETE | `/api/clients/:id/members/:userId` | owner만 멤버 제거 (단, 마지막 owner 제거 불가) |
@@ -225,7 +225,7 @@ CHECK (successor_id != blocker_id)
 
 | Method | Path | 비고 |
 | --- | --- | --- |
-| GET | `/api/projects` | 내가 멤버인 목록; query `client_id` 선택 |
+| GET | `/api/projects` | 내가 멤버인 목록; query `client_id` 선택. `created_at DESC, id DESC` |
 | POST | `/api/projects` | `{ name, description?, client_id }` — client 멤버여야 함; 생성자 = project owner |
 | GET | `/api/projects/:id` | 멤버만 (`client_id` 포함) |
 | PATCH | `/api/projects/:id` | 멤버; `client_id` 변경 시 대상 client 멤버여야 함 |
@@ -241,7 +241,7 @@ CHECK (successor_id != blocker_id)
 
 | Method | Path | 비고 |
 | --- | --- | --- |
-| GET | `/api/projects/:id/tickets` | query: `type`, `status`, `assignee_id` (`me` = 현재 사용자), `created_by` (`me` = 현재 사용자), `milestone_id`, `limit`, `cursor` (Cursor 페이징), `include_archived` (기본 제외: archived Done) |
+| GET | `/api/projects/:id/tickets` | query: `type`, `status`, `assignee_id` (`me` = 현재 사용자), `created_by` (`me` = 현재 사용자), `milestone_id`, `limit`, `cursor` (Cursor 페이징, `created_at DESC, id DESC`), `include_archived` (기본 제외: archived Done). 기본 정렬 `created_at DESC, id DESC` |
 | POST | `/api/projects/:id/tickets` | `{ title, description?, type, status?, priority?, assignee_id?, due_at?, milestone_id?, date_from?, date_to? }` |
 | GET | `/api/tickets/:id` | 멤버만. 응답 `ticket`에 `blocker_ids: string[]`(dual-read) |
 | PATCH | `/api/tickets/:id` | body에 `{ status, sort_order, priority, assignee_id, due_at, version? }` 포함. 버전 전달 시 불일치하면 `409 Conflict`; 성공 시 `version` 증가 및 변경 필드 `ticket_activities` 기록. **status가 `category=done`으로 바뀌면** 이 티켓을 `blocker_id`로 갖는 FS 행을 제거하고, 후속이 남은 blocker가 없으며 `status=blocked`이면 **`in_progress`로 복귀**한 뒤 후속 `ticket_id`로 `ticket_updated` append(`dependency_cleared`, `unblocked_from`) |
@@ -249,8 +249,8 @@ CHECK (successor_id != blocker_id)
 | GET | `/api/tickets/:id/dependencies` | 멤버; `{ blocker_ids, blockers: [{id,title,status}], blocking: [{id,title,status}] }` |
 | PUT | `/api/tickets/:id/dependencies` | 멤버; `{ blocker_ids: string[] }` 전체 교체(동일 project만). 사이클→`400 dependency_cycle`; parent 혼동→`400 parent_not_fs`; 없는/타 project→`400 invalid_blocker`. description soft 마커 제거 |
 | GET | `/api/tickets/:id/activities` | 티켓 변경 이력 (최신순) |
-| GET | `/api/projects/:id/kanban` | `{ columns, statuses }` — 컬럼 키=project statuses 순서. `category=done` 중 `updated_at`이 7일 초과인 건은 기본 제외(archived Done; `include_archived=true`로 포함) |
-| GET | `/api/projects/:id/timeline` | date_from/date_to 있는 항목 |
+| GET | `/api/projects/:id/kanban` | `{ columns, statuses }` — 컬럼 키=project statuses 순서. 컬럼 안 `sort_order DESC, created_at DESC`(드래그 저장값 유지, 생성 append는 위). `category=done` 중 `updated_at`이 7일 초과인 건은 기본 제외(archived Done; `include_archived=true`로 포함) |
+| GET | `/api/projects/:id/timeline` | date_from/date_to 있는 항목. 행 `date_from DESC`(축 LTR은 UI) |
 
 ### Search
 
