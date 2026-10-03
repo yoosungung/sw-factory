@@ -115,7 +115,7 @@ Issue 인스펙터 헤더에도 동일 액션 — 열릴 때 현재 이슈 `tick
 | --- | --- | --- |
 | **Open in sidebar (기본)** | `?issue=` | **논모달 사이드 인스펙터** (오버레이 딤 없음, 보드 카드 클릭 시 즉시 전환) |
 | **Open in modal** | `?issue=&issueUi=modal` | **집중 중앙 모달** (어두운 배경 딤, 독립 팝업) |
-| **Open full page** | `/browse/:ticketId` | 메인 전폭 단독 뷰 · ✕/Esc → Board |
+| **Open full page** | `/browse/:ticketId` | 메인 전폭 단독 뷰 · 닫기 아이콘/Esc → Board |
 | **Full screen board** | — | 사이드바 숨김 전폭 보드 |
 
 ---

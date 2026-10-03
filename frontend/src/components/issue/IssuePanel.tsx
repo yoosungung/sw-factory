@@ -15,6 +15,7 @@ import {
 } from "../../api";
 import { commentsNewestFirst } from "./commentOrder";
 import { RichContent } from "./RichContent";
+import { IconClose, IconExpandPage } from "../chrome/icons";
 
 const PRIORITIES: TicketPriority[] = ["low", "medium", "high", "urgent"];
 const PRIORITY_LABEL: Record<TicketPriority, string> = {
@@ -348,8 +349,13 @@ export function IssuePanel({
             </button>
           )}
           {mode !== "page" && (
-            <Link className="icon-btn" to={`/browse/${ticket.id}`} title="Open full page">
-              ↗
+            <Link
+              className="icon-btn"
+              to={`/browse/${ticket.id}`}
+              title="Open full page"
+              aria-label="Open full page"
+            >
+              <IconExpandPage />
             </Link>
           )}
           <button
@@ -359,7 +365,7 @@ export function IssuePanel({
             title={mode === "page" ? "Back to board" : "Close"}
             aria-label={mode === "page" ? "Back to board" : "Close"}
           >
-            ✕
+            <IconClose />
           </button>
         </div>
       </div>
