@@ -37,6 +37,7 @@ export function TeamsPage({ user, onLogout }: { user: User; onLogout: () => void
       <div className="page-header">
         <h1>Teams</h1>
       </div>
+      <div className="page-scroll">
       <div className="content-panel tableish">
         <div className="list-row head">
           <span>Name</span>
@@ -54,6 +55,7 @@ export function TeamsPage({ user, onLogout }: { user: User; onLogout: () => void
           </div>
         ))}
         {people.length === 0 && <div className="empty">No people in your spaces yet.</div>}
+      </div>
       </div>
     </AppChrome>
   );

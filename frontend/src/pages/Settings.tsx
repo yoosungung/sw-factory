@@ -191,7 +191,7 @@ export function ClientSettingsPage({
             ]}
           />
         </aside>
-        <div className="settings-main">
+        <div className="settings-main page-scroll">
           {error && <p className="error">{error}</p>}
           {msg && <p className="ok">{msg}</p>}
 
@@ -398,7 +398,7 @@ export function ProjectSettingsPage({
             ]}
           />
         </aside>
-        <div className="settings-main">
+        <div className="settings-main page-scroll">
           {error && <p className="error">{error}</p>}
           {msg && <p className="ok">{msg}</p>}
 
