@@ -6,10 +6,13 @@ import {
   resolveAgentRepoIds,
 } from "../../shared/load-config";
 import {
+  DEFAULT_CD_PATH,
+  DEFAULT_ROADMAP_PATH,
   ensurePersonaRepos,
   ensureRepo,
   injectTokenIntoHttpsUrl,
   writeClientsReposRegistry,
+  writeDerivedRegistries,
   type GitRunner,
 } from "../src/ensure-repos";
 
@@ -115,6 +118,91 @@ agents:
       "utf8",
     );
     await expect(loadAgentsYaml(bad)).rejects.toThrow(/unknown repo id/);
+  });
+
+  it("loads repo client/project ids and agent roadmaps/tenant_cd", async () => {
+    const dir = await tmp();
+    const p = path.join(dir, "ok.yaml");
+    await writeFile(
+      p,
+      `
+factory_base_url: https://example.com
+prompts:
+  ticket_created: a
+  ticket_updated: a
+  comment_added: a
+  assignee_changed: a
+  mention: a
+  handoff: a
+  catch_up: a
+repos:
+  - id: sw-factory
+    git_repo_url: https://github.com/example/sw-factory.git
+    client_id: "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"
+    project_id: "bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"
+  - id: nl2sql
+    git_repo_url: https://github.com/example/nl2sql.git
+agents:
+  - name: pm
+    user_id: "1"
+    email: pm@x
+    persona: pm
+    type: sessions
+    roadmaps:
+      - repo_id: sw-factory
+      - repo_id: sw-factory
+        path: docs/ROADMAP.md
+  - name: ta
+    user_id: "2"
+    email: ta@x
+    persona: ta
+    type: sessions
+    tenant_cd:
+      - repo_id: nl2sql
+`,
+      "utf8",
+    );
+    const file = await loadAgentsYaml(p);
+    expect(file.repos?.[0]?.client_id).toBe(
+      "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa",
+    );
+    expect(file.agents[0]?.roadmaps).toEqual([
+      { repo_id: "sw-factory" },
+      { repo_id: "sw-factory", path: "docs/ROADMAP.md" },
+    ]);
+    expect(file.agents[1]?.tenant_cd).toEqual([{ repo_id: "nl2sql" }]);
+  });
+
+  it("rejects unknown roadmaps/tenant_cd repo ids", async () => {
+    const dir = await tmp();
+    const p = path.join(dir, "bad.yaml");
+    await writeFile(
+      p,
+      `
+factory_base_url: https://example.com
+prompts:
+  ticket_created: a
+  ticket_updated: a
+  comment_added: a
+  assignee_changed: a
+  mention: a
+  handoff: a
+  catch_up: a
+repos:
+  - id: sw-factory
+    git_repo_url: https://github.com/example/sw-factory.git
+agents:
+  - name: pm
+    user_id: "1"
+    email: pm@x
+    persona: pm
+    type: sessions
+    roadmaps:
+      - repo_id: missing
+`,
+      "utf8",
+    );
+    await expect(loadAgentsYaml(p)).rejects.toThrow(/unknown repo id/);
   });
 });
 
@@ -244,5 +332,84 @@ describe("ensurePersonaRepos + registry", () => {
     expect(reg).toHaveLength(2);
     expect(reg[0]?.repo_id).toBe("sw-factory");
     expect(reg[0]?.path).toContain("/workspaces/aa/repos/sw-factory");
+  });
+
+  it("writes roadmap and tenant_cd registries from yaml + verify overlay", async () => {
+    const dataDir = await tmp();
+    const repos = [
+      {
+        id: "sw-factory",
+        git_repo_url: "https://github.com/yoosungung/sw-factory.git",
+        client_id: "cc",
+        project_id: "pp",
+      },
+      {
+        id: "nl2sql",
+        git_repo_url: "https://github.com/yoosungung/nl2sql.git",
+        client_id: "c2",
+      },
+    ];
+
+    const roadmapPath = await writeDerivedRegistries({
+      dataDir,
+      persona: "pm",
+      agent: {
+        name: "pm",
+        user_id: "u",
+        email: "pm@x",
+        persona: "pm",
+        type: "sessions",
+        roadmaps: [{ repo_id: "sw-factory" }],
+      },
+      repos,
+    });
+    expect(roadmapPath.roadmap).toContain("roadmap-registry.json");
+    const roadmap = JSON.parse(
+      await readFile(roadmapPath.roadmap!, "utf8"),
+    ) as { repos: Array<{ repo_id: string; path: string; git_repo_url: string }> };
+    expect(roadmap.repos).toEqual([
+      {
+        repo_id: "sw-factory",
+        git_repo_url: "https://github.com/yoosungung/sw-factory.git",
+        path: DEFAULT_ROADMAP_PATH,
+        project_id: "pp",
+        client_id: "cc",
+      },
+    ]);
+
+    const cd = await writeDerivedRegistries({
+      dataDir,
+      persona: "ta",
+      agent: {
+        name: "ta",
+        user_id: "u",
+        email: "ta@x",
+        persona: "ta",
+        type: "sessions",
+        tenant_cd: [{ repo_id: "nl2sql" }],
+      },
+      repos,
+      verifyByRepoId: {
+        nl2sql: {
+          namespace: "nl2sql",
+          deployment: "nl2sql",
+          timeout_sec: 300,
+          smoke: {
+            type: "http",
+            url: "http://nl2sql.nl2sql.svc.cluster.local:8080/healthz",
+            expect_status: 200,
+          },
+        },
+      },
+    });
+    const tenant = JSON.parse(await readFile(cd.tenantCd!, "utf8")) as Array<{
+      repo_id: string;
+      cd_path: string;
+      verify: { namespace: string };
+    }>;
+    expect(tenant).toHaveLength(1);
+    expect(tenant[0]?.repo_id).toBe("nl2sql");
+    expect(tenant[0]?.cd_path).toBe(DEFAULT_CD_PATH);
+    expect(tenant[0]?.verify.namespace).toBe("nl2sql");
   });
 });

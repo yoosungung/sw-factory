@@ -1,6 +1,7 @@
 # Sample agents.yaml (copy to gitignored agents.yaml for real accounts).
 # type: sessions only are gateway delivery targets. workspace paths match PVC contract.
 # Seed ensureRepos: repos[] + agent primary_repo / repo_ids (GH_TOKEN for private).
+# pm.roadmaps[] / ta.tenant_cd[] → workspace registries at ensure/seed.
 
 factory_base_url: https://factory.askwho.net
 
@@ -25,6 +26,8 @@ prompts:
 repos:
   - id: sw-factory
     git_repo_url: https://github.com/yoosungung/sw-factory.git
+    client_id: "00000000-0000-0000-0000-000000000010"
+    project_id: "00000000-0000-0000-0000-000000000012"
   - id: nl2sql
     git_repo_url: https://github.com/yoosungung/nl2sql.git
 
@@ -41,6 +44,8 @@ agents:
     persona: pm
     type: sessions
     workspace: /data/workspaces/pm
+    roadmaps:
+      - repo_id: sw-factory
 
   - name: ta
     user_id: "00000000-0000-0000-0000-000000000004"
@@ -51,6 +56,8 @@ agents:
     repo_ids:
       - sw-factory
       - nl2sql
+    tenant_cd:
+      - repo_id: nl2sql
 
   - name: qa
     user_id: "00000000-0000-0000-0000-000000000005"

@@ -11,7 +11,7 @@ kubelet `gitRepo` 볼륨은 쓰지 않는다(보안·1.36 제거). **앱과 동�
 |------|------|--------|
 | Pod **entrypoint** persona seeds | 매 기동 (`APPLY_PERSONA_SEEDS=1`, 기본) | `/opt/persona-seed/{persona}` → `/data/workspaces/{persona}` (MEMORY seed-once · skills overwrite) |
 | Pod **entrypoint** `seed-cookies-cli` | 매 기동 (`SEED_PERSONA_COOKIES=1`, 기본) | sessions persona마다 factory 로그인 → `secrets/session.cookie` + `.cursor/mcp.json`. `GATEWAY_SESSION_COOKIE`는 폴링 전용(공유 금지) |
-| Pod **entrypoint** `ensure-repos-cli` | 매 기동 (`ENSURE_REPOS=1`, 기본) | `agents.yaml` `repos[]` + `primary_repo`/`repo_ids` → `/data/workspaces/{persona}/repos/{id}` clone-if-missing·fetch · registry 기록 |
+| Pod **entrypoint** `ensure-repos-cli` | 매 기동 (`ENSURE_REPOS=1`, 기본) | `agents.yaml` `repos[]` + `primary_repo`/`repo_ids` → `/data/workspaces/{persona}/repos/{id}` clone-if-missing·fetch · `clients-repos`/`roadmap`/`tenant-cd` registry 기록 |
 | **Job** `job-seed-personas.yaml` | 번들·ensure를 쿠키와 한 번에 | factory 로그인 + prepared seed + ensure (로컬 `seed-personas.sh`와 유사). 쿠키만이면 Pod 재시작으로 충분 |
 
 Secret에 `GH_TOKEN`(private HTTPS). public만이면 생략 가능. 끄기: `ENSURE_REPOS=0`.

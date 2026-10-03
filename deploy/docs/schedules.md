@@ -122,7 +122,7 @@ main 스냅샷: [../agents.back.yaml](../agents.back.yaml) `settings.schedules`.
 
 ### 5.2 `pm-roadmap-sync`
 
-1. `.cursor/roadmap-registry.json`의 enabled repo.
+1. `.cursor/roadmap-registry.json` (`agents.yaml` `pm.roadmaps[]` + `repos[]`를 seed가 씀).
 2. ROADMAP에서 **미완료 `- [ ]`가 있는 첫 `##`만** 현재 마일스톤 — 그 앞 섹션이 열려 있으면 뒤 섹션 티켓 금지.
 3. 미완료 `##` 없음 → pass-gate 티켓을 ta|qa|aa 또는 human에 위임.
 4. 담당 코멘트 `<!-- roadmap-pass:approved -->` 후에만 다음 `### M{n}` parent 생성 (`next` = passed id+1, 문서 첫 `###` 아님).

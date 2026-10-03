@@ -42,16 +42,16 @@ describe("persona-bundle", () => {
       "ORG_WIKI_URL",
     );
     expect(bundle[".cursor/skills/factory-pm/SKILL.md"]).toContain("PM");
-    expect(bundle[".cursor/roadmap-registry.json"]).toContain("repo_id");
-    expect(bundle[".cursor/clients-repos-registry.json"]).toContain("nl2sql");
+    expect(bundle[".cursor/roadmap-registry.json"]).toContain("repos");
+    expect(bundle[".cursor/clients-repos-registry.json"]).toMatch(/\[\]/);
     expect(Object.keys(bundle).some((k) => k.endsWith(".sample"))).toBe(false);
     expect(bundle[".cursor/mcp.json"]).toBeUndefined();
   });
 
-  it("buildPersonaBundle(ta) includes tenant-cd registry", async () => {
+  it("buildPersonaBundle(ta) includes tenant-cd verify overlay", async () => {
     const bundle = await buildPersonaBundle("ta", personasRoot);
-    expect(bundle[".cursor/tenant-cd-registry.json"]).toContain("workflow");
-    expect(bundle[".cursor/clients-repos-registry.json"]).toContain("nl2sql");
+    expect(bundle[".cursor/tenant-cd-verify.json"]).toContain("nl2sql");
+    expect(bundle[".cursor/clients-repos-registry.json"]).toMatch(/\[\]/);
   });
 
   it("buildPersonaBundle(km) includes promote and researcher", async () => {

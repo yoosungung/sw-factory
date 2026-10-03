@@ -1,0 +1,12 @@
+{
+  "nl2sql": {
+    "namespace": "nl2sql",
+    "deployment": "nl2sql",
+    "timeout_sec": 300,
+    "smoke": {
+      "type": "http",
+      "url": "http://nl2sql.nl2sql.svc.cluster.local:8080/healthz",
+      "expect_status": 200
+    }
+  }
+}

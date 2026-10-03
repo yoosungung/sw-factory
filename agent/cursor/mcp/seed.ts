@@ -4,8 +4,10 @@ import { loginFactory } from "./client";
 import { applyPersonaBundle, applyPreparedPersonaSeed } from "../src/persona-bundle";
 import {
   ensurePersonaRepos,
+  loadTenantCdVerifyOverlay,
   resolveGhToken,
   writeClientsReposRegistry,
+  writeDerivedRegistries,
   type EnsureRepoResult,
   type GitRunner,
 } from "../src/ensure-repos";
@@ -216,6 +218,20 @@ export async function seedPersonaWorkspace(opts: {
       dataDir: opts.dataDir,
       persona: opts.persona.persona,
       entries: reposEnsured,
+    });
+    await writeDerivedRegistries({
+      dataDir: opts.dataDir,
+      persona: opts.persona.persona,
+      agent: opts.agent,
+      repos: opts.repos,
+      verifyByRepoId: await loadTenantCdVerifyOverlay(
+        path.join(
+          opts.seedRoot ?? personasRoot,
+          "ta",
+          ".cursor",
+          "tenant-cd-verify.json",
+        ),
+      ),
     });
   }
 

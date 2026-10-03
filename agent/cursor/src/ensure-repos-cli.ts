@@ -12,8 +12,10 @@ import path from "node:path";
 import { loadAgentsYaml } from "../../shared/load-config";
 import {
   ensurePersonaRepos,
+  loadTenantCdVerifyOverlay,
   resolveGhToken,
   writeClientsReposRegistry,
+  writeDerivedRegistries,
 } from "./ensure-repos";
 
 function arg(name: string): string | undefined {
@@ -36,6 +38,19 @@ async function main() {
   const file = await loadAgentsYaml(configPath);
   const token = resolveGhToken();
   const sessions = file.agents.filter((a) => a.type === "sessions");
+  const personasRoot =
+    arg("--personas-root") ??
+    process.env.PERSONAS_ROOT ??
+    path.resolve(process.cwd(), "deploy/personas");
+  const seedDir = process.env.PERSONA_SEED_DIR;
+  const verifyByRepoId = await loadTenantCdVerifyOverlay(
+    path.join(
+      seedDir || personasRoot,
+      "ta",
+      ".cursor",
+      "tenant-cd-verify.json",
+    ),
+  );
 
   for (const a of sessions) {
     const results = await ensurePersonaRepos({
@@ -50,11 +65,20 @@ async function main() {
       persona: a.persona,
       entries: results,
     });
+    const derived = await writeDerivedRegistries({
+      dataDir,
+      persona: a.persona,
+      agent: a,
+      repos: file.repos ?? [],
+      verifyByRepoId,
+    });
     console.log(
       JSON.stringify({
         msg: "ensure_repos",
         persona: a.persona,
         registry: reg,
+        roadmap: derived.roadmap,
+        tenant_cd: derived.tenantCd,
         repos: results.map((r) => ({
           id: r.repoId,
           action: r.action,

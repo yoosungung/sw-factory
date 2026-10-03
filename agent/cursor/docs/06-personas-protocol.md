@@ -35,5 +35,5 @@ Done은 코멘트 증거 마커(`test:`, `qa:`, `aa:`, `prod:`) — 백엔드 �
 
 레포: [deploy/personas/](../../../deploy/personas/).  
 런타임 시드: `_default` + persona overlay → `/data/workspaces/{persona}/` ([01-workspaces](01-workspaces.md)).  
-레지스트리: `.cursor/clients-repos-registry.json` (공통), `.cursor/tenant-cd-registry.json` (ta), `.cursor/roadmap-registry.json` (pm).  
+레지스트리: `.cursor/clients-repos-registry.json` (ensure: `repos[]`+`repo_ids`), `.cursor/roadmap-registry.json` (ensure: `pm.roadmaps[]`), `.cursor/tenant-cd-registry.json` (ensure: `ta.tenant_cd[]` + `tenant-cd-verify.json` overlay). 번들 샘플은 빈 스텁; 실데이터는 yaml에서 생성.  
 MCP 도구 계약: [05-factory-mcp](05-factory-mcp.md).

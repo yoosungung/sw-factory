@@ -4,6 +4,8 @@
 # See local/README.md «Agent user_id 등록».
 # type: sessions — gateway delivery targets.
 # repos[] catalog + agent primary_repo / repo_ids → seed ensure (clone-if-missing).
+# pm.roadmaps[] → roadmap-registry.json; ta.tenant_cd[] → tenant-cd-registry.json
+# (verify overlay: deploy/personas/ta/.cursor/tenant-cd-verify.json; dispatch: tenant .factory/cd.yaml).
 
 factory_base_url: https://factory.example.com
 
@@ -96,6 +98,8 @@ prompts:
 repos:
   - id: sw-factory
     git_repo_url: https://github.com/example/sw-factory.git
+    client_id: "00000000-0000-0000-0000-000000000010"
+    project_id: "00000000-0000-0000-0000-000000000012"
   - id: org-wiki
     git_repo_url: https://github.com/example/wiki.git
 
@@ -112,6 +116,8 @@ agents:
     persona: pm
     type: sessions
     workspace: /data/workspaces/pm
+    roadmaps:
+      - repo_id: sw-factory
 
   - name: km
     user_id: "00000000-0000-0000-0000-000000000003"
@@ -129,6 +135,8 @@ agents:
     workspace: /data/workspaces/ta
     repo_ids:
       - sw-factory
+    # tenant_cd:
+    #   - repo_id: nl2sql
 
   - name: qa
     user_id: "00000000-0000-0000-0000-000000000005"

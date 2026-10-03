@@ -25,9 +25,10 @@ license: MIT
 
 ## Lookup
 
-1. Read `.cursor/tenant-cd-registry.json` (workspace; not `~/.cursor`).
-2. Prefer **`client_id` + `repo_id`** (from ticket project → clients registry). Fallback: `repo_id`, git URL, then legacy agent name.
+1. Read `.cursor/tenant-cd-registry.json` (ensure/seed가 `agents.yaml` `ta.tenant_cd[]` + `repos[]`로 씀; not `~/.cursor`).
+2. Prefer **`client_id` + `repo_id`**. Fallback: `repo_id`, git URL.
 3. No match → not CD; do not invent deploy.
+4. **Dispatch** comes from the product checkout `cd_path` (default `.factory/cd.yaml`). **Verify** (k8s smoke) comes from registry `verify` (factory overlay). Missing file or missing `verify` → fail-closed.
 
 ## Feature loop procedure
 

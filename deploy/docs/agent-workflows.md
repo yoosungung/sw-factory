@@ -139,7 +139,7 @@ New → In Progress → Review → Deploying Test → QA → Deploying Prod → 
 | Deploying Prod | 코멘트에 `qa: … pass` **그리고** `aa: … pass` 확인 → dispatch `production` → `prod_*` 증거 → pm 쪽으로 반환 |
 | Done | ta가 feature Done을 찍지 않음 — 증거는 pm 게이트 |
 
-레지스트리: `tenant-cd-registry.json` (`client_id` + `repo_id`). 매칭 없으면 CD 발명 금지.
+레지스트리: `tenant-cd-registry.json` (`client_id` + `repo_id`; seed=`ta.tenant_cd[]` + verify overlay). Dispatch는 테넌트 `.factory/cd.yaml`. 매칭/`verify`/cd.yaml 없으면 CD 발명 금지.
 
 ### 4.2 기타
 

@@ -39,6 +39,7 @@ agent/cursor/
 | `recover` | R1–R5 | zombie `active_run` |
 | `process-guard` | (신규) | SDK `spawn … ENOENT` uncaught → parent keep-alive |
 | `pvc` | workspaces | persona cwd 보장 |
+| `ensure-repos` | clone-if-missing | `clients-repos` / `roadmap` / `tenant-cd` registry |
 | `factory-mcp` | leantime-mcp | Worker REST + 세션 쿠키 (`mcp/`) |
 
 ## Commands

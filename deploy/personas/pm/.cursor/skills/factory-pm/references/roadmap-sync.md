@@ -2,7 +2,7 @@
 
 Use when schedule `pm-roadmap-sync` runs, or admin asks to sync a repo ROADMAP into factory tickets.
 
-Registry: `.cursor/roadmap-registry.json` (seeded for pm). Empty/`repos: []` → no-op with a short final reply.
+Registry: `.cursor/roadmap-registry.json` (ensure/seed가 `agents.yaml` `pm.roadmaps[]` + `repos[]`로 씀). Empty/`repos: []` → no-op with a short final reply.
 
 ## Per-repo steps
 

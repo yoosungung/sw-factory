@@ -1,7 +1,8 @@
-import { access, mkdir, writeFile } from "node:fs/promises";
+import { access, mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import {
+  repoCatalogById,
   resolveAgentRepoIds,
   type LoadedPersona,
   type LoadedRepo,
@@ -13,11 +14,27 @@ export type GitRunner = (
   cwd?: string,
 ) => Promise<{ stdout: string; stderr: string }>;
 
+export const DEFAULT_ROADMAP_PATH = "ROADMAP.md";
+export const DEFAULT_CD_PATH = ".factory/cd.yaml";
+
+export type TenantCdVerify = {
+  namespace: string;
+  deployment: string;
+  timeout_sec?: number;
+  smoke?: {
+    type?: string;
+    url: string;
+    expect_status?: number;
+  };
+};
+
 export type EnsureRepoResult = {
   repoId: string;
   path: string;
   git_repo_url: string;
   action: "clone" | "fetch";
+  client_id?: string;
+  project_id?: string;
 };
 
 async function pathExists(p: string): Promise<boolean> {
@@ -162,6 +179,8 @@ export async function ensurePersonaRepos(opts: {
       path: dest,
       git_repo_url: repo.git_repo_url,
       action,
+      client_id: repo.client_id,
+      project_id: repo.project_id,
     });
   }
   return out;
@@ -182,6 +201,8 @@ export async function writeClientsReposRegistry(opts: {
     repo_id: e.repoId,
     git_repo_url: e.git_repo_url,
     path: e.path,
+    ...(e.client_id ? { client_id: e.client_id } : {}),
+    ...(e.project_id ? { project_id: e.project_id } : {}),
   }));
   await writeFile(regPath, `${JSON.stringify(body, null, 2)}\n`, "utf8");
   return regPath;
@@ -192,4 +213,74 @@ export function resolveGhToken(
   env: NodeJS.ProcessEnv = process.env,
 ): string | undefined {
   return env.GH_TOKEN || env.GITHUB_TOKEN || undefined;
+}
+
+export async function loadTenantCdVerifyOverlay(
+  overlayPath: string,
+): Promise<Record<string, TenantCdVerify>> {
+  try {
+    const raw = JSON.parse(await readFile(overlayPath, "utf8")) as unknown;
+    if (!raw || typeof raw !== "object" || Array.isArray(raw)) return {};
+    return raw as Record<string, TenantCdVerify>;
+  } catch {
+    return {};
+  }
+}
+
+export async function writeDerivedRegistries(opts: {
+  dataDir: string;
+  persona: string;
+  agent: LoadedPersona;
+  repos: LoadedRepo[];
+  verifyByRepoId?: Record<string, TenantCdVerify>;
+}): Promise<{ roadmap?: string; tenantCd?: string }> {
+  const catalog = repoCatalogById(opts.repos);
+  const cursorDir = path.join(
+    personaCwd(opts.dataDir, opts.persona),
+    ".cursor",
+  );
+  await mkdir(cursorDir, { recursive: true });
+  const out: { roadmap?: string; tenantCd?: string } = {};
+
+  if ((opts.agent.roadmaps ?? []).length > 0) {
+    const repos = (opts.agent.roadmaps ?? []).map((row) => {
+      const repo = catalog.get(row.repo_id);
+      if (!repo) {
+        throw new Error(`writeDerivedRegistries: unknown repo id ${row.repo_id}`);
+      }
+      return {
+        repo_id: row.repo_id,
+        git_repo_url: repo.git_repo_url,
+        path: row.path?.trim() || DEFAULT_ROADMAP_PATH,
+        ...(repo.project_id ? { project_id: repo.project_id } : {}),
+        ...(repo.client_id ? { client_id: repo.client_id } : {}),
+      };
+    });
+    const file = path.join(cursorDir, "roadmap-registry.json");
+    await writeFile(file, `${JSON.stringify({ repos }, null, 2)}\n`, "utf8");
+    out.roadmap = file;
+  }
+
+  if ((opts.agent.tenant_cd ?? []).length > 0) {
+    const entries = (opts.agent.tenant_cd ?? []).map((row) => {
+      const repo = catalog.get(row.repo_id);
+      if (!repo) {
+        throw new Error(`writeDerivedRegistries: unknown repo id ${row.repo_id}`);
+      }
+      const verify = opts.verifyByRepoId?.[row.repo_id];
+      return {
+        repo_id: row.repo_id,
+        git_repo_url: repo.git_repo_url,
+        cd_path: DEFAULT_CD_PATH,
+        ...(repo.client_id ? { client_id: repo.client_id } : {}),
+        ...(repo.project_id ? { project_id: repo.project_id } : {}),
+        ...(verify ? { verify } : {}),
+      };
+    });
+    const file = path.join(cursorDir, "tenant-cd-registry.json");
+    await writeFile(file, `${JSON.stringify(entries, null, 2)}\n`, "utf8");
+    out.tenantCd = file;
+  }
+
+  return out;
 }

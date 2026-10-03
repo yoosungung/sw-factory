@@ -2,7 +2,10 @@
 
 After workflow success, verify **in-cluster** (do not trust Actions smoke alone).
 
-Registry: `tenant_cd.verify.namespace`, `deployment`, `timeout_sec`, `smoke.url`, `smoke.expect_status`.
+Registry: `tenant_cd.verify.namespace`, `deployment`, `timeout_sec`, `smoke.url`, `smoke.expect_status`  
+(공장 overlay `deploy/personas/ta/.cursor/tenant-cd-verify.json` → seed가 registry에 merge).
+
+Missing `verify` on the registry entry → do not invent cluster DNS; comment blocked and stop.
 
 Use in-cluster kubeconfig if needed (see `k8s-operator-operations` SKILL).
 

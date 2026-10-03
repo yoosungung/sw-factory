@@ -4,6 +4,17 @@ import { parse as parseYaml } from "yaml";
 export type LoadedRepo = {
   id: string;
   git_repo_url: string;
+  client_id?: string;
+  project_id?: string;
+};
+
+export type LoadedRoadmapRef = {
+  repo_id: string;
+  path?: string;
+};
+
+export type LoadedTenantCdRef = {
+  repo_id: string;
 };
 
 export type LoadedPersona = {
@@ -15,6 +26,8 @@ export type LoadedPersona = {
   workspace?: string;
   primary_repo?: string;
   repo_ids?: string[];
+  roadmaps?: LoadedRoadmapRef[];
+  tenant_cd?: LoadedTenantCdRef[];
 };
 
 export type LoadedPrompts = {
@@ -89,6 +102,20 @@ function validateAgentRepoRefs(doc: AgentsFile): void {
       if (!catalog.has(id)) {
         throw new Error(
           `agents.yaml: agent ${agent.name} references unknown repo id "${id}"`,
+        );
+      }
+    }
+    for (const row of agent.roadmaps ?? []) {
+      if (!row?.repo_id || !catalog.has(row.repo_id)) {
+        throw new Error(
+          `agents.yaml: agent ${agent.name} references unknown repo id "${row?.repo_id ?? ""}"`,
+        );
+      }
+    }
+    for (const row of agent.tenant_cd ?? []) {
+      if (!row?.repo_id || !catalog.has(row.repo_id)) {
+        throw new Error(
+          `agents.yaml: agent ${agent.name} references unknown repo id "${row?.repo_id ?? ""}"`,
         );
       }
     }
