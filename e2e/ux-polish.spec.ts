@@ -112,6 +112,38 @@ test("UX4: mobile drawer exposes project sidebar links", async ({ page }) => {
   await expect(page.locator(".mobile-nav-drawer")).toHaveCount(0);
 });
 
+test("collapsed sidebar keeps icon rail navigation", async ({ page }) => {
+  await loginAsAdmin(page);
+  const stamp = Date.now();
+  await createSpace(page, `Rail Space ${stamp}`);
+  await createSoftwareProject(page, `Rail Proj ${stamp}`, { tickets: false });
+  await expect(page).toHaveURL(/\/projects\//);
+
+  await clickEl(page.getByRole("button", { name: "Collapse sidebar" }));
+  const rail = page.locator(".sidebar.collapsed");
+  await expect(rail).toBeVisible();
+  await expect(rail.getByRole("link", { name: "Overview" })).toBeVisible();
+  await expect(rail.getByRole("link", { name: "Tickets" })).toBeVisible();
+  await expect(rail.getByRole("link", { name: "Project settings" })).toBeVisible();
+  await expect(rail.getByRole("link", { name: "Overview" })).toHaveClass(/active/);
+
+  await clickEl(rail.getByRole("link", { name: "Tickets" }));
+  await expect(page).toHaveURL(/view=board/);
+  await expect(page.locator(".sidebar.collapsed").getByRole("link", { name: "Tickets" })).toHaveClass(/active/);
+
+  await clickEl(page.locator(".sidebar.collapsed").getByRole("link", { name: "Overview" }));
+  await expect(page).toHaveURL(/\/projects\/[^/?]+$/);
+  await expect(page.locator(".sidebar.collapsed").getByRole("link", { name: "Overview" })).toHaveClass(/active/);
+
+  await clickEl(page.getByRole("button", { name: "Expand sidebar" }));
+  await expect(page.locator(".sidebar.collapsed")).toHaveCount(0);
+  await expect(page.locator(".sidebar").getByRole("link", { name: "Overview" })).toHaveText(/Overview/);
+
+  await clickEl(page.getByRole("button", { name: "Collapse sidebar" }));
+  await clickEl(page.locator(".sidebar.collapsed").getByRole("link", { name: "Project settings" }));
+  await page.waitForURL(/\/settings\/details/);
+});
+
 test("sidebar collapse and issue panel chrome are icon-only", async ({ page }) => {
   await loginAsAdmin(page);
   const stamp = Date.now();

@@ -88,7 +88,7 @@ Space switcher와 본문 제목이 같은 이름을 두 번 쓰지 않는다. �
 | Think | Ideas/Wiki/Goals | **Exclude** |
 | Time | Timesheets/Calendar | **Exclude** |
 
-사이드바 collapse · Board fullscreen(`•••`).  
+사이드바 collapse는 40px **아이콘 레일**(Expand chevron + Overview · Tickets · Settings). 라벨 없이 `aria-label`/`title`. 펴면 풀 사이드바. Board fullscreen(`•••`).  
 **좁은 폭:** 고정 사이드바가 사라질 때(≤900px) 동일 Work/Settings 링크는 탑 햄버거 드로어에 포함한다 — Settings에 도달할 수 없는 상태를 만들지 않는다.
 
 ### Project settings 하위 메뉴
