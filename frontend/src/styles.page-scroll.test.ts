@@ -1,0 +1,30 @@
+import { readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
+import { describe, expect, it } from "vitest";
+
+const cssPath = join(dirname(fileURLToPath(import.meta.url)), "styles.css");
+const css = readFileSync(cssPath, "utf8");
+
+function ruleBody(selector: string): string {
+  const re = new RegExp(
+    `${selector.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}\\s*\\{([^}]*)\\}`,
+    "m",
+  );
+  const m = css.match(re);
+  if (!m) throw new Error(`missing CSS rule for ${selector}`);
+  return m[1];
+}
+
+describe("page list scrollport", () => {
+  it("keeps .main overflow hidden for board layout", () => {
+    expect(ruleBody(".main")).toMatch(/overflow:\s*hidden/);
+  });
+
+  it("page-scroll fills remaining height and scrolls vertically", () => {
+    const body = ruleBody(".page-scroll");
+    expect(body).toMatch(/flex:\s*1/);
+    expect(body).toMatch(/min-height:\s*0/);
+    expect(body).toMatch(/overflow-y:\s*auto/);
+  });
+});

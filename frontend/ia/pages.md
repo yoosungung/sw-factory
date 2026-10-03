@@ -34,7 +34,7 @@
 
 ## F3. Your work — `/` (alias `/your-work` → `/`)
 
-**Layout:** 탭 — Assigned to me | Created by me | Recently viewed | Recent projects. Assigned/Created/Viewed = `.your-work-issues` 4열(Issue `minmax(0,1fr)` · Project · Status · Due); Recent projects = `.your-work-projects` 3열(Project(+icon) · Description 1줄/`No description` · Open).  
+**Layout:** 탭 — Assigned to me | Created by me | Recently viewed | Recent projects. Assigned/Created/Viewed = `.your-work-issues` 4열(Issue `minmax(0,1fr)` · Project · Status · Due); Recent projects = `.your-work-projects` 3열(Project(+icon) · Description 1줄/`No description` · Open). 헤더·탭은 고정, 그리드는 `.page-scroll`(`.main` overflow hidden 유지)로 세로 스크롤.  
 **Behavior:** 이슈 행 → `/browse/:id` 또는 프로젝트 보드+`?issue=`; 프로젝트 행 → Board. Assigned/Created는 FE에서 `created_at` DESC(동일 시각 id DESC)로 한 목록 정렬(API ASC 유지). Recently viewed·Recent projects 순서는 기존 유지.  
 **API:** `GET /api/projects`; tickets by `assignee_id=me` / `created_by=me` (ARCHITECTURE §4); recent은 클라이언트 저장.  
 **Connections:** → Issue · Project board. Top nav **Your work**. 로그인·로고 홈.
