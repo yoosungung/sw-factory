@@ -301,5 +301,6 @@ CHECK (successor_id != blocker_id)
 - 칸반 컬럼 = 해당 프로젝트 `project_statuses`(정렬순). 티켓 `status`는 그 `key` 중 하나여야 한다. 기본 생성 status = 첫 `category=backlog`.
 - 드래그 저장 = `PATCH /api/tickets/:id` with `{ status, sort_order, version }`.
 - 완료 티켓 관리: `category=done` 이고 `updated_at`이 **7일** 초과인 건은 archived Done으로 취급해 기본 **칸반·리스트**에서 제외. `include_archived=true`로 포함. (별도 status 컬럼이 아니라 조회 필터; `archivedDoneFilter` 공용.)
+- 완료 티켓 물리 삭제: `category=done` 이고 `updated_at`이 **28일** 초과이면 같은 hourly Cron이 D1(+R2)에서 복구 없이 삭제한다(`DONE_PURGE_DAYS`). 컷오프는 done 유지 중 마지막 티켓 `updated_at`(코멘트만으로는 `tickets.updated_at`이 바뀌지 않음). 연결 리소스도 삭제: comments, files 메타+R2, pending_uploads(+R2), ticket_activities, ticket_dependencies, `agent_event_log` where `ticket_id`. HTTP `DELETE` 가드(작성자/owner)와 별개. 마일스톤 purge는 자식 티켓을 지우지 않고 `milestone_id` SET NULL; 태스크 purge는 부모 마일스톤을 지우지 않음.
 - 타임라인 = `date_from`/`date_to`가 null이 아닌 ticket/milestone 목록. 요청에 값이 없으면 생성·status 전이 시 UTC date로 자동 채운다(`date_from`=backlog 최초 진입 또는 `created_at`, 미완료 `date_to`=오늘, done 최초 진입은 열린 자동값만 갱신). 수동 값은 덮지 않는다.
 - 만료 세션은 Cron(`0 * * * *`) `scheduled` 핸들러가 `sessions.expires_at < now` 행을 삭제한다.

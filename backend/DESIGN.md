@@ -7,7 +7,8 @@ SPA IA: [frontend/ia/](../frontend/ia/).
 
 ## Layout
 
-- `src/index.ts` — Hono app + 시드 admin + `scheduled` (만료 세션 정리)
+- `src/index.ts` — Hono app + 시드 admin + `scheduled` (만료 세션 정리 + Done 28일 purge)
+- `src/lib/done-purge.ts` — `DONE_PURGE_DAYS` 물리 삭제(연결 comments/files/R2/events)
 - `src/env.ts` — Env 타입
 - `src/lib/` — crypto, ids, cookies, seed-admin
 - `src/middleware/auth.ts` — 세션 로드
@@ -115,7 +116,7 @@ erDiagram
 | `ticket_activities` | 티켓 필드 변경 로그 |
 | `agent_event_log` | agent wake outbox (티켓/코멘트 mutate append; `ticket_id` FK 없음) |
 
-칸반: 컬럼 = `project_statuses` 정렬순. `category=done`은 기본 최근 7일(`DONE_ARCHIVE_DAYS`)만 표시, 초과분은 archived Done.  
+칸반: 컬럼 = `project_statuses` 정렬순. `category=done`은 기본 최근 7일(`DONE_ARCHIVE_DAYS`)만 표시, 초과분은 archived Done. 28일(`DONE_PURGE_DAYS`) 초과 Done은 Cron이 티켓·연결 리소스를 물리 삭제(마일스톤↔자식 독립).  
 타임라인: `date_from`/`date_to` NOT NULL (`GET …/timeline`). 비어 있으면 생성/PATCH에서 UTC date 자동 채움(요청 필드가 있으면 유지). 기존 행은 `0007_timeline_status_dates` 백필.
 
 ### 3.3 Exclude / Defer

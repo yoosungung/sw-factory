@@ -1877,3 +1877,194 @@ describe("POST /api/agent/prompts (manual_prompt)", () => {
     expect(badTicket.json.error).toBe("invalid_ticket");
   });
 });
+
+describe("Done ticket purge", () => {
+  it("purges done tickets after 28 days with linked resources and keeps archive filter", async () => {
+    const { cookie } = await register("Purger", { admin: true });
+    const clientId = await createClient(cookie, "PurgeCo");
+    const proj = await request(
+      "/api/projects",
+      { method: "POST", body: JSON.stringify({ name: "PurgeProj", client_id: clientId }) },
+      cookie,
+    );
+    const projectId = (proj.json.project as Json).id as string;
+
+    const mk = async (title: string, type: "task" | "milestone", status: string) => {
+      const res = await request(
+        `/api/projects/${projectId}/tickets`,
+        { method: "POST", body: JSON.stringify({ title, type, status }) },
+        cookie,
+      );
+      expect(res.status).toBe(201);
+      return res.json.ticket as Json;
+    };
+
+    const staleTask = await mk("StaleDone", "task", "done");
+    const recentDone = await mk("RecentDone", "task", "done");
+    const archivedNotPurged = await mk("Archived8d", "task", "done");
+    const oldActive = await mk("OldActive", "task", "in_progress");
+    const staleMs = await mk("StaleMilestone", "milestone", "done");
+    const child = await mk("ChildOfMs", "task", "in_progress");
+    const parentMs = await mk("KeepParentMs", "milestone", "in_progress");
+    const staleChild = await mk("StaleChild", "task", "done");
+
+    const patchChild = await request(
+      `/api/tickets/${child.id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          milestone_id: staleMs.id,
+          version: child.version,
+        }),
+      },
+      cookie,
+    );
+    expect(patchChild.status).toBe(200);
+    const patchStaleChild = await request(
+      `/api/tickets/${staleChild.id}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({
+          milestone_id: parentMs.id,
+          version: staleChild.version,
+        }),
+      },
+      cookie,
+    );
+    expect(patchStaleChild.status).toBe(200);
+
+    const beforeComment = await request(`/api/tickets/${staleTask.id}`, {}, cookie);
+    const comment = await request(
+      `/api/tickets/${staleTask.id}/comments`,
+      { method: "POST", body: JSON.stringify({ body: "keep clock" }) },
+      cookie,
+    );
+    expect(comment.status).toBe(201);
+    const afterComment = await request(`/api/tickets/${staleTask.id}`, {}, cookie);
+    expect((afterComment.json.ticket as Json).updated_at).toBe(
+      (beforeComment.json.ticket as Json).updated_at,
+    );
+
+    const form = new FormData();
+    form.append("file", new File(["purge-bytes"], "gone.txt", { type: "text/plain" }));
+    const upload = await request(
+      `/api/tickets/${staleTask.id}/files`,
+      { method: "POST", body: form },
+      cookie,
+    );
+    expect(upload.status).toBe(201);
+    const fileId = (upload.json.file as Json).id as string;
+    const fileMeta = await env.DB.prepare(`SELECT r2_key FROM files WHERE id = ?`)
+      .bind(fileId)
+      .first<{ r2_key: string }>();
+    expect(fileMeta?.r2_key).toBeTruthy();
+
+    const pending = await request(
+      `/api/tickets/${staleTask.id}/files/upload-url`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          filename: "pending.bin",
+          mime: "application/octet-stream",
+          size: 4,
+        }),
+      },
+      cookie,
+    );
+    expect(pending.status).toBe(201);
+    const pendingKey = pending.json.r2_key as string;
+    await env.FILES.put(pendingKey, "abcd");
+
+    const blocker = await mk("Blocker", "task", "in_progress");
+    const dep = await request(
+      `/api/tickets/${staleTask.id}/dependencies`,
+      { method: "PUT", body: JSON.stringify({ blocker_ids: [blocker.id] }) },
+      cookie,
+    );
+    expect(dep.status).toBe(200);
+
+    const age = async (id: unknown, days: number) => {
+      const at = new Date(Date.now() - days * 86400_000).toISOString();
+      await env.DB.prepare(`UPDATE tickets SET updated_at = ? WHERE id = ?`)
+        .bind(at, id)
+        .run();
+    };
+    await age(staleTask.id, 29);
+    await age(archivedNotPurged.id, 8);
+    await age(oldActive.id, 40);
+    await age(staleMs.id, 30);
+    await age(staleChild.id, 29);
+    await age(recentDone.id, 1);
+
+    const worker = await import("../src/index");
+    await worker.default.scheduled(
+      { scheduledTime: Date.now(), cron: "0 * * * *", noRetry() {} },
+      env,
+      { waitUntil() {}, passThroughOnException() {} },
+    );
+
+    const gone = await request(`/api/tickets/${staleTask.id}`, {}, cookie);
+    expect(gone.status).toBe(404);
+    const goneMs = await request(`/api/tickets/${staleMs.id}`, {}, cookie);
+    expect(goneMs.status).toBe(404);
+    const goneChild = await request(`/api/tickets/${staleChild.id}`, {}, cookie);
+    expect(goneChild.status).toBe(404);
+
+    const keepRecent = await request(`/api/tickets/${recentDone.id}`, {}, cookie);
+    expect(keepRecent.status).toBe(200);
+    const keepArchived = await request(`/api/tickets/${archivedNotPurged.id}`, {}, cookie);
+    expect(keepArchived.status).toBe(200);
+    const keepActive = await request(`/api/tickets/${oldActive.id}`, {}, cookie);
+    expect(keepActive.status).toBe(200);
+    const keepParent = await request(`/api/tickets/${parentMs.id}`, {}, cookie);
+    expect(keepParent.status).toBe(200);
+    const keepChild = await request(`/api/tickets/${child.id}`, {}, cookie);
+    expect(keepChild.status).toBe(200);
+    expect((keepChild.json.ticket as Json).milestone_id).toBeNull();
+
+    const orphanComments = await env.DB.prepare(
+      `SELECT id FROM comments WHERE entity_type = 'ticket' AND entity_id = ?`,
+    )
+      .bind(staleTask.id)
+      .first();
+    expect(orphanComments).toBeNull();
+    const orphanFiles = await env.DB.prepare(
+      `SELECT id FROM files WHERE entity_type = 'ticket' AND entity_id = ?`,
+    )
+      .bind(staleTask.id)
+      .first();
+    expect(orphanFiles).toBeNull();
+    const orphanPending = await env.DB.prepare(
+      `SELECT id FROM pending_uploads WHERE ticket_id = ?`,
+    )
+      .bind(staleTask.id)
+      .first();
+    expect(orphanPending).toBeNull();
+    const orphanActs = await env.DB.prepare(
+      `SELECT id FROM ticket_activities WHERE ticket_id = ?`,
+    )
+      .bind(staleTask.id)
+      .first();
+    expect(orphanActs).toBeNull();
+    const orphanDeps = await env.DB.prepare(
+      `SELECT successor_id FROM ticket_dependencies WHERE successor_id = ? OR blocker_id = ?`,
+    )
+      .bind(staleTask.id, staleTask.id)
+      .first();
+    expect(orphanDeps).toBeNull();
+    const orphanEvents = await env.DB.prepare(
+      `SELECT id FROM agent_event_log WHERE ticket_id = ?`,
+    )
+      .bind(staleTask.id)
+      .first();
+    expect(orphanEvents).toBeNull();
+    expect(await env.FILES.head(fileMeta!.r2_key)).toBeNull();
+    expect(await env.FILES.head(pendingKey)).toBeNull();
+
+    const kanban = await request(`/api/projects/${projectId}/kanban`, {}, cookie);
+    const doneCol = (kanban.json.columns as Record<string, Json[]>).done;
+    expect(doneCol.some((t) => t.id === archivedNotPurged.id)).toBe(false);
+    expect(doneCol.some((t) => t.id === recentDone.id)).toBe(true);
+  });
+});
+
