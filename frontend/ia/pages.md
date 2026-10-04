@@ -71,7 +71,7 @@
 
 ## F6. Backlog — `?view=backlog`
 
-**Layout:** 좌측 = `category=backlog` 이슈 리스트 + 우측 = 나머지 status. 빈 백로그는 EmptyState(제목+안내, CTA 없음). 티켓 생성은 탑바 **Create**(F14)만.  
+**Layout:** 좌측 = `category=backlog` 이슈 리스트 + 우측 = 나머지 status. 빈 백로그는 EmptyState(제목+안내, CTA 없음). 티켓 생성은 탑바 **Create**(F14)만. 툴바(세그먼트·검색) 고정, 패널 본문은 `.page-scroll`(`.main` overflow hidden).  
 **Behavior:** 행 → issue 인스펙터; 인라인 status 변경(프로젝트 statuses). Sprint 섹션은 Defer. 백로그 행은 보드와 같이 최신 위.  
 **API:** `GET …/kanban` 또는 tickets + statuses.  
 **Connections:** → Issue.
@@ -80,7 +80,7 @@
 
 ## F7. Timeline — `?view=timeline`
 
-**Layout:** 날짜 축 + `date_from`/`date_to` 간트 바; milestone 강조.  
+**Layout:** 날짜 축 + `date_from`/`date_to` 간트 바; milestone 강조. 툴바 고정, 행 목록은 `.page-scroll`(List와 동일 스크롤포트).  
 **Empty State (필수):** Backlog와 동일 형태 — 제목 `Timeline is empty` + 안내 한 줄, CTA 없음. 티켓 생성은 탑바 **Create**(F14)만.  
 **Behavior:** 클릭 → issue; 바 드래그로 기간 `PATCH` (**Prod**). 수동 기간이 없는 task도 status/생성 시각으로 채운 `date_from`/`date_to`로 행이 보인다. **행**은 최신 `date_from`(없으면 `created_at`)이 위; 간트 축은 과거→미래 LTR.  
 **API:** `GET …/timeline`, `PATCH /api/tickets/:id`.  

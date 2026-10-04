@@ -435,87 +435,91 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
       )}
 
       {view === "backlog" && (
-        <div className="backlog">
-          <div className="backlog-panel">
-            <div className="backlog-head">
-              <strong>Backlog</strong>
-              <span className="count">{backlogTickets.length}</span>
+        <div className="page-scroll">
+          <div className="backlog">
+            <div className="backlog-panel">
+              <div className="backlog-head">
+                <strong>Backlog</strong>
+                <span className="count">{backlogTickets.length}</span>
+              </div>
+              {backlogTickets
+                .filter((t) => t.title.toLowerCase().includes(filter.toLowerCase()))
+                .map((t) => (
+                  <div key={t.id} className="backlog-row" onClick={() => openIssue(t)}>
+                    <span className="issue-key">
+                      <span className={`type-icon ${t.type}`}>✓</span>
+                      {issueKey(project.name, t.id)}
+                    </span>
+                    <span className="grow">{t.title}</span>
+                    <select
+                      value={t.status}
+                      onClick={(e) => e.stopPropagation()}
+                      onChange={(e) => void move(t.id, e.target.value)}
+                    >
+                      {statuses.map((s) => (
+                        <option key={s.key} value={s.key}>
+                          {s.label}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ))}
+              {backlogTickets.length === 0 && (
+                <EmptyState
+                  title="Backlog is empty"
+                  description="Work items you create show up here so you can plan what comes next on the board."
+                />
+              )}
             </div>
-            {backlogTickets
-              .filter((t) => t.title.toLowerCase().includes(filter.toLowerCase()))
-              .map((t) => (
-                <div key={t.id} className="backlog-row" onClick={() => openIssue(t)}>
-                  <span className="issue-key">
-                    <span className={`type-icon ${t.type}`}>✓</span>
-                    {issueKey(project.name, t.id)}
-                  </span>
-                  <span className="grow">{t.title}</span>
-                  <select
-                    value={t.status}
-                    onClick={(e) => e.stopPropagation()}
-                    onChange={(e) => void move(t.id, e.target.value)}
-                  >
-                    {statuses.map((s) => (
-                      <option key={s.key} value={s.key}>
-                        {s.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              ))}
-            {backlogTickets.length === 0 && (
-              <EmptyState
-                title="Backlog is empty"
-                description="Work items you create show up here so you can plan what comes next on the board."
-              />
-            )}
-          </div>
-          <div className="backlog-panel">
-            <div className="backlog-head">
-              <strong>Board issues</strong>
+            <div className="backlog-panel">
+              <div className="backlog-head">
+                <strong>Board issues</strong>
+              </div>
+              {boardIssueKeys.flatMap((s) =>
+                (columns[s] ?? []).map((t) => (
+                  <div key={t.id} className="backlog-row" onClick={() => openIssue(t)}>
+                    <span className="issue-key">
+                      <span className={`type-icon ${t.type}`}>✓</span>
+                      {issueKey(project.name, t.id)}
+                    </span>
+                    <span className="grow">{t.title}</span>
+                    <span className="muted">{labelFor(t.status)}</span>
+                  </div>
+                )),
+              )}
             </div>
-            {boardIssueKeys.flatMap((s) =>
-              (columns[s] ?? []).map((t) => (
-                <div key={t.id} className="backlog-row" onClick={() => openIssue(t)}>
-                  <span className="issue-key">
-                    <span className={`type-icon ${t.type}`}>✓</span>
-                    {issueKey(project.name, t.id)}
-                  </span>
-                  <span className="grow">{t.title}</span>
-                  <span className="muted">{labelFor(t.status)}</span>
-                </div>
-              )),
-            )}
           </div>
         </div>
       )}
 
       {view === "timeline" && (
-        <div className="content-panel">
-          {(() => {
-            const items = timelineNewestFirst(
-              [...timeline, ...milestones.filter((m) => m.date_from && m.date_to)].filter(
-                (item, idx, arr) => arr.findIndex((x) => x.id === item.id) === idx,
-              ),
-            );
-            if (items.length === 0) {
-              return (
-                <EmptyState
-                  title="Timeline is empty"
-                  description="Work items you create show up here so you can see the project schedule."
-                />
+        <div className="page-scroll">
+          <div className="content-panel">
+            {(() => {
+              const items = timelineNewestFirst(
+                [...timeline, ...milestones.filter((m) => m.date_from && m.date_to)].filter(
+                  (item, idx, arr) => arr.findIndex((x) => x.id === item.id) === idx,
+                ),
               );
-            }
-            return items.map((item) => (
-              <div key={item.id} className="list-row" onClick={() => openIssue(item)}>
-                <span className="muted">
-                  {item.date_from ?? "—"} → {item.date_to ?? "—"}
-                </span>
-                <span>{item.title}</span>
-                <span className="muted">{labelFor(item.status)}</span>
-              </div>
-            ));
-          })()}
+              if (items.length === 0) {
+                return (
+                  <EmptyState
+                    title="Timeline is empty"
+                    description="Work items you create show up here so you can see the project schedule."
+                  />
+                );
+              }
+              return items.map((item) => (
+                <div key={item.id} className="list-row" onClick={() => openIssue(item)}>
+                  <span className="muted">
+                    {item.date_from ?? "—"} → {item.date_to ?? "—"}
+                  </span>
+                  <span>{item.title}</span>
+                  <span className="muted">{labelFor(item.status)}</span>
+                </div>
+              ));
+            })()}
+          </div>
         </div>
       )}
 
