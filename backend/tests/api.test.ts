@@ -1,6 +1,11 @@
 import { env, createExecutionContext, waitOnExecutionContext } from "cloudflare:test";
 import { describe, it, expect } from "vitest";
 import app from "../src/index";
+import {
+  baseMime,
+  contentDispositionForMime,
+  isInlineViewableMime,
+} from "../src/lib/file-disposition";
 import { extractMentionHandles } from "../src/lib/mentions";
 
 type Json = Record<string, unknown>;
@@ -1018,6 +1023,44 @@ describe("search", () => {
   });
 });
 
+describe("file Content-Disposition MIME allowlist", () => {
+  it("treats safe image/pdf/plain as inline", () => {
+    for (const mime of [
+      "image/png",
+      "image/jpeg",
+      "image/gif",
+      "image/webp",
+      "application/pdf",
+      "text/plain",
+      "text/plain; charset=utf-8",
+      "IMAGE/PNG",
+    ]) {
+      expect(isInlineViewableMime(mime)).toBe(true);
+      expect(contentDispositionForMime(mime, "x.bin")).toMatch(/^inline;/);
+    }
+  });
+
+  it("keeps HTML/SVG and unknown types as attachment (XSS)", () => {
+    for (const mime of [
+      "text/html",
+      "image/svg+xml",
+      "application/octet-stream",
+      "application/zip",
+      "text/javascript",
+    ]) {
+      expect(isInlineViewableMime(mime)).toBe(false);
+      expect(contentDispositionForMime(mime, "x.bin")).toMatch(/^attachment;/);
+    }
+  });
+
+  it("strips mime parameters and sanitizes filename quotes", () => {
+    expect(baseMime("text/plain; charset=utf-8")).toBe("text/plain");
+    expect(contentDispositionForMime("text/plain", 'a"b\nc')).toBe(
+      'inline; filename="a_b_c"',
+    );
+  });
+});
+
 describe("comments and files", () => {
   it("adds comment and uploads file via R2", async () => {
     const { cookie } = await register("Cara", { admin: true });
@@ -1078,6 +1121,59 @@ describe("comments and files", () => {
     const dl = await request(`/api/files/${fileId}`, {}, cookie);
     expect(dl.status).toBe(200);
     expect(dl.json.raw).toBe("hello-bytes");
+    expect(dl.headers.get("Content-Disposition")).toMatch(/^inline;/);
+    expect(dl.headers.get("Content-Type")).toMatch(/^text\/plain/);
+  });
+
+  it("sets Content-Disposition inline for viewable MIME and attachment otherwise", async () => {
+    const { cookie } = await register("FileDisp", { admin: true });
+    const clientId = await createClient(cookie, "DispCo");
+    const proj = await request(
+      "/api/projects",
+      { method: "POST", body: JSON.stringify({ name: "Disp", client_id: clientId }) },
+      cookie,
+    );
+    const projectId = (proj.json.project as Json).id as string;
+    const ticket = await request(
+      `/api/projects/${projectId}/tickets`,
+      { method: "POST", body: JSON.stringify({ title: "Disp file", type: "task" }) },
+      cookie,
+    );
+    const ticketId = (ticket.json.ticket as Json).id as string;
+
+    const pngForm = new FormData();
+    pngForm.append(
+      "file",
+      new File([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], "dot.png", { type: "image/png" }),
+    );
+    const pngUp = await request(
+      `/api/tickets/${ticketId}/files`,
+      { method: "POST", body: pngForm },
+      cookie,
+    );
+    expect(pngUp.status).toBe(201);
+    const pngId = (pngUp.json.file as Json).id as string;
+    const pngDl = await request(`/api/files/${pngId}`, {}, cookie);
+    expect(pngDl.status).toBe(200);
+    expect(pngDl.headers.get("Content-Disposition")).toMatch(/^inline;/);
+    expect(pngDl.headers.get("Content-Type")).toBe("image/png");
+
+    const binForm = new FormData();
+    binForm.append(
+      "file",
+      new File([new Uint8Array([1, 2, 3])], "blob.bin", { type: "application/octet-stream" }),
+    );
+    const binUp = await request(
+      `/api/tickets/${ticketId}/files`,
+      { method: "POST", body: binForm },
+      cookie,
+    );
+    expect(binUp.status).toBe(201);
+    const binId = (binUp.json.file as Json).id as string;
+    const binDl = await request(`/api/files/${binId}`, {}, cookie);
+    expect(binDl.status).toBe(200);
+    expect(binDl.headers.get("Content-Disposition")).toMatch(/^attachment;/);
+    expect(binDl.headers.get("Content-Type")).toBe("application/octet-stream");
   });
 });
 

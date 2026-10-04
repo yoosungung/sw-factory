@@ -194,7 +194,7 @@ erDiagram
 | `DELETE /api/comments/:id` | 작성자 또는 project owner |
 | `POST /api/tickets/:id/files` | multipart (소용량) |
 | `POST …/files/upload-url` · `…/confirm` | Presigned Direct Upload |
-| `GET`/`DELETE /api/files/:id` | |
+| `GET`/`DELETE /api/files/:id` | GET: MIME allowlist → `inline`, else `attachment` (`file-disposition`) |
 
 ### 4.6 Agent outbox
 

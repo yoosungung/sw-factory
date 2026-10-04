@@ -269,7 +269,7 @@ CHECK (successor_id != blocker_id)
 | POST | `/api/tickets/:id/files/upload-url` | `{ filename, mime, size }` → 임시 PUT `upload_url` + `r2_key` |
 | PUT | `/api/files/direct-upload/:token` | 바이너리 본문 → R2 (토큰 인증, 세션 불필요) |
 | POST | `/api/tickets/:id/files/confirm` | 업로드 완료 후 D1 메타 저장 |
-| GET | `/api/files/:id` | Worker R2 스트림 프록시 |
+| GET | `/api/files/:id` | Worker R2 스트림 프록시. `Content-Disposition`: viewable MIME(`image/png|jpeg|gif|webp`, `application/pdf`, `text/plain`) → `inline`, 그 외(HTML/SVG 포함) → `attachment` |
 | DELETE | `/api/files/:id` | 업로더 또는 owner; R2 객체도 삭제 |
 
 ### Agent outbox
@@ -294,7 +294,7 @@ CHECK (successor_id != blocker_id)
    - Worker가 권한 확인 후 `pending_uploads` 토큰과 PUT URL(` /api/files/direct-upload/:token`) 발급.
    - 클라이언트가 해당 URL로 바이너리 PUT → R2 binding 저장.
    - `POST /api/tickets/:id/files/confirm`으로 D1 `files` 메타 확정.
-3. 다운로드는 `GET /api/files/:id`로 멤버십 검증 후 스트림 응답.
+3. 열람/다운로드는 `GET /api/files/:id`로 멤버십 검증 후 스트림 응답. MIME allowlist면 `Content-Disposition: inline`(새 탭 렌더), 그 외·XSS 위험 타입(`text/html`, `image/svg+xml` 등)은 `attachment`.
 
 ## 6. 칸반·타임라인 및 데이터 관리
 
