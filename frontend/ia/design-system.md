@@ -116,10 +116,10 @@ IA 구조는 [overview.md](overview.md), 메뉴는 [menus.md](menus.md), 화면�
   - Tablet `768–1024`: `260px`
   - Mobile `<768`: `240px`
   - 컬럼이 많으면 `.board-scroll` 가로 스크롤 (뷰포트에 맞춰 늘였다/줄지 않음).
-- **카드 높이:** `.issue-card` **고정 `height: 216px`** (`box-sizing: border-box`, `overflow: hidden`). 패딩·메타·푸터 포함. 짧은 제목이어도 카드가 찌그러지지 않는다.
+- **카드 높이:** `.issue-card` **고정 `height: 144px`** (`box-sizing: border-box`, `overflow: hidden`). 패딩·메타·푸터 포함. 짧은 제목이어도 카드가 찌그러지지 않는다.
 - **카드 구성:**
   - 상단 메타: 타입 아이콘(Task/Milestone) + 키(`MOB-F416`) + 우선순위 뱃지(High/Medium/Low 컬러 태그).
-  - 본문: 제목 **여러 줄** 표시 + 고정 높이를 넘는 초과분은 **말줄임** (`-webkit-line-clamp: 4`).
+  - 본문: 제목 **여러 줄** 표시 + 고정 높이를 넘는 초과분은 **말줄임** (`-webkit-line-clamp: 3`).
   - 하단 푸터: 마감일 태그(`due_at`, 기한 임박 시 주황/경과 시 빨강) + 우측 정렬된 담당자 원형 아바타(20px).
 - **가로 스크롤 UX:** 컬럼이 뷰포트보다 넓으면 `.board-scroll`에서 가로 스크롤. 우측 고정 캔버스 그라데이션 오버레이는 쓰지 않는다 — 컬럼 위를 덮어 회색 박스가 잘린 것처럼 보이기 때문.
 
