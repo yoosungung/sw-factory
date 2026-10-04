@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import type { AppVariables, Env } from "../env";
 import { newId, nowIso } from "../lib/crypto";
+import { contentDispositionForMime } from "../lib/file-disposition";
 import { requireAuth, requireProjectMember } from "../middleware/auth";
 
 export const fileRoutes = new Hono<{ Bindings: Env; Variables: AppVariables }>();
@@ -251,7 +252,7 @@ fileRoutes.get("/files/:id", async (c) => {
   return new Response(obj.body, {
     headers: {
       "Content-Type": meta.mime,
-      "Content-Disposition": `attachment; filename="${meta.filename}"`,
+      "Content-Disposition": contentDispositionForMime(meta.mime, meta.filename),
     },
   });
 });
