@@ -32,6 +32,38 @@ test("projects list scrolls under a fixed header; ticket views show newest first
   const backlogCol = page.locator(".board-col").filter({ hasText: "Backlog" });
   await expect(backlogCol.locator(".issue-card").first()).toContainText(newer);
 
+  for (const tab of ["Backlog", "Timeline"] as const) {
+    await clickEl(page.locator(".view-segment").getByRole("tab", { name: tab }));
+    await expect
+      .poll(async () => page.locator("main.main").evaluate((el) => getComputedStyle(el).overflow))
+      .toBe("hidden");
+    const toolbarBottom = await page.locator(".toolbar").evaluate((el) => el.getBoundingClientRect().bottom);
+    const viewMetrics = await page.locator(".page-scroll").evaluate((el) => {
+      for (let i = 0; i < 60; i++) {
+        const row = document.createElement("div");
+        row.className = "list-row";
+        row.dataset.scrollPad = String(i);
+        row.textContent = `Scroll pad ${i}`;
+        row.style.minHeight = "40px";
+        el.appendChild(row);
+      }
+      el.scrollTop = el.scrollHeight;
+      const result = {
+        overflowY: getComputedStyle(el).overflowY,
+        canScroll: el.scrollHeight > el.clientHeight,
+        atBottom: el.scrollTop > 0,
+        top: el.getBoundingClientRect().top,
+      };
+      el.querySelectorAll("[data-scroll-pad]").forEach((n) => n.remove());
+      el.scrollTop = 0;
+      return result;
+    });
+    expect(viewMetrics.overflowY).toMatch(/auto|scroll/);
+    expect(viewMetrics.canScroll).toBe(true);
+    expect(viewMetrics.atBottom).toBe(true);
+    expect(viewMetrics.top).toBeGreaterThanOrEqual(toolbarBottom - 1);
+  }
+
   await page.goto("/projects");
   await expect(page.getByRole("heading", { name: "Projects" })).toBeVisible();
   await expect
