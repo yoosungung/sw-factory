@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Install LaunchAgents for cursor + gateway + git HEAD poller (KeepAlive).
+# Install LaunchAgents for cursor + gateway + git HEAD poller + daily restart.
 #
 #   ./scripts/macos/install-launchagents.sh
 #   ./scripts/macos/uninstall-launchagents.sh
@@ -7,6 +7,7 @@
 #
 # Mutually exclusive with `npm run local:run` (same ports / data-dir).
 # HEAD poller: watch-git-head.sh → restart cursor/gateway when `git rev-parse HEAD` changes.
+# Daily: local dawn calendar → restart-launchagents.sh (sticky clear + kickstart).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -15,6 +16,8 @@ AGENTS_DIR="${HOME}/Library/LaunchAgents"
 TOOLS="${LOCAL_TOOLS_DIR:-$ROOT/.tools}"
 LOG_DIR="${LOG_DIR:-$TOOLS/local-logs}"
 ENV_FILE="$ROOT/deploy/local/.env"
+DAILY_HOUR="${SWF_DAILY_RESTART_HOUR:-4}"
+DAILY_MINUTE="${SWF_DAILY_RESTART_MINUTE:-0}"
 
 mkdir -p "$AGENTS_DIR" "$LOG_DIR"
 
@@ -83,12 +86,79 @@ write_plist() {
 </plist>
 EOF
 
-  # Reload idempotently.
+  # Reload idempotently (bootout→bootstrap can race with ThrottleInterval).
   launchctl bootout "${domain}/${label}" 2>/dev/null || true
-  launchctl bootstrap "$domain" "$plist"
+  sleep 1
+  if ! launchctl bootstrap "$domain" "$plist" 2>/dev/null; then
+    sleep 2
+    launchctl bootstrap "$domain" "$plist" 2>/dev/null || true
+  fi
   launchctl enable "${domain}/${label}" 2>/dev/null || true
   launchctl kickstart -k "${domain}/${label}" 2>/dev/null || true
+  if ! launchctl print "${domain}/${label}" >/dev/null 2>&1; then
+    echo "failed to load $label" >&2
+    exit 1
+  fi
   echo "Installed $label → $plist"
+}
+
+# One-shot calendar job (no KeepAlive / no install-time kickstart).
+write_calendar_plist() {
+  local name="$1"
+  local script="$2"
+  local hour="$3"
+  local minute="$4"
+  local label="${LABEL_PREFIX}.${name}"
+  local plist="${AGENTS_DIR}/${label}.plist"
+  local out="${LOG_DIR}/${name}.launchd.out.log"
+  local err="${LOG_DIR}/${name}.launchd.err.log"
+
+  cat >"$plist" <<EOF
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key>
+  <string>${label}</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/bin/bash</string>
+    <string>${script}</string>
+  </array>
+  <key>WorkingDirectory</key>
+  <string>${ROOT}</string>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>SWF_LAUNCHD_PATH</key>
+    <string>${SWF_PATH}</string>
+  </dict>
+  <key>StartCalendarInterval</key>
+  <dict>
+    <key>Hour</key>
+    <integer>${hour}</integer>
+    <key>Minute</key>
+    <integer>${minute}</integer>
+  </dict>
+  <key>StandardOutPath</key>
+  <string>${out}</string>
+  <key>StandardErrorPath</key>
+  <string>${err}</string>
+</dict>
+</plist>
+EOF
+
+  launchctl bootout "${domain}/${label}" 2>/dev/null || true
+  sleep 1
+  if ! launchctl bootstrap "$domain" "$plist" 2>/dev/null; then
+    sleep 2
+    launchctl bootstrap "$domain" "$plist" 2>/dev/null || true
+  fi
+  launchctl enable "${domain}/${label}" 2>/dev/null || true
+  if ! launchctl print "${domain}/${label}" >/dev/null 2>&1; then
+    echo "failed to load $label" >&2
+    exit 1
+  fi
+  echo "Installed $label → $plist (daily ${hour}:$(printf '%02d' "$minute") local)"
 }
 
 chmod +x \
@@ -96,6 +166,7 @@ chmod +x \
   "$ROOT/scripts/macos/run-gateway.sh" \
   "$ROOT/scripts/macos/restart-launchagents.sh" \
   "$ROOT/scripts/macos/watch-git-head.sh" \
+  "$ROOT/scripts/macos/daily-restart.sh" \
   "$ROOT/scripts/macos/install-launchagents.sh" \
   "$ROOT/scripts/macos/uninstall-launchagents.sh"
 
@@ -104,11 +175,13 @@ write_plist cursor "$ROOT/scripts/macos/run-cursor.sh"
 sleep 1
 write_plist gateway "$ROOT/scripts/macos/run-gateway.sh"
 write_plist git-head-watch "$ROOT/scripts/macos/watch-git-head.sh"
+write_calendar_plist daily-restart "$ROOT/scripts/macos/daily-restart.sh" "$DAILY_HOUR" "$DAILY_MINUTE"
 
 echo
-echo "LaunchAgents up (KeepAlive + HEAD poll)."
+echo "LaunchAgents up (KeepAlive + HEAD poll + daily restart)."
 echo "  logs:  $LOG_DIR/*.launchd.*.log"
 echo "  HEAD:  poll every \${SWF_GIT_HEAD_POLL_SEC:-60}s → restart cursor/gateway"
+echo "  daily: ${DAILY_HOUR}:$(printf '%02d' "$DAILY_MINUTE") local → sticky clear + restart"
 echo "  status: launchctl print gui/\$(id -u)/${LABEL_PREFIX}.cursor | head"
 echo "  stop:   ./scripts/macos/uninstall-launchagents.sh"
 echo "  note:   do not also run npm run local:run"

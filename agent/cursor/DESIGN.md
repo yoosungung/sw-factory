@@ -36,7 +36,7 @@ agent/cursor/
 | `server` | Hono parent | HTTP, 큐, 뮤텍스 (SDK 미로드) |
 | `pool` | SDK child slots | lease → backend send |
 | `session-map` | ticket↔agent_id | sticky session |
-| `recover` | R1–R5 | zombie `active_run` |
+| `recover` | R1–R5 | zombie `active_run`; **R2** 실패 시 세션 맵에서 제거 → 다음 `/prompt` 404 → gateway rebind |
 | `process-guard` | (신규) | SDK `spawn … ENOENT` uncaught → parent keep-alive |
 | `pvc` | workspaces | persona cwd 보장 |
 | `ensure-repos` | clone-if-missing | `clients-repos` / `roadmap` / `tenant-cd` registry |

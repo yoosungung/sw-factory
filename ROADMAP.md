@@ -75,6 +75,7 @@
 | **A8** | gateway `schedules[]` (로컬 cron → 티켓리스 prompt) + 기동 catch-up + `GET /api/agent/flow-gates` | yaml 로드·UTC 분 틱·dedupe·gate fail-closed; catch_up 1회; `npm run test:agent` green | done |
 | **A9** | factory-mcp/API 정합 (`edit_comment`, `set_blocked_by` 마커, mention/handoff prompt, `milestone_id` 필터) | 코멘트 PATCH(이벤트 미적재)·MCP 도구·프롬프트 대상별 템플릿 테스트 green | done |
 | **A10** | Soft 레지스트리·persona/문서 정합 (Done 하드 게이트 없음) | tenant-cd/clients-repos/roadmap 샘플 시드; Leantime 잔재 제거; workflows/schedules 갭 갱신 | done |
+| **A11** | macOS 새벽 위생 재기동 + R2 active-run 실패 시 세션 drop (zombie sticky 방지) | `daily-restart` LaunchAgent·`restart` 시 sticky 비움; R2 후 prompt 404→rebind 테스트 green | done |
 
 ## 범위 밖 (Exclude)
 

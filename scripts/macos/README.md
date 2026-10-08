@@ -2,7 +2,12 @@
 
 Native cursor + gateway를 **로그인 세션 LaunchAgent**로 등록한다. 프로세스 크래시 시 launchd가 재기동한다 (`KeepAlive`, `ThrottleInterval=15`).
 
-세 번째 agent `git-head-watch`가 **`git rev-parse HEAD`를 폴링**하고, pull/checkout 등으로 HEAD가 바뀌면 cursor+gateway를 재기동한다 (자동 `git pull`은 하지 않음).
+추가로:
+
+- **`git-head-watch`** — `git rev-parse HEAD` 폴링, pull/checkout 등으로 HEAD가 바뀌면 cursor+gateway 재기동 (자동 `git pull` 없음).
+- **`daily-restart`** — 매일 로컬 시각 **04:00**(기본)에 cursor+gateway 위생 재기동. 장수 프로세스·SDK 좀비 세션 누적을 줄인다.
+
+재기동 시 gateway `sticky.json`을 비운다 (in-memory agent_id는 프로세스와 함께 무효). SDK active-run 실패 시 cursor가 세션 맵에서 제거해 다음 dispatch가 404→rebind 한다 ([agent/cursor/DESIGN.md](../../agent/cursor/DESIGN.md)).
 
 Docker/k8s 감독의 대체는 아니다 — MacBook에서 `local:run` 대신 상시 돌릴 때용.
 
@@ -25,6 +30,21 @@ launchctl print "gui/$(id -u)/net.askwho.sw-factory.cursor" | head
 tail -f .tools/local-logs/cursor.launchd.err.log
 tail -f .tools/local-logs/gateway.launchd.err.log
 tail -f .tools/local-logs/git-head-watch.launchd.out.log
+tail -f .tools/local-logs/daily-restart.launchd.out.log
+```
+
+### 새벽 재기동
+
+| 항목 | 값 |
+|------|-----|
+| 시각 | `SWF_DAILY_RESTART_HOUR` / `SWF_DAILY_RESTART_MINUTE` (기본 `4` / `0`, **로컬 타임존**) |
+| 동작 | `restart-launchagents.sh` — sticky 비움 → cursor → gateway kickstart |
+| 비동작 | 이미 ack된 outbox 재배달 없음 · 쿠키 갱신 없음 |
+
+시각 바꾸려면:
+
+```bash
+SWF_DAILY_RESTART_HOUR=3 SWF_DAILY_RESTART_MINUTE=30 ./scripts/macos/install-launchagents.sh
 ```
 
 ### HEAD 폴링 (pull → 재기동)
@@ -65,16 +85,18 @@ launchctl kickstart -k "gui/$(id -u)/net.askwho.sw-factory.gateway"
 |------|------|
 | `run-cursor.sh` / `run-gateway.sh` | `.env` 로드 후 `tsx` 실행 |
 | `watch-git-head.sh` | HEAD 폴링 → restart |
-| `install-launchagents.sh` | plist 생성·bootstrap (cursor/gateway/git-head-watch) |
-| `restart-launchagents.sh` | kickstart -k (cursor→gateway; watcher 제외) |
+| `daily-restart.sh` | 캘린더 틱 → restart |
+| `install-launchagents.sh` | plist 생성·bootstrap (cursor/gateway/git-head-watch/daily-restart) |
+| `restart-launchagents.sh` | sticky 비움 + kickstart -k (cursor→gateway; watcher/daily 제외) |
 | `uninstall-launchagents.sh` | bootout + plist 삭제 |
 
-Labels: `net.askwho.sw-factory.cursor` · `.gateway` · `.git-head-watch`.
+Labels: `net.askwho.sw-factory.cursor` · `.gateway` · `.git-head-watch` · `.daily-restart`.
 
 ## 한계
 
 - 프로세스 재기동만 보장 — SDK `spawn /bin/zsh` 등 **크래시 원인**은 그대로면 15초 간격으로 재시도한다.
-- 로그인 GUI 세션 (`gui/$UID`) — 로그아웃 시 중지.
+- 로그인 GUI 세션 (`gui/$UID`) — 로그아웃 시 중지. Mac이 잠자기면 캘린더 틱이 밀리거나 건너뛸 수 있다.
 - `GATEWAY_SESSION_COOKIE` 만료는 launchd가 모름 — `obtain-cookie.sh` 후 kickstart.
-- HEAD 변경 시 **진행 중 SDK 세션이 끊긴다**.
+- HEAD 변경·새벽 재기동 시 **진행 중 SDK 세션이 끊긴다**.
 - dirty working tree만 바뀌고 HEAD가 같으면 재기동하지 않는다 (의도).
+- 재기동·세션 drop은 **이후** prompt/rebind만 고친다 — 이미 ack된 실패 이벤트는 수동 prompt가 필요.

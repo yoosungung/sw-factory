@@ -47,17 +47,17 @@ export class Recover {
     });
   }
 
-  /** R2: active_run fail path */
+  /** R2: active_run fail → drop session so next /prompt is 404 (gateway rebind). */
   async onActiveRunFail(agentId: string, detail?: string): Promise<void> {
     const rec = this.sessions.get(agentId);
     if (!rec) return;
-    rec.activeRun = false;
-    this.sessions.set(rec);
+    const ticketId = rec.ticketId;
     await this.safeCancel(agentId);
+    this.sessions.delete(agentId);
     this.log({
       reason: "R2_active_run_fail",
       agentId,
-      ticketId: rec.ticketId,
+      ticketId,
       detail,
     });
   }

@@ -129,9 +129,18 @@ describe("A3 cursor runner", () => {
 
     sessions.get("a1")!.activeRun = true;
     await recover.onActiveRunFail("a1", "boom");
-    expect(sessions.get("a1")?.activeRun).toBe(false);
+    expect(sessions.get("a1")).toBeUndefined();
     expect(recover.logs.some((l) => l.reason === "R2_active_run_fail")).toBe(true);
 
+    sessions.set({
+      agentId: "a1",
+      persona: "pm",
+      ticketId: "t1",
+      cwd: personaCwd(dataDir, "pm"),
+      activeRun: true,
+      skipCount: 0,
+      createdAt: new Date().toISOString(),
+    });
     expect(recover.onSkippedBusy("a1")).toBe("busy");
     expect(recover.onSkippedBusy("a1")).toBe("sdk_zombie");
     expect(recover.logs.some((l) => l.reason === "R3_skip_threshold")).toBe(true);
@@ -192,5 +201,45 @@ describe("A3 cursor runner", () => {
     expect(((await b2.json()) as { reason: string }).reason).toBe("sdk_zombie");
 
     gate.resolve();
+  });
+
+  it("drops session after send fail so next prompt is 404 for gateway rebind", async () => {
+    const dataDir = await tmpData();
+    const failIds = new Set<string>();
+    const backend = createMockBackend({
+      sendDelayMs: 5,
+      failAgentIds: failIds,
+    });
+    const { app, sessions } = createRunner({
+      settings: settings(dataDir),
+      backend,
+    });
+
+    const created = await app.request("http://local/sessions", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ prompt: "start", ticket_id: "t-drop", persona: "pm" }),
+    });
+    expect(created.status).toBe(200);
+    const agentId = ((await created.json()) as { agent_id: string }).agent_id;
+    await new Promise((r) => setTimeout(r, 30));
+    expect(sessions.get(agentId)).toBeDefined();
+
+    failIds.add(agentId);
+    const accepted = await app.request(`http://local/sessions/${agentId}/prompt`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ prompt: "will fail" }),
+    });
+    expect(accepted.status).toBe(202);
+    await new Promise((r) => setTimeout(r, 40));
+    expect(sessions.get(agentId)).toBeUndefined();
+
+    const missing = await app.request(`http://local/sessions/${agentId}/prompt`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ prompt: "rebind me" }),
+    });
+    expect(missing.status).toBe(404);
   });
 });

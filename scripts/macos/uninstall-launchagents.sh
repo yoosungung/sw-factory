@@ -7,7 +7,7 @@ AGENTS_DIR="${HOME}/Library/LaunchAgents"
 uid="$(id -u)"
 domain="gui/${uid}"
 
-for name in cursor gateway git-head-watch; do
+for name in cursor gateway git-head-watch daily-restart; do
   label="${LABEL_PREFIX}.${name}"
   plist="${AGENTS_DIR}/${label}.plist"
   launchctl bootout "${domain}/${label}" 2>/dev/null || true
