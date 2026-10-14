@@ -196,6 +196,34 @@ describe("IssuePanel activity tabs", () => {
   });
 });
 
+describe("IssuePanel type icon", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it("uses check glyph for milestone tickets", () => {
+    render(
+      <MemoryRouter>
+        <IssuePanel
+          mode="page"
+          user={user}
+          project={project}
+          projectRole="owner"
+          members={members}
+          ticket={{ ...ticket, type: "milestone", title: "Epic" }}
+          onClose={() => {}}
+          onChanged={() => {}}
+          onDeleted={() => {}}
+        />
+      </MemoryRouter>,
+    );
+    const icon = document.querySelector(".type-icon.milestone");
+    expect(icon).toBeTruthy();
+    expect(icon!.textContent).toBe("✓");
+    expect(icon!.textContent).not.toContain("◆");
+  });
+});
+
 describe("IssuePanel chrome icons", () => {
   beforeEach(() => {
     vi.clearAllMocks();

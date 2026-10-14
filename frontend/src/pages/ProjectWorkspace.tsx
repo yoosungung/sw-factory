@@ -17,6 +17,7 @@ import {
   PRIORITY_LABEL,
   type IssueOpenMode,
 } from "../components/issue/IssuePanel";
+import { TypeIcon } from "../components/issue/TypeIcon";
 import { EmptyState } from "../components/EmptyState";
 import { AgentPromptDialog } from "../components/agent/AgentPromptDialog";
 import { AppChrome } from "../components/chrome/AppChrome";
@@ -361,7 +362,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
               {activeTickets.map((t) => (
                 <div key={t.id} className="list-row linkish" onClick={() => openIssue(t)}>
                   <span className="issue-key">
-                    <span className={`type-icon ${t.type}`}>{t.type === "task" ? "✓" : "◆"}</span>
+                    <TypeIcon type={t.type} />
                     {issueKey(project.name, t.id)}
                   </span>
                   <span>{t.title}</span>
@@ -403,9 +404,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
                     >
                       <div className="card-meta">
                         <span className="issue-key">
-                          <span className={`type-icon ${t.type}`}>
-                            {t.type === "task" ? "✓" : "◆"}
-                          </span>
+                          <TypeIcon type={t.type} />
                           {issueKey(project.name, t.id)}
                         </span>
                         <span className={`prio-badge ${t.priority}`}>{PRIORITY_LABEL[t.priority]}</span>
@@ -447,7 +446,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
                 .map((t) => (
                   <div key={t.id} className="backlog-row" onClick={() => openIssue(t)}>
                     <span className="issue-key">
-                      <span className={`type-icon ${t.type}`}>✓</span>
+                      <TypeIcon type={t.type} />
                       {issueKey(project.name, t.id)}
                     </span>
                     <span className="grow">{t.title}</span>
@@ -479,7 +478,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
                 (columns[s] ?? []).map((t) => (
                   <div key={t.id} className="backlog-row" onClick={() => openIssue(t)}>
                     <span className="issue-key">
-                      <span className={`type-icon ${t.type}`}>✓</span>
+                      <TypeIcon type={t.type} />
                       {issueKey(project.name, t.id)}
                     </span>
                     <span className="grow">{t.title}</span>
@@ -513,6 +512,10 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
                 <div key={item.id} className="list-row" onClick={() => openIssue(item)}>
                   <span className="muted">
                     {item.date_from ?? "—"} → {item.date_to ?? "—"}
+                  </span>
+                  <span className="issue-key">
+                    <TypeIcon type={item.type} />
+                    {issueKey(project.name, item.id)}
                   </span>
                   <span>{item.title}</span>
                   <span className="muted">{labelFor(item.status)}</span>
@@ -551,7 +554,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
                 {rows.map((t) => (
                   <div key={t.id} className="list-row list-issue" onClick={() => openIssue(t)}>
                     <span className="issue-key">
-                      <span className={`type-icon ${t.type}`}>{t.type === "task" ? "✓" : "◆"}</span>
+                      <TypeIcon type={t.type} />
                       {issueKey(project.name, t.id)}
                     </span>
                     <span>{t.title}</span>

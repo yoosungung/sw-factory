@@ -38,6 +38,23 @@ const timelineTicket = ticket({
   date_from: "2026-10-01",
   date_to: "2026-10-10",
 });
+const milestoneTicket = ticket({
+  id: "t-ms",
+  title: "Milestone row",
+  status: "in_progress",
+  type: "milestone",
+  date_from: "2026-10-01",
+  date_to: "2026-10-15",
+});
+
+const ticketsMock = vi.fn(
+  async (_id: string, opts?: { type?: string }) => {
+    if (opts?.type === "milestone") {
+      return { tickets: [] as Ticket[], next_cursor: null };
+    }
+    return { tickets: [] as Ticket[], next_cursor: null };
+  },
+);
 
 vi.mock("../api", () => ({
   client: {
@@ -63,7 +80,7 @@ vi.mock("../api", () => ({
         },
       }),
     timeline: () => Promise.resolve({ items: [timelineTicket] }),
-    tickets: () => Promise.resolve({ tickets: [], next_cursor: null }),
+    tickets: (...args: Parameters<typeof ticketsMock>) => ticketsMock(...args),
     projectMembers: () => Promise.resolve({ members: [] }),
     getClient: () =>
       Promise.resolve({
@@ -98,9 +115,16 @@ const user: User = {
 
 afterEach(() => {
   cleanup();
+  ticketsMock.mockReset();
+  ticketsMock.mockImplementation(async (_id, opts) => {
+    if (opts?.type === "milestone") {
+      return { tickets: [], next_cursor: null };
+    }
+    return { tickets: [], next_cursor: null };
+  });
 });
 
-async function renderView(view: "backlog" | "timeline") {
+async function renderView(view: "backlog" | "timeline" | "list") {
   const result = render(
     <MemoryRouter initialEntries={[`/projects/p1?view=${view}`]}>
       <Routes>
@@ -140,5 +164,31 @@ describe("ProjectWorkspace backlog/timeline scrollport", () => {
     expect(scroll?.querySelector(".content-panel")).toBeTruthy();
     expect(toolbar?.querySelector(".content-panel")).toBeNull();
     expect(scroll?.textContent).toContain("Timeline item");
+  });
+
+  it("shows unified type-icon check on timeline rows", async () => {
+    const { container } = await renderView("timeline");
+    const icon = container.querySelector(".page-scroll .type-icon.task");
+    expect(icon).toBeTruthy();
+    expect(icon!.textContent).toBe("✓");
+    expect(container.querySelector(".page-scroll .type-icon")!.textContent).not.toContain("◆");
+  });
+});
+
+describe("ProjectWorkspace type-icon unify", () => {
+  it("list view uses check glyph for milestone (not diamond)", async () => {
+    ticketsMock.mockImplementation(async (_id, opts) => {
+      if (opts?.type === "milestone") {
+        return { tickets: [], next_cursor: null };
+      }
+      return { tickets: [milestoneTicket], next_cursor: null };
+    });
+
+    const { container } = await renderView("list");
+    expect(screen.getByText("Milestone row")).toBeInTheDocument();
+    const icon = container.querySelector(".type-icon.milestone");
+    expect(icon).toBeTruthy();
+    expect(icon!.textContent).toBe("✓");
+    expect(icon!.textContent).not.toContain("◆");
   });
 });

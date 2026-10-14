@@ -15,6 +15,7 @@ import {
 } from "../../api";
 import { commentsNewestFirst } from "./commentOrder";
 import { RichContent } from "./RichContent";
+import { TypeIcon } from "./TypeIcon";
 import { IconClose, IconExpandPage } from "../chrome/icons";
 
 const PRIORITIES: TicketPriority[] = ["low", "medium", "high", "urgent"];
@@ -333,7 +334,7 @@ export function IssuePanel({
           </Link>
           <span className="breadcrumb-sep">/</span>
           <span className="issue-key">
-            <span className={`type-icon ${ticket.type}`}>{ticket.type === "task" ? "✓" : "◆"}</span>
+            <TypeIcon type={ticket.type} />
             {key}
           </span>
         </div>
