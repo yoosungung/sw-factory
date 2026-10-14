@@ -21,7 +21,7 @@
 | --- | --- | --- |
 | Spaces | `/spaces` | `GET /api/clients` |
 | Projects | `/projects` | `GET /api/projects` |
-| Your work | `/` (`/your-work` → `/`) | `GET /api/projects` + `…/tickets?assignee_id=me` · `…/tickets?created_by=me` |
+| Your work | `/` (`/your-work` → `/`) | `GET /api/projects` + `…/tickets?assignee_id=me&exclude_done=true` · `…/tickets?created_by=me` |
 | Search | `/search?q=` | `GET /api/search` |
 | Create | Quick Create 모달 | `POST /api/projects/:id/tickets` (`status=backlog` 기본) |
 | Avatar | `/account` · `/admin`(admin만) · logout | `GET/PATCH /api/users/me`, `GET /api/admin/users`, `POST /api/auth/logout` |

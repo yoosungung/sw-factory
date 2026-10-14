@@ -60,7 +60,7 @@ export function YourWorkPage({
     void (async () => {
       const lists = await Promise.all(
         projects.map(async (p) => {
-          const r = await client.tickets(p.id, { assignee_id: "me" });
+          const r = await client.tickets(p.id, { assignee_id: "me", exclude_done: true });
           return r.tickets.map((t) => ({ ...t, project: p }));
         }),
       );

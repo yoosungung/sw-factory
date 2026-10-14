@@ -700,6 +700,113 @@ describe("M7 scale and durability", () => {
     expect((listArchived.json.tickets as Json[]).map((t) => t.id)).toContain(archivedId);
   });
 
+  it("exclude_done hides all category=done tickets from list (incl. recent)", async () => {
+    const { cookie, userId } = await register("ExcludeDone", { admin: true });
+    const clientId = await createClient(cookie, "ExcludeDoneCo");
+    const proj = await request(
+      "/api/projects",
+      { method: "POST", body: JSON.stringify({ name: "ExcludeDone", client_id: clientId }) },
+      cookie,
+    );
+    const projectId = (proj.json.project as Json).id as string;
+
+    const active = await request(
+      `/api/projects/${projectId}/tickets`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          title: "StillOpen",
+          type: "task",
+          status: "in_progress",
+          assignee_id: userId,
+        }),
+      },
+      cookie,
+    );
+    expect(active.status).toBe(201);
+    const activeId = (active.json.ticket as Json).id as string;
+
+    const recentDone = await request(
+      `/api/projects/${projectId}/tickets`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          title: "JustFinished",
+          type: "task",
+          status: "done",
+          assignee_id: userId,
+        }),
+      },
+      cookie,
+    );
+    expect(recentDone.status).toBe(201);
+    const doneId = (recentDone.json.ticket as Json).id as string;
+
+    const defaultList = await request(
+      `/api/projects/${projectId}/tickets?assignee_id=me`,
+      {},
+      cookie,
+    );
+    expect(defaultList.status).toBe(200);
+    const defaultIds = (defaultList.json.tickets as Json[]).map((t) => t.id);
+    expect(defaultIds).toContain(activeId);
+    expect(defaultIds).toContain(doneId);
+
+    const excluded = await request(
+      `/api/projects/${projectId}/tickets?assignee_id=me&exclude_done=true`,
+      {},
+      cookie,
+    );
+    expect(excluded.status).toBe(200);
+    const excludedIds = (excluded.json.tickets as Json[]).map((t) => t.id);
+    expect(excludedIds).toContain(activeId);
+    expect(excludedIds).not.toContain(doneId);
+
+    const statusesGet = await request(`/api/projects/${projectId}/statuses`, {}, cookie);
+    expect(statusesGet.status).toBe(200);
+    const existing = statusesGet.json.statuses as Json[];
+    const putStatuses = await request(
+      `/api/projects/${projectId}/statuses`,
+      {
+        method: "PUT",
+        body: JSON.stringify({
+          statuses: [
+            ...existing.map((s, i) => ({
+              key: s.key as string,
+              label: s.label as string,
+              category: s.category as string,
+              sort_order: (s.sort_order as number) ?? i,
+            })),
+            { key: "shipped", label: "Shipped", category: "done", sort_order: 99 },
+          ],
+        }),
+      },
+      cookie,
+    );
+    expect(putStatuses.status).toBe(200);
+    const customDone = await request(
+      `/api/projects/${projectId}/tickets`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          title: "CustomDoneKey",
+          type: "task",
+          status: "shipped",
+          assignee_id: userId,
+        }),
+      },
+      cookie,
+    );
+    expect(customDone.status).toBe(201);
+    const customDoneId = (customDone.json.ticket as Json).id as string;
+    const excludedCustom = await request(
+      `/api/projects/${projectId}/tickets?assignee_id=me&exclude_done=true`,
+      {},
+      cookie,
+    );
+    expect((excludedCustom.json.tickets as Json[]).map((t) => t.id)).not.toContain(customDoneId);
+  });
+
   it("lists tickets, kanban columns, and timeline rows newest-first", async () => {
     const { cookie } = await register("NewestFirst", { admin: true });
     const clientId = await createClient(cookie, "NewestCo");
