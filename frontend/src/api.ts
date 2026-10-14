@@ -228,6 +228,7 @@ export const client = {
       cursor?: string;
       limit?: number;
       include_archived?: boolean;
+      exclude_done?: boolean;
     },
   ) => {
     const q = new URLSearchParams();
@@ -238,6 +239,7 @@ export const client = {
     if (query?.cursor) q.set("cursor", query.cursor);
     if (query?.limit) q.set("limit", String(query.limit));
     if (query?.include_archived) q.set("include_archived", "true");
+    if (query?.exclude_done) q.set("exclude_done", "true");
     const qs = q.toString();
     return api<{ tickets: Ticket[]; next_cursor?: string | null }>(
       `/api/projects/${projectId}/tickets${qs ? `?${qs}` : ""}`,

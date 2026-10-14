@@ -241,7 +241,7 @@ CHECK (successor_id != blocker_id)
 
 | Method | Path | 비고 |
 | --- | --- | --- |
-| GET | `/api/projects/:id/tickets` | query: `type`, `status`, `assignee_id` (`me` = 현재 사용자), `created_by` (`me` = 현재 사용자), `milestone_id`, `limit`, `cursor` (Cursor 페이징, `created_at DESC, id DESC`), `include_archived` (기본 제외: archived Done). 기본 정렬 `created_at DESC, id DESC` |
+| GET | `/api/projects/:id/tickets` | query: `type`, `status`, `assignee_id` (`me` = 현재 사용자), `created_by` (`me` = 현재 사용자), `milestone_id`, `limit`, `cursor` (Cursor 페이징, `created_at DESC, id DESC`), `include_archived` (기본 제외: archived Done), `exclude_done` (`true`면 `category=done` 전부 제외; archived soft-filter보다 우선). 기본 정렬 `created_at DESC, id DESC` |
 | POST | `/api/projects/:id/tickets` | `{ title, description?, type, status?, priority?, assignee_id?, due_at?, milestone_id?, date_from?, date_to? }` |
 | GET | `/api/tickets/:id` | 멤버만. 응답 `ticket`에 `blocker_ids: string[]`(dual-read) |
 | PATCH | `/api/tickets/:id` | body에 `{ status, sort_order, priority, assignee_id, due_at, version? }` 포함. 버전 전달 시 불일치하면 `409 Conflict`; 성공 시 `version` 증가 및 변경 필드 `ticket_activities` 기록. **status가 `category=done`으로 바뀌면** 이 티켓을 `blocker_id`로 갖는 FS 행을 제거하고, 후속이 남은 blocker가 없으며 `status=blocked`이면 **`in_progress`로 복귀**한 뒤 후속 `ticket_id`로 `ticket_updated` append(`dependency_cleared`, `unblocked_from`) |
@@ -300,7 +300,7 @@ CHECK (successor_id != blocker_id)
 
 - 칸반 컬럼 = 해당 프로젝트 `project_statuses`(정렬순). 티켓 `status`는 그 `key` 중 하나여야 한다. 기본 생성 status = 첫 `category=backlog`.
 - 드래그 저장 = `PATCH /api/tickets/:id` with `{ status, sort_order, version }`.
-- 완료 티켓 관리: `category=done` 이고 `updated_at`이 **7일** 초과인 건은 archived Done으로 취급해 기본 **칸반·리스트**에서 제외. `include_archived=true`로 포함. (별도 status 컬럼이 아니라 조회 필터; `archivedDoneFilter` 공용.)
+- 완료 티켓 관리: `category=done` 이고 `updated_at`이 **7일** 초과인 건은 archived Done으로 취급해 기본 **칸반·리스트**에서 제외. `include_archived=true`로 포함. (별도 status 컬럼이 아니라 조회 필터; `archivedDoneFilter` 공용.) Your work Assigned 등 전량 숨김은 리스트 `exclude_done=true`(`excludeDoneFilter`; soft-archive와 구분).
 - 완료 티켓 물리 삭제: `category=done` 이고 `updated_at`이 **28일** 초과이면 같은 hourly Cron이 D1(+R2)에서 복구 없이 삭제한다(`DONE_PURGE_DAYS`). 컷오프는 done 유지 중 마지막 티켓 `updated_at`(코멘트만으로는 `tickets.updated_at`이 바뀌지 않음). 연결 리소스도 삭제: comments, files 메타+R2, pending_uploads(+R2), ticket_activities, ticket_dependencies, `agent_event_log` where `ticket_id`. HTTP `DELETE` 가드(작성자/owner)와 별개. 마일스톤 purge는 자식 티켓을 지우지 않고 `milestone_id` SET NULL; 태스크 purge는 부모 마일스톤을 지우지 않음.
 - 타임라인 = `date_from`/`date_to`가 null이 아닌 ticket/milestone 목록. 요청에 값이 없으면 생성·status 전이 시 UTC date로 자동 채운다(`date_from`=backlog 최초 진입 또는 `created_at`, 미완료 `date_to`=오늘, done 최초 진입은 열린 자동값만 갱신). 수동 값은 덮지 않는다.
 - 만료 세션은 Cron(`0 * * * *`) `scheduled` 핸들러가 `sessions.expires_at < now` 행을 삭제한다.

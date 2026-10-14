@@ -25,6 +25,17 @@ export function archivedDoneFilter(includeArchived: boolean): {
   };
 }
 
+/** Exclude every ticket whose status has `category=done` (any age; key name irrelevant). */
+export function excludeDoneFilter(): { sql: string; binds: string[] } {
+  return {
+    sql: ` AND NOT EXISTS (
+      SELECT 1 FROM project_statuses ps
+      WHERE ps.project_id = tickets.project_id AND ps.key = tickets.status AND ps.category = 'done'
+    )`,
+    binds: [],
+  };
+}
+
 export type ProjectStatus = {
   key: string;
   label: string;

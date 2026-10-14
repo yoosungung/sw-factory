@@ -12,6 +12,7 @@ import {
 import {
   archivedDoneFilter,
   defaultTicketStatus,
+  excludeDoneFilter,
   listProjectStatuses,
   projectHasStatus,
   statusCategory,
@@ -71,6 +72,7 @@ ticketRoutes.get("/projects/:projectId/tickets", async (c) => {
   const createdBy = c.req.query("created_by");
   const milestoneId = c.req.query("milestone_id");
   const includeArchived = c.req.query("include_archived") === "true";
+  const excludeDone = c.req.query("exclude_done") === "true";
   const limitRaw = Number(c.req.query("limit") ?? "50");
   const limit = Number.isFinite(limitRaw)
     ? Math.min(Math.max(Math.floor(limitRaw), 1), 100)
@@ -101,9 +103,15 @@ ticketRoutes.get("/projects/:projectId/tickets", async (c) => {
     sql += ` AND milestone_id = ?`;
     binds.push(milestoneId);
   }
-  const archive = archivedDoneFilter(includeArchived);
-  sql += archive.sql;
-  binds.push(...archive.binds);
+  if (excludeDone) {
+    const done = excludeDoneFilter();
+    sql += done.sql;
+    binds.push(...done.binds);
+  } else {
+    const archive = archivedDoneFilter(includeArchived);
+    sql += archive.sql;
+    binds.push(...archive.binds);
+  }
   if (cursor) {
     try {
       const decoded = JSON.parse(atob(cursor)) as { created_at: string; id: string };

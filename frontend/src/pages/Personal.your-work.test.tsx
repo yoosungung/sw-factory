@@ -100,6 +100,24 @@ describe("YourWorkPage grid UX", () => {
     recentTicketIdsMock.mockReturnValue(["t1"]);
   });
 
+  it("Assigned tab requests tickets with exclude_done", async () => {
+    renderPage();
+    await waitFor(() => expect(ticketsApi).toHaveBeenCalled());
+    const assignedCalls = ticketsApi.mock.calls.filter(
+      (args) => (args[1] as { assignee_id?: string } | undefined)?.assignee_id === "me",
+    );
+    expect(assignedCalls.length).toBeGreaterThan(0);
+    for (const args of assignedCalls) {
+      expect(args[1]).toMatchObject({ assignee_id: "me", exclude_done: true });
+    }
+    const createdCalls = ticketsApi.mock.calls.filter(
+      (c) => (c[1] as { created_by?: string } | undefined)?.created_by === "me",
+    );
+    for (const args of createdCalls) {
+      expect(args[1]).not.toHaveProperty("exclude_done", true);
+    }
+  });
+
   it("Assigned tab keeps Issue · Project · Status · Due headers aligned with rows", async () => {
     const { container } = renderPage();
     await waitFor(() => expect(screen.getByText(ticket.title)).toBeInTheDocument());
