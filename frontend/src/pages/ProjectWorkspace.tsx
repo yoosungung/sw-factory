@@ -509,7 +509,11 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
                 );
               }
               return items.map((item) => (
-                <div key={item.id} className="list-row" onClick={() => openIssue(item)}>
+                <div
+                  key={item.id}
+                  className="list-row list-timeline"
+                  onClick={() => openIssue(item)}
+                >
                   <span className="muted">
                     {item.date_from ?? "—"} → {item.date_to ?? "—"}
                   </span>

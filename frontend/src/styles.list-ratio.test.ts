@@ -42,4 +42,11 @@ describe("list column ratio scopes", () => {
       /grid-template-columns:\s*minmax\(0,\s*1\.2fr\)\s+minmax\(0,\s*1fr\)\s+auto/,
     );
   });
+
+  it("timeline list-row uses 4 cols with title as main 1fr", () => {
+    const body = ruleBody(".list-row.list-timeline");
+    expect(body).toMatch(
+      /grid-template-columns:\s*auto\s+minmax\(0,\s*10rem\)\s+minmax\(0,\s*1fr\)\s+auto/,
+    );
+  });
 });
