@@ -772,6 +772,11 @@ select {
   align-items: center;
 }
 
+/* Timeline: date · key · title · status — title takes remaining width */
+.list-row.list-timeline {
+  grid-template-columns: auto minmax(0, 10rem) minmax(0, 1fr) auto;
+}
+
 .list-row:last-child {
   border-bottom: none;
 }
@@ -1359,7 +1364,8 @@ select {
   .field-grid {
     grid-template-columns: 1fr;
   }
-  .list-row {
+  .list-row,
+  .list-row.list-timeline {
     grid-template-columns: 1fr;
   }
 }

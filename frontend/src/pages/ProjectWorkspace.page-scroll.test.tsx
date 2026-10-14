@@ -173,6 +173,16 @@ describe("ProjectWorkspace backlog/timeline scrollport", () => {
     expect(icon!.textContent).toBe("✓");
     expect(container.querySelector(".page-scroll .type-icon")!.textContent).not.toContain("◆");
   });
+
+  it("timeline rows use list-timeline with date · key · title · status cells", async () => {
+    const { container } = await renderView("timeline");
+    const row = container.querySelector(".page-scroll .list-row.list-timeline");
+    expect(row).toBeTruthy();
+    expect(row!.children).toHaveLength(4);
+    expect(row!.textContent).toContain("Timeline item");
+    expect(row!.textContent).toMatch(/In progress/i);
+    expect(row!.querySelector(".issue-key")).toBeTruthy();
+  });
 });
 
 describe("ProjectWorkspace type-icon unify", () => {
