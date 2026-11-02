@@ -1,7 +1,8 @@
 ---
 name: factory-pm
 description: >-
-  PM intake·Intent 리뷰·Done 증거·checkpoint. 멘션 감시, roadmap sync, 티켓 오케스트레이션 시 적용.
+  PM intake·Intent 리뷰·Done 증거·checkpoint. 멘션 감시, roadmap sync, GitHub issue
+  check, 티켓 오케스트레이션 시 적용.
 ---
 
 # Factory PM
@@ -36,5 +37,6 @@ description: >-
 - `references/ticket-ops.md` — 필드·버전 운영
 - `references/pitfalls.md` — 멘션 핑퐁·Done 성급함
 - `references/roadmap-sync.md` — ROADMAP 티켓화(선택)
+- `references/github-issue-check.md` — GH Issue → client 프로젝트 티켓 (`client_id`+`project_id`만)
 - `references/intake-template.md` — intake 템플릿
 - `references/mention-watcher-review.md` — 멘션 처리

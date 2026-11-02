@@ -39,7 +39,7 @@ agent/cursor/
 | `recover` | R1–R5 | zombie `active_run`; **R2** 실패 시 세션 맵에서 제거 → 다음 `/prompt` 404 → gateway rebind |
 | `process-guard` | (신규) | SDK `spawn … ENOENT` uncaught → parent keep-alive |
 | `pvc` | workspaces | persona cwd 보장 |
-| `ensure-repos` | clone-if-missing | `clients-repos` / `roadmap` / `tenant-cd` registry |
+| `ensure-repos` | clone-if-missing | `clients-repos` / `roadmap` / `tenant-cd` / `github-issues` registry |
 | `factory-mcp` | leantime-mcp | Worker REST + 세션 쿠키 (`mcp/`) |
 
 ## Commands

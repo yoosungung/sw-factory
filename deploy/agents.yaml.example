@@ -51,8 +51,23 @@ settings:
       cron: "0 23 * * *"
       agents: [pm]
       prompt: >-
-        GitHub issue 점검. 신규는 client 프로젝트 티켓으로. 블로커는 add_comment.
-        Actions/CD 실패 감시는 ta 소관.
+        Use factory-pm github-issue-check. Read .cursor/github-issues-registry.json
+        (repos[] with client_id AND project_id only). New GH issues → that
+        project tickets. Dedup <!-- github-issue:{repo_id}:{n} -->. Blockers
+        add_comment. Actions/CD 실패 감시는 ta 소관. Empty registry → no-op.
+    - id: rhwp-batch-upstream-check
+      cron: "0 21 * * *"
+      agents: [rhwp_batch]
+      prompt: >-
+        Use rhwp-upstream-sync. Check edwardkim/rhwp latest GitHub Release.
+        If newer than vendored rhwp/: copy crate into rhwp/, test
+        (cargo test -p rhwp-batch), git-ship PR. After merge, push the same
+        version tag so .github/workflows/release.yml deploys. No new release
+        and tag exists → no-op. Dedup <!-- rhwp-upstream:vX.Y.Z -->.
+      success_checks:
+        - Compared edwardkim/rhwp latest release tag to rhwp/Cargo.toml version.
+        - No-op, or ticket+PR, or matching v* tag pushed (Action release).
+        - Did not patch rhwp/ source (copy only). Did not force-push.
     - id: km-wiki
       cron: "30 23 * * *"
       agents: [km]

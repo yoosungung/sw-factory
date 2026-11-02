@@ -43,6 +43,7 @@ describe("persona-bundle", () => {
     );
     expect(bundle[".cursor/skills/factory-pm/SKILL.md"]).toContain("PM");
     expect(bundle[".cursor/roadmap-registry.json"]).toContain("repos");
+    expect(bundle[".cursor/github-issues-registry.json"]).toContain("repos");
     expect(bundle[".cursor/clients-repos-registry.json"]).toMatch(/\[\]/);
     expect(Object.keys(bundle).some((k) => k.endsWith(".sample"))).toBe(false);
     expect(bundle[".cursor/mcp.json"]).toBeUndefined();
@@ -63,6 +64,17 @@ describe("persona-bundle", () => {
     expect(bundle[".cursor/skills/km-researcher/SKILL.md"]).toContain(
       "Inbox drain",
     );
+  });
+
+  it("buildPersonaBundle(rhwp_batch) includes upstream-sync skill", async () => {
+    const bundle = await buildPersonaBundle("rhwp_batch", personasRoot);
+    expect(bundle["MEMORY.md"]).toContain("persona: rhwp_batch");
+    expect(
+      bundle[".cursor/skills/rhwp-upstream-sync/SKILL.md"],
+    ).toContain("edwardkim/rhwp");
+    expect(
+      bundle[".cursor/skills/rhwp-upstream-sync/SKILL.md"],
+    ).toContain("release.yml");
   });
 
   it("applyPersonaBundle seed-once MEMORY and overwrites skills", async () => {

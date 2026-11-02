@@ -227,20 +227,46 @@ export async function loadTenantCdVerifyOverlay(
   }
 }
 
+export function githubIssueRepos(repos: LoadedRepo[]): Array<{
+  repo_id: string;
+  git_repo_url: string;
+  client_id: string;
+  project_id: string;
+}> {
+  const out: Array<{
+    repo_id: string;
+    git_repo_url: string;
+    client_id: string;
+    project_id: string;
+  }> = [];
+  for (const repo of repos) {
+    const client_id = repo.client_id?.trim();
+    const project_id = repo.project_id?.trim();
+    if (!repo.id || !client_id || !project_id) continue;
+    out.push({
+      repo_id: repo.id,
+      git_repo_url: repo.git_repo_url,
+      client_id,
+      project_id,
+    });
+  }
+  return out;
+}
+
 export async function writeDerivedRegistries(opts: {
   dataDir: string;
   persona: string;
   agent: LoadedPersona;
   repos: LoadedRepo[];
   verifyByRepoId?: Record<string, TenantCdVerify>;
-}): Promise<{ roadmap?: string; tenantCd?: string }> {
+}): Promise<{ roadmap?: string; tenantCd?: string; githubIssues?: string }> {
   const catalog = repoCatalogById(opts.repos);
   const cursorDir = path.join(
     personaCwd(opts.dataDir, opts.persona),
     ".cursor",
   );
   await mkdir(cursorDir, { recursive: true });
-  const out: { roadmap?: string; tenantCd?: string } = {};
+  const out: { roadmap?: string; tenantCd?: string; githubIssues?: string } = {};
 
   if ((opts.agent.roadmaps ?? []).length > 0) {
     const repos = (opts.agent.roadmaps ?? []).map((row) => {
@@ -280,6 +306,16 @@ export async function writeDerivedRegistries(opts: {
     const file = path.join(cursorDir, "tenant-cd-registry.json");
     await writeFile(file, `${JSON.stringify(entries, null, 2)}\n`, "utf8");
     out.tenantCd = file;
+  }
+
+  if (opts.agent.persona === "pm") {
+    const file = path.join(cursorDir, "github-issues-registry.json");
+    await writeFile(
+      file,
+      `${JSON.stringify({ repos: githubIssueRepos(opts.repos) }, null, 2)}\n`,
+      "utf8",
+    );
+    out.githubIssues = file;
   }
 
   return out;

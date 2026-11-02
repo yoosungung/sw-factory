@@ -92,14 +92,15 @@ main 스냅샷: [../agents.back.yaml](../agents.back.yaml) `settings.schedules`.
 |----|------------|----------|---------|-------|------|
 | `pm-checkpoint` | `5,20,35,50 * * * *` | 매시 :05/:20/:35/:50 | pm | `flow_active` | dual-loop stall·misroute·storm |
 | `pm-roadmap-sync` | `0 22 * * *` | 07:00 | pm | — | ROADMAP current 1섹션 / pass-gate |
-| `github-issue-check` | `0 23 * * *` | 08:00 | *(all bots)* | — | GH Issue → client 티켓 |
+| `github-issue-check` | `0 23 * * *` | 08:00 | pm | — | GH Issue → client 티켓 (`client_id`+`project_id`) |
+| `rhwp-batch-upstream-check` | `0 21 * * *` | 06:00 | rhwp_batch | — | edwardkim/rhwp Release → `rhwp/` · test · `v*` Action 배포 |
 | `km-wiki` | `30 23 * * *` | 08:30 | km | — | inbox drain + research → main |
 | `ta-k8s-daily` | `0 1 * * *` | 10:00 | ta | — | k8s read-only 리포트 |
 | `ta-load-weekly` | `0 2 * * 1` | 월 11:00 | ta | — | 주간 load (tenant quality) |
 | `aa-clean-weekly` | `30 2 * * 1` | 월 11:30 | aa | — | 주간 clean-code |
 | `qa-bulk-weekly` | `0 3 * * 1` | 월 12:00 | qa | — | 주간 bulk/Opik |
 
-`github-issue-check`는 sample에서 `agents` 생략 → 전 bot에 발사될 수 있음. 운영 스냅샷(`agents.back.yaml`)도 agents 생략. 이식 시 **담당 persona를 명시**하는 편이 안전하다.
+`github-issue-check`는 **pm만**. 대상 repo는 `repos[]` 중 `client_id`와 `project_id`가 **둘 다** 있는 항목(시드가 `.cursor/github-issues-registry.json`에 씀). `nl2sql`·`org-wiki`처럼 한쪽만 있거나 없는 행은 제외.
 
 ---
 
@@ -130,20 +131,33 @@ main 스냅샷: [../agents.back.yaml](../agents.back.yaml) `settings.schedules`.
 
 ### 5.3 `github-issue-check`
 
-- 신규 GitHub Issue → **client 프로젝트** 티켓(QA가 재현·시나리오 등록 가능하도록).
-- 블로커는 `add_comment`.
-- Actions/CD 실패 감시는 이 스케줄 범위 아님(→ ta).
+**스킬:** `factory-pm` `references/github-issue-check.md`.
 
-### 5.4 `km-wiki`
+1. `.cursor/github-issues-registry.json` (`repos[]` where `client_id` **and** `project_id`; seed가 pm에 씀). Empty → no-op.
+2. 각 엔트리 `gh issue list -R owner/repo --state open`. 신규는 해당 `project_id` 티켓. Dedup `<!-- github-issue:{repo_id}:{n} -->`.
+3. 블로커는 기존 티켓에 `add_comment`.
+4. Actions/CD 실패 감시는 이 스케줄 범위 아님(→ ta).
+
+### 5.4 `rhwp-batch-upstream-check`
+
+**스킬:** `rhwp-upstream-sync` (`deploy/personas/rhwp_batch`).
+
+1. `gh release view --repo edwardkim/rhwp` latest vs vendored `rhwp/Cargo.toml` version.
+2. 같음 + origin에 `v{ver}` 태그 있음 → no-op.
+3. 신규 Release → rhwp_batch 프로젝트 티켓 (`<!-- rhwp-upstream:v{ver} -->`). upstream **crate만** `rhwp/`에 복사(Studio/wasm 제외, 무수정). `cargo test -p rhwp-batch` → `git-ship` PR → `@pm`.
+4. default branch에 버전이 맞는데 태그가 없으면 `v{ver}` push → `.github/workflows/release.yml` (동일 버전 바이너리·GHCR).
+5. 테스트 실패·무수정 충돌 → Blocked + 증거. force-push 금지.
+
+### 5.5 `km-wiki`
 
 [agent-workflows.md § km](agent-workflows.md)와 동일: pull → inbox drain → research → **main 직푸시** → Done/New 티켓. PR·git-ship 금지.
 
-### 5.5 `ta-k8s-daily`
+### 5.6 `ta-k8s-daily`
 
 - `k8s-operator-operations` **read-only** 리포트.
 - mutate/배포 금지. 조치 가능 장애 → client 프로젝트 티켓(`incident-tickets`).
 
-### 5.6 주간 NF (`ta-load-weekly` / `aa-clean-weekly` / `qa-bulk-weekly`)
+### 5.7 주간 NF (`ta-load-weekly` / `aa-clean-weekly` / `qa-bulk-weekly`)
 
 공통 패턴:
 

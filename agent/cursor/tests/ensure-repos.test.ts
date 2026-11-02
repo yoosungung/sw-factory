@@ -412,4 +412,77 @@ describe("ensurePersonaRepos + registry", () => {
     expect(tenant[0]?.cd_path).toBe(DEFAULT_CD_PATH);
     expect(tenant[0]?.verify.namespace).toBe("nl2sql");
   });
+
+  it("writes github-issues-registry for pm from repos with client_id and project_id", async () => {
+    const dataDir = await tmp();
+    const repos = [
+      {
+        id: "sw-factory",
+        git_repo_url: "https://github.com/yoosungung/sw-factory.git",
+        client_id: "cc",
+        project_id: "pp",
+      },
+      {
+        id: "nl2sql",
+        git_repo_url: "https://github.com/yoosungung/nl2sql.git",
+        client_id: "c2",
+      },
+      {
+        id: "org-wiki",
+        git_repo_url: "https://github.com/yoosungung/wiki.git",
+      },
+      {
+        id: "rhwp_batch",
+        git_repo_url: "https://github.com/yoosungung/rhwp_batch.git",
+        client_id: "cc",
+        project_id: "p2",
+      },
+    ];
+
+    const pm = await writeDerivedRegistries({
+      dataDir,
+      persona: "pm",
+      agent: {
+        name: "pm",
+        user_id: "u",
+        email: "pm@x",
+        persona: "pm",
+        type: "sessions",
+      },
+      repos,
+    });
+    expect(pm.githubIssues).toContain("github-issues-registry.json");
+    const issues = JSON.parse(await readFile(pm.githubIssues!, "utf8")) as {
+      repos: Array<{
+        repo_id: string;
+        git_repo_url: string;
+        client_id: string;
+        project_id: string;
+      }>;
+    };
+    expect(issues.repos.map((r) => r.repo_id)).toEqual([
+      "sw-factory",
+      "rhwp_batch",
+    ]);
+    expect(issues.repos[1]).toEqual({
+      repo_id: "rhwp_batch",
+      git_repo_url: "https://github.com/yoosungung/rhwp_batch.git",
+      client_id: "cc",
+      project_id: "p2",
+    });
+
+    const ta = await writeDerivedRegistries({
+      dataDir,
+      persona: "ta",
+      agent: {
+        name: "ta",
+        user_id: "u",
+        email: "ta@x",
+        persona: "ta",
+        type: "sessions",
+      },
+      repos,
+    });
+    expect(ta.githubIssues).toBeUndefined();
+  });
 });

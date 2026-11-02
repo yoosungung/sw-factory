@@ -79,6 +79,7 @@ async function main() {
         registry: reg,
         roadmap: derived.roadmap,
         tenant_cd: derived.tenantCd,
+        github_issues: derived.githubIssues,
         repos: results.map((r) => ({
           id: r.repoId,
           action: r.action,

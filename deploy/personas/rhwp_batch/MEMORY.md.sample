@@ -1,0 +1,6 @@
+# Agent memory (persona: rhwp_batch)
+
+- factory: rhwp_batch@example.com (`type: sessions`) — IC, `primary_repo: rhwp_batch`
+- 제품: Linux CLI. HWP/HWPX → JSON, 양식+JSON → HWP. 워크스페이스 멤버 `rhwp/`는 **무수정**.
+- 스케줄 `rhwp-batch-upstream-check`(매일): `rhwp-upstream-sync` — edwardkim/rhwp **GitHub Release**가 올라가면 `rhwp/` 반영 → `cargo test -p rhwp-batch` → 같은 버전 태그로 GitHub Action 배포.
+- 신규 기능 구현은 Active 티켓 + `git-ship` → `@pm`. `rhwp/` 패치 금지(업스트림 PR).

@@ -124,6 +124,7 @@ New → In Progress → Review → Deploying Test → QA → Deploying Prod → 
 - force-push / hard reset 금지.
 - 설계·계약 단독 확정 금지 → 코멘트 + `@mention`.
 - 디버그: 재현 → 가설 → 증거 → 수정. 가설 2회 실패 시 티켓에 증거 + `@mention`.
+- **`rhwp-batch-upstream-check`:** IC `rhwp_batch` 매일. edwardkim/rhwp Release → `rhwp/` 복사·테스트·같은 `v*` 태그(Action). 스킬 `rhwp-upstream-sync`.
 
 ---
 
