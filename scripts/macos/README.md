@@ -9,7 +9,7 @@ Native cursor + gateway를 **로그인 세션 LaunchAgent**로 등록한다. 프
 
 재기동 시 gateway `sticky.json`을 비운다 (in-memory agent_id는 프로세스와 함께 무효). SDK active-run 실패 시 cursor가 세션 맵에서 제거해 다음 dispatch가 404→rebind 한다 ([agent/cursor/DESIGN.md](../../agent/cursor/DESIGN.md)).
 
-Docker/k8s 감독의 대체는 아니다 — MacBook에서 `local:run` 대신 상시 돌릴 때용.
+Docker/k8s 감독의 대체는 아니다 — 상시 호스트(예: Mac Mini)에서 `local:run` 대신 쓸 때용. **한 번에 한 호스트만** LaunchAgent를 켠다(같은 factory outbox를 두 대가 소비하면 안 됨).
 
 ## 전제
 
@@ -17,6 +17,7 @@ Docker/k8s 감독의 대체는 아니다 — MacBook에서 `local:run` 대신 �
 - [`deploy/local/.env`](../../deploy/local/)에 `FACTORY_BASE_URL`, `GATEWAY_SESSION_COOKIE`, (실 SDK면) `CURSOR_API_KEY`
 - [`deploy/agents.yaml`](../../deploy/agents.yaml) 존재
 - **`npm run local:run`과 동시 사용 금지** (같은 `:8080` / data-dir)
+- LaunchAgent는 `gui/$UID` — 콘솔 **GUI 로그인** 유지(자동 로그인 권장). SSH만으로는 세션이 없으면 `bootstrap` 실패.
 
 ## 명령
 
@@ -62,7 +63,7 @@ SWF_DAILY_RESTART_HOUR=3 SWF_DAILY_RESTART_MINUTE=30 ./scripts/macos/install-lau
 SWF_GIT_HEAD_POLL_SEC=30 ./scripts/macos/install-launchagents.sh
 ```
 
-### 코드 변경 후 갱신
+### 코드 변경 후 갱신 (호스트에 git이 있을 때)
 
 tsx가 소스에서 바로 뜨므로 **재기동만** 하면 새 코드가 로드된다. plist 재설치는 보통 불필요.
 
@@ -76,8 +77,67 @@ tsx가 소스에서 바로 뜨므로 **재기동만** 하면 새 코드가 로�
 
 ```bash
 # deploy/local/.env 의 GATEWAY_SESSION_COOKIE 수정 후
+# (원격: cd deploy/local && ./obtain-cookie.sh)
 launchctl kickstart -k "gui/$(id -u)/net.askwho.sw-factory.gateway"
 ```
+
+## 원격 Mac Mini (rsync · SSH, 미니에서 git clone 없음)
+
+개발 Mac에서 트리를 밀어 넣고, Mini는 LaunchAgent만 돌린다. SSH 호스트 예: `macmini-server` → `~/sw-factory`.
+
+### 최초 설치
+
+1. Mini: Remote Login, 서비스 계정 **GUI 자동 로그인**, Sleep 끔, Node 22+(Homebrew 등 PATH).
+2. 개발 Mac에서 코드·시크릿 동기화 후 원격 `npm install` + `install-launchagents.sh` (아래 갱신 명령과 동일, 최초는 install).
+3. `.env`의 `DATA_HOST` / `AGENTS_FILE`이 개발 Mac 절대경로면 Mini 경로로 고친다  
+   (`/Users/<mini-user>/sw-factory/deploy/local/.local-data`, `.../deploy/agents.yaml`).
+
+### 코드 갱신 (일상)
+
+개발 Mac 저장소 루트에서 (`HOST`/`REMOTE`만 맞춤):
+
+```bash
+HOST=macmini-server
+REMOTE=/Users/eric/sw-factory   # Mini 쪽 트리
+
+rsync -az --delete \
+  --exclude node_modules \
+  --exclude .tools \
+  --exclude deploy/local/.local-data \
+  --exclude .wrangler \
+  --exclude '**/dist' \
+  --exclude e2e/test-results \
+  --exclude e2e/playwright-report \
+  ./ "$HOST:$REMOTE/"
+
+# 시크릿이 바뀌었을 때만
+rsync -az deploy/local/.env "$HOST:$REMOTE/deploy/local/.env"
+rsync -az deploy/agents.yaml "$HOST:$REMOTE/deploy/agents.yaml"
+# 필요 시 Mini에서 DATA_HOST/AGENTS_FILE 경로 재확인
+
+ssh "$HOST" bash -s <<EOF
+set -euo pipefail
+export PATH="/opt/homebrew/bin:/usr/local/bin:\$HOME/.local/bin:\$PATH"
+cd $REMOTE
+# package.json / lock 변경 시에만:
+# npm install
+./scripts/macos/restart-launchagents.sh
+# plist·run-*.sh·watch 스크립트를 고쳤으면 restart 대신:
+# ./scripts/macos/install-launchagents.sh
+EOF
+```
+
+| 변경 | Mini에서 |
+|------|----------|
+| `agent/`·TS 소스만 | `restart-launchagents.sh` |
+| `package.json` / lock | `npm install` 후 restart |
+| `scripts/macos/*` · plist 내용 | `install-launchagents.sh` |
+| `.env` 쿠키만 | `obtain-cookie.sh` 후 gateway `kickstart -k` |
+| `agents.yaml` | restart (또는 install 불필요, restart면 충분) |
+
+`.git`을 rsync에 포함하면 Mini의 `git-head-watch`가 개발 Mac에서 push된 HEAD 변경을 감지한다(자동 pull 없음 — 갱신은 위 rsync가 담당). `.git`을 빼면 HEAD 폴러는 사실상 no-op.
+
+개발 Mac에서 예전에 LaunchAgent를 썼다면 Mini만 켜기 전에 `./scripts/macos/uninstall-launchagents.sh`로 끈다.
 
 ## 레이아웃
 
@@ -100,3 +160,4 @@ Labels: `net.askwho.sw-factory.cursor` · `.gateway` · `.git-head-watch` · `.d
 - HEAD 변경·새벽 재기동 시 **진행 중 SDK 세션이 끊긴다**.
 - dirty working tree만 바뀌고 HEAD가 같으면 재기동하지 않는다 (의도).
 - 재기동·세션 drop은 **이후** prompt/rebind만 고친다 — 이미 ack된 실패 이벤트는 수동 prompt가 필요.
+- rsync 갱신 시 `--exclude deploy/local/.local-data` — PVC(세션·sticky·workspaces)는 Mini에 남긴다. `--delete`는 원격에만 있고 로컬에 없는 **추적 파일**을 지우므로 exclude 목록을 유지한다.

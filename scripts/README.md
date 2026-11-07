@@ -51,5 +51,5 @@ npm run local:stop                   # 둘 다 동일 중지
 
 ## macOS LaunchAgents (KeepAlive)
 
-크래시 시 자동 재기동: [macos/README.md](macos/README.md) · `./scripts/macos/install-launchagents.sh`.  
-`local:run`과 **동시 사용 금지**.
+크래시 시 자동 재기동·원격 Mac Mini `rsync` 코드 갱신: [macos/README.md](macos/README.md) · `./scripts/macos/install-launchagents.sh`.  
+`local:run`과 **동시 사용 금지**. LaunchAgent는 **한 호스트만**.
