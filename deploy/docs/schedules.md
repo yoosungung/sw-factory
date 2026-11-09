@@ -95,6 +95,7 @@ main 스냅샷: [../agents.back.yaml](../agents.back.yaml) `settings.schedules`.
 | `github-issue-check` | `0 23 * * *` | 08:00 | pm | — | GH Issue → client 티켓 (`client_id`+`project_id`) |
 | `rhwp-batch-upstream-check` | `0 21 * * *` | 06:00 | rhwp_batch | — | edwardkim/rhwp Release → `rhwp/` · test · `v*` Action 배포 |
 | `km-wiki` | `30 23 * * *` | 08:30 | km | — | inbox drain + research → main |
+| `candidate-escalation-drain` | `0 2 * * *` | 11:00 | candidate | — | Pass A 이후 `pending.jsonl` escalation drain → wiki/PR |
 | `ta-k8s-daily` | `0 1 * * *` | 10:00 | ta | — | k8s read-only 리포트 |
 | `ta-load-weekly` | `0 2 * * 1` | 월 11:00 | ta | — | 주간 load (tenant quality) |
 | `aa-clean-weekly` | `30 2 * * 1` | 월 11:30 | aa | — | 주간 clean-code |
@@ -152,12 +153,24 @@ main 스냅샷: [../agents.back.yaml](../agents.back.yaml) `settings.schedules`.
 
 [agent-workflows.md § km](agent-workflows.md)와 동일: pull → inbox drain → research → **main 직푸시** → Done/New 티켓. PR·git-ship 금지.
 
-### 5.6 `ta-k8s-daily`
+### 5.6 `candidate-escalation-drain`
+
+**스킬:** `candidate-escalation` (`deploy/personas/candidate`).
+
+호스트 Pass A(`deep_agent.py --all`, launchd **09:00 KST**)가 저신뢰 stance를 `agent/.cache/escalation/pending.jsonl`에 쌓는다. Factory는 crawl하지 않고 **drain만** 한다.
+
+1. `workspaces/candidate/repos/candidate.win`에서 `git checkout main && git pull --ff-only`.
+2. `pending.jsonl` 없거나 비어 있음 → **no-op** (쓰기 없이 종료).
+3. 행 단위 재분류 → wiki `<!-- agent:stances -->` (URL 없으면 미기록) → `processed.jsonl` · pending 제거.
+4. `git-ship` PR `feature/escalation-drain-YYYYMMDD` + `@pm`. **merge는 pm만**.
+5. 금지: `<!-- human-edit -->` 덮어쓰기, `data/issues/*.yaml` 수정, curated people 임의 변경.
+
+### 5.7 `ta-k8s-daily`
 
 - `k8s-operator-operations` **read-only** 리포트.
 - mutate/배포 금지. 조치 가능 장애 → client 프로젝트 티켓(`incident-tickets`).
 
-### 5.7 주간 NF (`ta-load-weekly` / `aa-clean-weekly` / `qa-bulk-weekly`)
+### 5.8 주간 NF (`ta-load-weekly` / `aa-clean-weekly` / `qa-bulk-weekly`)
 
 공통 패턴:
 

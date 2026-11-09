@@ -74,6 +74,19 @@ settings:
       prompt: >-
         Use km-researcher then knowledge-promote. Inbox drain + wiki ingest;
         commit·push directly to main. PR·git-ship 금지. 실패 New, 성공 Done 티켓.
+    - id: candidate-escalation-drain
+      cron: "0 2 * * *"
+      agents: [candidate]
+      prompt: >-
+        Use candidate-escalation. After host Pass A (09:00 KST), drain
+        workspaces/candidate/repos/candidate.win agent/.cache/escalation/pending.jsonl.
+        Missing/empty pending → no-op (exit without writes unless a ticket was opened).
+        Usable rows → wiki agent:stances → git-ship PR feature/escalation-drain-YYYYMMDD → @pm.
+        Do not merge. Do not edit data/issues/*.yaml or <!-- human-edit -->.
+      success_checks:
+        - Pulled candidate.win ff-only (or reported blocker).
+        - No-op with missing/empty pending, or PR opened with @pm + counts.
+        - Did not merge; did not rewrite human-edit or data/issues SSoT.
     - id: ta-k8s-daily
       cron: "0 1 * * *"
       agents: [ta]
@@ -117,6 +130,10 @@ repos:
     project_id: "00000000-0000-0000-0000-000000000012"
   - id: org-wiki
     git_repo_url: https://github.com/example/wiki.git
+  - id: candidate.win
+    git_repo_url: https://github.com/example/candidate.win.git
+    client_id: "00000000-0000-0000-0000-000000000010"
+    project_id: "00000000-0000-0000-0000-000000000013"
 
 agents:
   - name: admin
@@ -176,5 +193,13 @@ agents:
     type: sessions
     workspace: /data/workspaces/sw-factory
     primary_repo: sw-factory
+
+  - name: candidate
+    user_id: "00000000-0000-0000-0000-000000000008"
+    email: candidate@example.com
+    persona: candidate
+    type: sessions
+    workspace: /data/workspaces/candidate
+    primary_repo: candidate.win
 
 

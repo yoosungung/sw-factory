@@ -11,12 +11,13 @@ description: >
 
 ## When
 
+- 스케줄 `candidate-escalation-drain` (`0 2 * * *` UTC ≈ 11:00 KST, Pass A 09:00 KST 이후)
 - 티켓/멘션이 candidate.win escalation·stance·Pass A 품질을 가리킬 때
-- 스케줄/핸드오프 프롬프트가 escalation drain 을 요청할 때
+- 핸드오프 프롬프트가 escalation drain 을 요청할 때
 
 ## Steps
 
-1. `cd $ROOT && git pull --ff-only`
+1. `cd $ROOT && git checkout main && git pull --ff-only`
 2. `pending=agent/.cache/escalation/pending.jsonl` — 없으면 no-op 로 종료
 3. 각 JSONL 행 (`person_slug`, `person_name`, `issue_slug`, `criteria`, `text`, `tier1_result`, `cache_key`)에 대해:
    - `data/issues/{issue_slug}.yaml` 의 `stances.support` / `stances.oppose` 기준으로 재분류
