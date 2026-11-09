@@ -53,6 +53,11 @@ function issueKey(prefix: string, id: string) {
   return `${p}-${n}`;
 }
 
+/** Details Parent/Children rows: short id + title (full id in title attr). */
+function idAndName(id: string, title: string) {
+  return `${id.slice(0, 8)} ${title}`;
+}
+
 function useEscape(onClose: () => void, active: boolean) {
   useEffect(() => {
     if (!active) return;
@@ -213,6 +218,10 @@ export function IssuePanel({
   const [statuses, setStatuses] = useState<ProjectStatus[]>([]);
   const [blockers, setBlockers] = useState<DepTicketSummary[]>([]);
   const [blockerInput, setBlockerInput] = useState("");
+  const [parent, setParent] = useState<{ id: string; title: string } | null>(null);
+  const [parentInput, setParentInput] = useState("");
+  const [children, setChildren] = useState<Ticket[]>([]);
+  const [childTitle, setChildTitle] = useState("");
   useEscape(onClose, true);
 
   useEffect(() => {
@@ -225,18 +234,34 @@ export function IssuePanel({
     setDescription(initial.description);
     setEditingDesc(false);
     setBlockerInput("");
+    setParentInput("");
+    setChildTitle("");
+    setParent(null);
+    setChildren([]);
     void Promise.all([
       client.comments(initial.id),
       client.listFiles(initial.id),
       client.ticketActivities(initial.id),
       client.ticketDependencies(initial.id),
-    ]).then(([c, f, a, d]) => {
+      client.tickets(project.id, { milestone_id: initial.id }),
+      initial.milestone_id
+        ? client.getTicket(initial.milestone_id).then((r) => r.ticket).catch(() => null)
+        : Promise.resolve(null),
+    ]).then(([c, f, a, d, kids, parentTicket]) => {
       setComments(commentsNewestFirst(c.comments));
       setFiles(f.files);
       setActivities(a.activities);
       setBlockers(d.blockers);
+      setChildren(kids.tickets);
+      setParent(
+        parentTicket
+          ? { id: parentTicket.id, title: parentTicket.title }
+          : initial.milestone_id
+            ? { id: initial.milestone_id, title: initial.milestone_id }
+            : null,
+      );
     });
-  }, [initial]);
+  }, [initial, project.id]);
 
   useEffect(() => {
     if (editingDesc) descRef.current?.focus();
@@ -282,6 +307,50 @@ export function IssuePanel({
       setBlockerInput("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "deps_failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function saveParent(nextId: string | null) {
+    setError("");
+    setBusy(true);
+    try {
+      const updated = await save({ milestone_id: nextId });
+      if (!updated) return;
+      if (nextId) {
+        try {
+          const p = await client.getTicket(nextId);
+          setParent({ id: p.ticket.id, title: p.ticket.title });
+        } catch {
+          setParent({ id: nextId, title: nextId });
+        }
+      } else {
+        setParent(null);
+      }
+      setParentInput("");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "parent_failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function addChild() {
+    const titleText = childTitle.trim();
+    if (!titleText) return;
+    setError("");
+    setBusy(true);
+    try {
+      await client.createTicket(project.id, {
+        title: titleText,
+        type: "task",
+        milestone_id: ticket.id,
+      });
+      setChildTitle("");
+      setChildren((await client.tickets(project.id, { milestone_id: ticket.id })).tickets);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "child_failed");
     } finally {
       setBusy(false);
     }
@@ -583,6 +652,91 @@ export function IssuePanel({
                           </div>
                         </>
                       )}
+
+                      <div className="label">Parent</div>
+                      <div className="prop-val deps-blockers" data-testid="issue-parent">
+                        {parent ? (
+                          <ul className="deps-list">
+                            <li>
+                              <Link to={`/browse/${parent.id}`} title={parent.id}>
+                                {idAndName(parent.id, parent.title)}
+                              </Link>
+                              <button
+                                type="button"
+                                className="btn-subtle sm"
+                                disabled={busy}
+                                aria-label="Clear parent"
+                                onClick={() => void saveParent(null)}
+                              >
+                                Clear
+                              </button>
+                            </li>
+                          </ul>
+                        ) : (
+                          <span className="muted">None</span>
+                        )}
+                        <div className="deps-add">
+                          <input
+                            type="text"
+                            className="prop-text-input"
+                            placeholder="Parent ticket id"
+                            value={parentInput}
+                            disabled={busy}
+                            onChange={(e) => setParentInput(e.target.value)}
+                            aria-label="Parent ticket id"
+                          />
+                          <button
+                            type="button"
+                            className="btn-subtle sm"
+                            disabled={busy || !parentInput.trim()}
+                            aria-label="Set parent"
+                            onClick={() => {
+                              const id = parentInput.trim();
+                              if (!id) return;
+                              void saveParent(id);
+                            }}
+                          >
+                            Set parent
+                          </button>
+                        </div>
+                      </div>
+
+                      <div className="label">Children</div>
+                      <div className="prop-val deps-blockers" data-testid="issue-children">
+                        {children.length === 0 ? (
+                          <span className="muted">None</span>
+                        ) : (
+                          <ul className="deps-list">
+                            {children.map((ch) => (
+                              <li key={ch.id}>
+                                <Link to={`/browse/${ch.id}`} title={ch.id}>
+                                  {idAndName(ch.id, ch.title)}
+                                </Link>
+                              </li>
+                            ))}
+                          </ul>
+                        )}
+                        <div className="deps-add">
+                          <input
+                            type="text"
+                            className="prop-text-input"
+                            placeholder="New child title"
+                            value={childTitle}
+                            disabled={busy}
+                            onChange={(e) => setChildTitle(e.target.value)}
+                            aria-label="New child title"
+                          />
+                          <button
+                            type="button"
+                            className="btn-subtle sm"
+                            disabled={busy || !childTitle.trim()}
+                            aria-label="Add child"
+                            onClick={() => void addChild()}
+                          >
+                            Add child
+                          </button>
+                        </div>
+                      </div>
 
                       <div className="label">Blocked by</div>
                       <div className="prop-val deps-blockers" data-testid="blocked-by">

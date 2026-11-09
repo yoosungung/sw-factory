@@ -116,4 +116,24 @@ describe("CreateIssueDialog compact Description", () => {
     expect(screen.getAllByLabelText(/^Description/)).toHaveLength(1);
     expect(screen.getByLabelText(/^Status/)).toBeInTheDocument();
   });
+
+  it("passes defaultMilestoneId as milestone_id on create", async () => {
+    const onCreated = vi.fn();
+    renderDialog({ onCreated, defaultMilestoneId: "parent-1" });
+
+    fireEvent.change(screen.getByPlaceholderText(/What needs to be done/), {
+      target: { value: "Child of parent" },
+    });
+    fireEvent.submit(document.querySelector("form.create-dialog")!);
+
+    await waitFor(() => {
+      expect(createTicket).toHaveBeenCalledWith(
+        "p1",
+        expect.objectContaining({
+          title: "Child of parent",
+          milestone_id: "parent-1",
+        }),
+      );
+    });
+  });
 });

@@ -76,6 +76,45 @@ test.describe("happy path", () => {
     await expect(panel.locator(".issue-desc-view .rich-content")).toContainText(body);
   });
 
+  test("issue Details Parent and Children show id + name", async ({ page }) => {
+    await loginAsAdmin(page);
+
+    const space = `PC Space ${Date.now()}`;
+    const project = `PC Proj ${Date.now()}`;
+    await createSpace(page, space);
+    await createSoftwareProject(page, project);
+
+    const parentTitle = `Parent ${Date.now()}`;
+    await createIssue(page, parentTitle);
+    const parentPanel = page.getByRole("dialog");
+    await expect(parentPanel).toBeVisible();
+    await clickEl(parentPanel.getByRole("tab", { name: "Details" }));
+    await expect(parentPanel.getByTestId("issue-parent")).toBeVisible();
+    await expect(parentPanel.getByTestId("issue-children")).toBeVisible();
+    await expect(parentPanel.getByTestId("blocked-by")).toBeVisible();
+
+    const childTitle = `Child ${Date.now()}`;
+    await fillField(parentPanel.getByLabel(/New child title/i), childTitle);
+    await clickEl(parentPanel.getByRole("button", { name: /^Add child$/i }));
+    await expect(parentPanel.getByTestId("issue-children")).toContainText(childTitle);
+
+    const childHref = await parentPanel
+      .getByTestId("issue-children")
+      .getByRole("link")
+      .getAttribute("href");
+    expect(childHref).toMatch(/\/browse\//);
+    const childId = childHref!.split("/").pop()!;
+    await expect(parentPanel.getByTestId("issue-children")).toContainText(childId.slice(0, 8));
+
+    await clickEl(parentPanel.getByRole("button", { name: "Close" }));
+
+    await page.goto(childHref!);
+    const childPage = page.locator(".issue-page");
+    await expect(childPage).toBeVisible();
+    await clickEl(childPage.getByRole("tab", { name: "Details" }));
+    await expect(childPage.getByTestId("issue-parent")).toContainText(parentTitle);
+  });
+
   test("project settings people page loads for owner", async ({ page }) => {
     await loginAsAdmin(page);
     const space = `Settings Space ${Date.now()}`;

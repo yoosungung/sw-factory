@@ -225,6 +225,7 @@ export const client = {
       status?: string;
       assignee_id?: string;
       created_by?: string;
+      milestone_id?: string;
       cursor?: string;
       limit?: number;
       include_archived?: boolean;
@@ -236,6 +237,7 @@ export const client = {
     if (query?.status) q.set("status", query.status);
     if (query?.assignee_id) q.set("assignee_id", query.assignee_id);
     if (query?.created_by) q.set("created_by", query.created_by);
+    if (query?.milestone_id) q.set("milestone_id", query.milestone_id);
     if (query?.cursor) q.set("cursor", query.cursor);
     if (query?.limit) q.set("limit", String(query.limit));
     if (query?.include_archived) q.set("include_archived", "true");
