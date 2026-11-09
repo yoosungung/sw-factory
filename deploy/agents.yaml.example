@@ -87,6 +87,22 @@ settings:
         - Pulled candidate.win ff-only (or reported blocker).
         - No-op with missing/empty pending, or PR opened with @pm + counts.
         - Did not merge; did not rewrite human-edit or data/issues SSoT.
+    # 08:00 KST = 23:00 UTC (schedule:issue-radar-today-0800-kst)
+    - id: issue-radar-today
+      cron: "0 23 * * *"
+      agents: [candidate]
+      prompt: >-
+        Use issue-radar-today. In candidate.win: git pull --ff-only main, then
+        issue_radar.py run → publish_today.py → empty-overwrite guard → commit/push
+        ONLY wiki/data/today.yaml. No Leantime write (--leantime is no-op; do not
+        call create_leantime_report). Empty items must not overwrite a non-empty
+        today.yaml (Publication-Gate). On success leave Done evidence on Active
+        or open Done ticket with generated_at+SHA; on failure open/update New/Active
+        with blocker. Cache/report MD are not commit scope.
+      success_checks:
+        - Ran radar then publish_today (or reported blocker with evidence).
+        - today.yaml commit/push only when items non-empty or no overwrite risk; SHA noted.
+        - No Leantime RPC/ticket writes; did not commit cache/report MD.
     - id: ta-k8s-daily
       cron: "0 1 * * *"
       agents: [ta]

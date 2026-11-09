@@ -95,6 +95,7 @@ main 스냅샷: [../agents.back.yaml](../agents.back.yaml) `settings.schedules`.
 | `github-issue-check` | `0 23 * * *` | 08:00 | pm | — | GH Issue → client 티켓 (`client_id`+`project_id`) |
 | `rhwp-batch-upstream-check` | `0 21 * * *` | 06:00 | rhwp_batch | — | edwardkim/rhwp Release → `rhwp/` · test · `v*` Action 배포 |
 | `km-wiki` | `30 23 * * *` | 08:30 | km | — | inbox drain + research → main |
+| `issue-radar-today` | `0 23 * * *` | 08:00 | candidate | — | issue_radar → publish_today → `wiki/data/today.yaml` |
 | `candidate-escalation-drain` | `0 2 * * *` | 11:00 | candidate | — | Pass A 이후 `pending.jsonl` escalation drain → wiki/PR |
 | `ta-k8s-daily` | `0 1 * * *` | 10:00 | ta | — | k8s read-only 리포트 |
 | `ta-load-weekly` | `0 2 * * 1` | 월 11:00 | ta | — | 주간 load (tenant quality) |
@@ -102,6 +103,8 @@ main 스냅샷: [../agents.back.yaml](../agents.back.yaml) `settings.schedules`.
 | `qa-bulk-weekly` | `0 3 * * 1` | 월 12:00 | qa | — | 주간 bulk/Opik |
 
 `github-issue-check`는 **pm만**. 대상 repo는 `repos[]` 중 `client_id`와 `project_id`가 **둘 다** 있는 항목(시드가 `.cursor/github-issues-registry.json`에 씀). `nl2sql`·`org-wiki`처럼 한쪽만 있거나 없는 행은 제외.
+
+`issue-radar-today` cron `0 23 * * *` UTC = **08:00 KST** (`schedule:issue-radar-today-0800-kst`). Leantime 승인 경로 없음; empty `items`로 기존 `today.yaml` 덮어쓰기 금지.
 
 ---
 
@@ -153,7 +156,16 @@ main 스냅샷: [../agents.back.yaml](../agents.back.yaml) `settings.schedules`.
 
 [agent-workflows.md § km](agent-workflows.md)와 동일: pull → inbox drain → research → **main 직푸시** → Done/New 티켓. PR·git-ship 금지.
 
-### 5.6 `candidate-escalation-drain`
+### 5.6 `issue-radar-today`
+
+**스킬:** `issue-radar-today` (`deploy/personas/candidate`). cron `0 23 * * *` UTC = **08:00 KST**.
+
+1. `candidate.win` main pull → `issue_radar.py run` → `publish_today.py`.
+2. empty-overwrite: 새 `items=[]`이면 기존 비어 있지 않은 `wiki/data/today.yaml`을 덮어쓰지 않음(exit ≠ 0 / no-op).
+3. 커밋 범위는 **`wiki/data/today.yaml`만** (cache·리포트 MD 제외). Leantime write 금지(`--leantime` no-op).
+4. 성공 시 `generated_at`+push SHA 증거(Done/Active). 실패 시 New/Active blocker.
+
+### 5.7 `candidate-escalation-drain`
 
 **스킬:** `candidate-escalation` (`deploy/personas/candidate`).
 
@@ -165,12 +177,12 @@ main 스냅샷: [../agents.back.yaml](../agents.back.yaml) `settings.schedules`.
 4. `git-ship` PR `feature/escalation-drain-YYYYMMDD` + `@pm`. **merge는 pm만**.
 5. 금지: `<!-- human-edit -->` 덮어쓰기, `data/issues/*.yaml` 수정, curated people 임의 변경.
 
-### 5.7 `ta-k8s-daily`
+### 5.8 `ta-k8s-daily`
 
 - `k8s-operator-operations` **read-only** 리포트.
 - mutate/배포 금지. 조치 가능 장애 → client 프로젝트 티켓(`incident-tickets`).
 
-### 5.8 주간 NF (`ta-load-weekly` / `aa-clean-weekly` / `qa-bulk-weekly`)
+### 5.9 주간 NF (`ta-load-weekly` / `aa-clean-weekly` / `qa-bulk-weekly`)
 
 공통 패턴:
 
