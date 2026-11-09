@@ -65,10 +65,11 @@ SWF_GIT_HEAD_POLL_SEC=30 ./scripts/macos/install-launchagents.sh
 
 ### 코드 변경 후 갱신 (호스트에 git이 있을 때)
 
-tsx가 소스에서 바로 뜨므로 **재기동만** 하면 새 코드가 로드된다. plist 재설치는 보통 불필요.
+cursor는 tsx가 소스에서 바로 뜨므로 **재기동만** 하면 새 코드가 로드된다. gateway는 `agent/gateway/dist/sw-factory-gateway`가 있으면 바이너리를 우선하고(`npm run agent:gateway:build`), 없으면 tsx 폴백이다. plist 재설치는 보통 불필요.
 
 - **git pull / checkout** → HEAD 폴러가 최대 주기 안에 자동 재기동
 - **수동**: `./scripts/macos/restart-launchagents.sh`
+- gateway 소스 변경 후 바이너리 경로를 쓸 때: `npm run agent:gateway:build` 후 재기동
 - `package.json` 변경 시 pull 후 `npm install`은 사람/별도 훅 책임 (폴러는 프로세스만 재기동)
 
 `run-*.sh` / install / watch 스크립트 / plist를 고쳤을 때만 `./scripts/macos/install-launchagents.sh`를 다시 실행한다.
@@ -143,7 +144,7 @@ EOF
 
 | 파일 | 역할 |
 |------|------|
-| `run-cursor.sh` / `run-gateway.sh` | `.env` 로드 후 `tsx` 실행 |
+| `run-cursor.sh` / `run-gateway.sh` | `.env` 로드 후 cursor=`tsx`; gateway=native bin 우선·tsx 폴백 |
 | `watch-git-head.sh` | HEAD 폴링 → restart |
 | `daily-restart.sh` | 캘린더 틱 → restart |
 | `install-launchagents.sh` | plist 생성·bootstrap (cursor/gateway/git-head-watch/daily-restart) |

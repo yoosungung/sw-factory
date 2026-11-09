@@ -6,7 +6,8 @@
 
 | 경로 | 내용 |
 |------|------|
-| `/app/agent/{shared,gateway/src,cursor/src,cursor/mcp}` | **공통** runtime 코드만 |
+| `/app/agent/{shared,gateway/src,cursor/src,cursor/mcp}` | **공통** runtime 코드만 (gateway src는 tsx 폴백용) |
+| `/app/bin/sw-factory-gateway` | bun `--compile` 단일 바이너리 (entrypoint 기본 기동) |
 | `/opt/persona-seed/{persona}/` | 빌드 시 `_default`⊕overlay **머지된** MEMORY·skills·rules |
 | `/data/workspaces/{persona}/` | PVC — entrypoint가 seed를 적용 (MEMORY seed-once) |
 
@@ -22,7 +23,7 @@ cd deploy/docker
 
 | 파일 | 역할 |
 |------|------|
-| `Dockerfile` | multi-stage: persona seed 준비 → slim runtime + `/opt/persona-seed` |
-| `package.json` / `package-lock.json` | agent 이미지 전용 npm deps (루트 lock과 분리) |
-| `entrypoint.sh` | apply persona seeds → persona 쿠키 로그인 → ensure-repos → cursor listen → gateway poll |
+| `Dockerfile` | multi-stage: persona seed 준비 → bun gateway compile → slim runtime + `/opt/persona-seed` + `/app/bin/sw-factory-gateway` |
+| `package.json` / `package-lock.json` | agent 이미지 전용 npm deps (루트 lock과 분리; cursor/seed용 Node 유지) |
+| `entrypoint.sh` | apply persona seeds → persona 쿠키 로그인 → ensure-repos → cursor listen → gateway native(또는 tsx 폴백) |
 | `build.sh` | `docker build` (context = repo root) |

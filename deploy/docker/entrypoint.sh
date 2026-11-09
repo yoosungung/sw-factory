@@ -81,9 +81,15 @@ pids+=($!)
 # brief wait so listen binds before gateway polls
 sleep 1
 
-npx tsx agent/gateway/src/cli.ts \
-  --config "$AGENTS_YAML" \
-  --data-dir "$GATEWAY_DATA_DIR" &
+NATIVE_BIN="${GATEWAY_NATIVE_BIN:-/app/bin/sw-factory-gateway}"
+GW_ARGS=(--config "$AGENTS_YAML" --data-dir "$GATEWAY_DATA_DIR")
+if [[ -x "$NATIVE_BIN" ]]; then
+  echo "{\"msg\":\"gateway_start_mode\",\"mode\":\"native\",\"bin\":\"$NATIVE_BIN\"}"
+  "$NATIVE_BIN" "${GW_ARGS[@]}" &
+else
+  echo "{\"msg\":\"gateway_start_mode\",\"mode\":\"tsx\"}"
+  npx tsx agent/gateway/src/cli.ts "${GW_ARGS[@]}" &
+fi
 pids+=($!)
 
 # exit if any child dies
