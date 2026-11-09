@@ -96,8 +96,9 @@ main 스냅샷: [../agents.back.yaml](../agents.back.yaml) `settings.schedules`.
 | `rhwp-batch-upstream-check` | `0 21 * * *` | 06:00 | rhwp_batch | — | edwardkim/rhwp Release → `rhwp/` · test · `v*` Action 배포 |
 | `km-wiki` | `30 23 * * *` | 08:30 | km | — | inbox drain + research → main |
 | `issue-radar-today` | `0 23 * * *` | 08:00 | candidate | — | issue_radar → publish_today → `wiki/data/today.yaml` |
+| `publication-safety` | `0 18 * * *` | 03:00 | candidate | — | `publication_gate.py --base origin/main` PASS/HOLD |
 | `candidate-escalation-drain` | `0 2 * * *` | 11:00 | candidate | — | Pass A 이후 `pending.jsonl` escalation drain → wiki/PR |
-| `ta-k8s-daily` | `0 1 * * *` | 10:00 | ta | — | k8s read-only 리포트 |
+| `ta-k8s-daily` | `0 1 * * *` | 10:00 | ta | — | k8s read-only 리포트 (현재 `agents.yaml` 주석) |
 | `ta-load-weekly` | `0 2 * * 1` | 월 11:00 | ta | — | 주간 load (tenant quality) |
 | `aa-clean-weekly` | `30 2 * * 1` | 월 11:30 | aa | — | 주간 clean-code |
 | `qa-bulk-weekly` | `0 3 * * 1` | 월 12:00 | qa | — | 주간 bulk/Opik |
@@ -105,6 +106,8 @@ main 스냅샷: [../agents.back.yaml](../agents.back.yaml) `settings.schedules`.
 `github-issue-check`는 **pm만**. 대상 repo는 `repos[]` 중 `client_id`와 `project_id`가 **둘 다** 있는 항목(시드가 `.cursor/github-issues-registry.json`에 씀). `nl2sql`·`org-wiki`처럼 한쪽만 있거나 없는 행은 제외.
 
 `issue-radar-today` cron `0 23 * * *` UTC = **08:00 KST** (`schedule:issue-radar-today-0800-kst`). Leantime 승인 경로 없음; empty `items`로 기존 `today.yaml` 덮어쓰기 금지.
+
+`publication-safety` cron `0 18 * * *` UTC = **03:00 KST** (`schedule:publication-safety-0300-kst`). Pass 스택을 gate에 ff merge 금지; HOLD면 push 금지.
 
 ---
 
@@ -165,7 +168,17 @@ main 스냅샷: [../agents.back.yaml](../agents.back.yaml) `settings.schedules`.
 3. 커밋 범위는 **`wiki/data/today.yaml`만** (cache·리포트 MD 제외). Leantime write 금지(`--leantime` no-op).
 4. 성공 시 `generated_at`+push SHA 증거(Done/Active). 실패 시 New/Active blocker.
 
-### 5.7 `candidate-escalation-drain`
+### 5.7 `publication-safety`
+
+**스킬:** `publication-safety` (`deploy/personas/candidate`). cron `0 18 * * *` UTC = **03:00 KST**.
+
+1. `candidate.win`에서 `git fetch origin main`. 로컬 `main`이 unpublished Pass 스택으로 diverge면 **`origin/main` detach** 후 게이트만(Pass를 gate에 ff merge 금지).
+2. 그 외 `git checkout main && git pull --ff-only`.
+3. `python agent/publication_gate.py --base origin/main` — exit 0 = PASS, exit 2 = HOLD(push 금지, slug 목록 티켓).
+4. empty-overwrite 준수. Leantime write 금지. clean main(unpublished 비어 HEAD=`origin/main`)이면 push·Hugo 스킵해도 Done.
+5. wiki: `Publication-Gate-Empty-Overwrite-Guard`.
+
+### 5.8 `candidate-escalation-drain`
 
 **스킬:** `candidate-escalation` (`deploy/personas/candidate`).
 
@@ -177,12 +190,13 @@ main 스냅샷: [../agents.back.yaml](../agents.back.yaml) `settings.schedules`.
 4. `git-ship` PR `feature/escalation-drain-YYYYMMDD` + `@pm`. **merge는 pm만**.
 5. 금지: `<!-- human-edit -->` 덮어쓰기, `data/issues/*.yaml` 수정, curated people 임의 변경.
 
-### 5.8 `ta-k8s-daily`
+### 5.9 `ta-k8s-daily`
 
 - `k8s-operator-operations` **read-only** 리포트.
 - mutate/배포 금지. 조치 가능 장애 → client 프로젝트 티켓(`incident-tickets`).
+- 현재 live `agents.yaml`에서는 **주석 유지**(eric N, 2026-11-09).
 
-### 5.9 주간 NF (`ta-load-weekly` / `aa-clean-weekly` / `qa-bulk-weekly`)
+### 5.10 주간 NF (`ta-load-weekly` / `aa-clean-weekly` / `qa-bulk-weekly`)
 
 공통 패턴:
 
