@@ -17,6 +17,7 @@ export function CreateIssueDialog({
   defaultProjectId,
   defaultClientId,
   defaultStatus,
+  defaultMilestoneId,
   docked,
   onDock,
   onClose,
@@ -27,6 +28,8 @@ export function CreateIssueDialog({
   defaultProjectId?: string;
   defaultClientId?: string;
   defaultStatus?: string;
+  /** When set, new ticket is linked as child via `milestone_id`. */
+  defaultMilestoneId?: string;
   docked: boolean;
   onDock: () => void;
   onClose: () => void;
@@ -99,10 +102,10 @@ export function CreateIssueDialog({
         priority,
         assignee_id: assigneeId || null,
         due_at: dueAt || null,
+        ...(defaultMilestoneId ? { milestone_id: defaultMilestoneId } : {}),
         ...(dateFrom ? { date_from: dateFrom } : {}),
         ...(dateTo ? { date_to: dateTo } : {}),
-      });
-      onCreated(projectId, r.ticket.id);
+      });      onCreated(projectId, r.ticket.id);
     } catch (err) {
       setError(err instanceof Error ? err.message : "error");
       setBusy(false);

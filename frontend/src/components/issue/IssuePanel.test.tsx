@@ -30,6 +30,8 @@ vi.mock("../../api", async () => {
       deleteFile: vi.fn(),
       deleteTicket: vi.fn(),
       getTicket: vi.fn(),
+      tickets: vi.fn(async () => ({ tickets: [] })),
+      createTicket: vi.fn(),
       ticketDependencies: vi.fn(async () => ({
         blocker_ids: [],
         blockers: [],
@@ -82,8 +84,13 @@ const members: Member[] = [
 ];
 
 function renderPanel(
-  props: { onPromptAgent?: () => void; mode?: "sidebar" | "modal" | "page" } = {},
+  props: {
+    onPromptAgent?: () => void;
+    mode?: "sidebar" | "modal" | "page";
+    ticket?: Ticket;
+  } = {},
 ) {
+  const { ticket: ticketProp, ...rest } = props;
   return render(
     <MemoryRouter>
       <IssuePanel
@@ -92,11 +99,11 @@ function renderPanel(
         project={project}
         projectRole="owner"
         members={members}
-        ticket={ticket}
+        ticket={ticketProp ?? ticket}
         onClose={() => {}}
         onChanged={() => {}}
         onDeleted={() => {}}
-        {...props}
+        {...rest}
       />
     </MemoryRouter>,
   );
@@ -143,7 +150,93 @@ describe("IssuePanel activity tabs", () => {
     expect(screen.getByText("Priority")).toBeInTheDocument();
     expect(screen.getByText("Status")).toBeInTheDocument();
     expect(screen.getByText("Blocked by")).toBeInTheDocument();
+    expect(screen.getByText("Parent")).toBeInTheDocument();
+    expect(screen.getByText("Children")).toBeInTheDocument();
     expect(document.querySelector(".properties-panel")).toBeTruthy();
+  });
+
+  it("shows Parent and Children as id + title separate from Blocked by", async () => {
+    const { client } = await import("../../api");
+    const parentId = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+    vi.mocked(client.getTicket).mockResolvedValue({
+      ticket: { ...ticket, id: parentId, title: "Parent Epic" },
+    });
+    vi.mocked(client.tickets).mockResolvedValue({
+      tickets: [{ ...ticket, id: "child-1111-2222-3333-444444444444", title: "Child Task" }],
+    });
+
+    renderPanel({ ticket: { ...ticket, milestone_id: parentId } });
+    screen.getByRole("tab", { name: /^Details$/i }).click();
+
+    const parent = await screen.findByTestId("issue-parent");
+    expect(parent).toHaveTextContent(/aaaaaaaa.*Parent Epic/);
+    const children = await screen.findByTestId("issue-children");
+    expect(children).toHaveTextContent(/child-11.*Child Task/);
+    expect(screen.getByTestId("blocked-by")).toBeInTheDocument();
+    expect(client.tickets).toHaveBeenCalledWith(
+      "p1",
+      expect.objectContaining({ milestone_id: "t1" }),
+    );
+  });
+
+  it("sets Parent via PATCH milestone_id", async () => {
+    const { client } = await import("../../api");
+    const parentId = "bbbbbbbb-bbbb-cccc-dddd-eeeeeeeeeeee";
+    vi.mocked(client.getTicket).mockResolvedValue({
+      ticket: { ...ticket, id: parentId, title: "New Parent" },
+    });
+    vi.mocked(client.patchTicket).mockResolvedValue({
+      ticket: { ...ticket, milestone_id: parentId, version: 2 },
+    });
+
+    renderPanel();
+    screen.getByRole("tab", { name: /^Details$/i }).click();
+    await screen.findByTestId("issue-parent");
+
+    const input = screen.getByLabelText(/Parent ticket id/i);
+    input.setAttribute("value", parentId);
+    // fire input change properly
+    const { fireEvent } = await import("@testing-library/react");
+    fireEvent.change(input, { target: { value: parentId } });
+    screen.getByRole("button", { name: /^Set parent$/i }).click();
+
+    expect(client.patchTicket).toHaveBeenCalledWith(
+      "t1",
+      expect.objectContaining({ milestone_id: parentId, version: 1 }),
+    );
+  });
+
+  it("creates a child with milestone_id linked to current ticket", async () => {
+    const { client } = await import("../../api");
+    vi.mocked(client.createTicket).mockResolvedValue({
+      ticket: {
+        ...ticket,
+        id: "new-child",
+        title: "Spawned",
+        milestone_id: "t1",
+      },
+    });
+    vi.mocked(client.tickets)
+      .mockResolvedValueOnce({ tickets: [] })
+      .mockResolvedValueOnce({
+        tickets: [{ ...ticket, id: "new-child", title: "Spawned", milestone_id: "t1" }],
+      });
+
+    renderPanel();
+    screen.getByRole("tab", { name: /^Details$/i }).click();
+    await screen.findByTestId("issue-children");
+
+    const { fireEvent } = await import("@testing-library/react");
+    fireEvent.change(screen.getByLabelText(/New child title/i), {
+      target: { value: "Spawned" },
+    });
+    screen.getByRole("button", { name: /^Add child$/i }).click();
+
+    await screen.findByText(/Spawned/);
+    expect(client.createTicket).toHaveBeenCalledWith(
+      "p1",
+      expect.objectContaining({ title: "Spawned", type: "task", milestone_id: "t1" }),
+    );
   });
 
   it("adds and removes FS blockers from Details", async () => {
