@@ -6,8 +6,9 @@ import type { GatewayConfig } from "./types";
 import { runLoop } from "./run-loop";
 
 function usage(): never {
+  const bin = path.basename(process.argv[1] ?? "sw-factory-gateway");
   console.error(
-    "Usage: tsx agent/gateway/src/cli.ts --config <agents.yaml> [--data-dir /data/gateway]",
+    `Usage: ${bin} --config <agents.yaml> [--data-dir /data/gateway]`,
   );
   process.exit(1);
 }

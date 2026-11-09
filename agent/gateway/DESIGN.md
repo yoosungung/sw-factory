@@ -25,8 +25,10 @@ agent/gateway/
   DESIGN.md
   docs/
   reference/
+  scripts/      # build-native.sh (bun --compile)
   src/          # tail · router · prompts · dispatch · retry · loop · schedule-tick · catch-up
-  tests/        # mock cursor E2E
+  tests/        # mock cursor E2E + native binary smoke
+  dist/         # sw-factory-gateway (gitignore; build artifact)
 ```
 
 ## 내부 모듈
@@ -52,6 +54,14 @@ npm run test:agent          # gateway(+cursor) node tests
 npm test                    # backend workers + agent
 npm run agent:cursor -- --config agent/cursor/reference/agents.yaml.sample --data-dir /tmp/swf-data --mock
 npm run agent:gateway -- --config agent/cursor/reference/agents.yaml.sample --data-dir /tmp/swf-data/gateway
+
+# 단일 네이티브 실행 파일 (bun build --compile; 런타임 Node 불필요)
+npm run agent:gateway:build
+# → agent/gateway/dist/sw-factory-gateway
+# cross-compile 예: GATEWAY_COMPILE_TARGET=bun-linux-x64 npm run agent:gateway:build
+./agent/gateway/dist/sw-factory-gateway --config agent/cursor/reference/agents.yaml.sample --data-dir /tmp/swf-data/gateway
 ```
 
 환경: `GATEWAY_SESSION_COOKIE`, 선택 `FACTORY_BASE_URL`, `CURSOR_API_KEY`(실 SDK; 없으면/`--mock`이면 mock).
+
+**배포:** Docker entrypoint·macOS `run-gateway.sh`는 `sw-factory-gateway` 바이너리가 있으면 그걸 쓰고, 없으면 기존 `tsx` 경로로 폴백한다. cursor/persona seed는 Node 유지(이미지에서 Node 제거는 별 범위).

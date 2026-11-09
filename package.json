@@ -12,6 +12,7 @@
     "test": "vitest run && vitest run --config agent/vitest.config.ts && vitest run --config frontend/vitest.config.ts",
     "test:agent": "vitest run --config agent/vitest.config.ts",
     "agent:gateway": "tsx agent/gateway/src/cli.ts",
+    "agent:gateway:build": "bash agent/gateway/scripts/build-native.sh",
     "agent:cursor": "tsx agent/cursor/src/cli.ts",
     "test:watch": "vitest",
     "test:e2e": "PLAYWRIGHT_BROWSERS_PATH=\"${PLAYWRIGHT_BROWSERS_PATH:-$HOME/Library/Caches/ms-playwright}\" playwright test -c e2e/playwright.config.ts",

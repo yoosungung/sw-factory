@@ -34,7 +34,12 @@ cd "$ROOT"
 export FACTORY_BASE_URL
 export GATEWAY_SESSION_COOKIE="$cookie"
 
+NATIVE_BIN="${GATEWAY_NATIVE_BIN:-$ROOT/agent/gateway/dist/sw-factory-gateway}"
+GW_ARGS=(--config "$CONFIG" --data-dir "$DATA_DIR/gateway")
+if [[ -x "$NATIVE_BIN" ]]; then
+  exec "$NATIVE_BIN" "${GW_ARGS[@]}"
+fi
+
 exec "$ROOT/node_modules/.bin/tsx" \
   "$ROOT/agent/gateway/src/cli.ts" \
-  --config "$CONFIG" \
-  --data-dir "$DATA_DIR/gateway"
+  "${GW_ARGS[@]}"

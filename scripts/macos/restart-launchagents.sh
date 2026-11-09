@@ -34,4 +34,4 @@ launchctl kickstart -k "${domain}/${LABEL_PREFIX}.cursor"
 sleep 1
 launchctl kickstart -k "${domain}/${LABEL_PREFIX}.gateway"
 
-echo "Restarted ${LABEL_PREFIX}.cursor + .gateway (tsx reloads source from disk)."
+echo "Restarted ${LABEL_PREFIX}.cursor + .gateway (cursor tsx; gateway native bin if present)."
