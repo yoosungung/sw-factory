@@ -103,6 +103,22 @@ settings:
         - Ran radar then publish_today (or reported blocker with evidence).
         - today.yaml commit/push only when items non-empty or no overwrite risk; SHA noted.
         - No Leantime RPC/ticket writes; did not commit cache/report MD.
+    # 03:00 KST = 18:00 UTC (schedule:publication-safety-0300-kst)
+    - id: publication-safety
+      cron: "0 18 * * *"
+      agents: [candidate]
+      prompt: >-
+        Use publication-safety. In candidate.win: fetch origin/main; if local main
+        diverges with an unpublished Pass stack, detach to origin/main (do not ff
+        merge Pass into gate). Else checkout main and git pull --ff-only. Run
+        python agent/publication_gate.py --base origin/main. exit 0 = PASS
+        (clean main / empty unpublished → Done without push). exit 2 = HOLD —
+        leave PUBLICATION HOLD + slugs on Active/New; do not push. Respect
+        empty-overwrite; no Leantime writes. Wiki: Publication-Gate-Empty-Overwrite-Guard.
+      success_checks:
+        - Ran publication_gate.py --base origin/main (or reported blocker with evidence).
+        - PASS/HOLD exit code + summary left on ticket; no push on HOLD.
+        - No Leantime RPC; did not ff-merge Pass stack into origin/main.
     # 18:00 KST = 09:00 UTC (schedule:people-ssot-curation-18h-kst)
     - id: people-ssot-curation
       cron: "0 9 * * *"
