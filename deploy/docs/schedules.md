@@ -97,6 +97,7 @@ main 스냅샷: [../agents.back.yaml](../agents.back.yaml) `settings.schedules`.
 | `km-wiki` | `30 23 * * *` | 08:30 | km | — | inbox drain + research → main |
 | `issue-radar-today` | `0 23 * * *` | 08:00 | candidate | — | issue_radar → publish_today → `wiki/data/today.yaml` |
 | `publication-safety` | `0 18 * * *` | 03:00 | candidate | — | `publication_gate.py --base origin/main` PASS/HOLD |
+| `people-ssot-curation` | `0 9 * * *` | 18:00 | candidate | — | people stub→curated (allowlist URL) · empty-diff no-op |
 | `candidate-escalation-drain` | `0 2 * * *` | 11:00 | candidate | — | Pass A 이후 `pending.jsonl` escalation drain → wiki/PR |
 | `ta-k8s-daily` | `0 1 * * *` | 10:00 | ta | — | k8s read-only 리포트 (현재 `agents.yaml` 주석) |
 | `ta-load-weekly` | `0 2 * * 1` | 월 11:00 | ta | — | 주간 load (tenant quality) |
@@ -108,6 +109,8 @@ main 스냅샷: [../agents.back.yaml](../agents.back.yaml) `settings.schedules`.
 `issue-radar-today` cron `0 23 * * *` UTC = **08:00 KST** (`schedule:issue-radar-today-0800-kst`). Leantime 승인 경로 없음; empty `items`로 기존 `today.yaml` 덮어쓰기 금지.
 
 `publication-safety` cron `0 18 * * *` UTC = **03:00 KST** (`schedule:publication-safety-0300-kst`). Pass 스택을 gate에 ff merge 금지; HOLD면 push 금지.
+
+`people-ssot-curation` cron `0 9 * * *` UTC = **18:00 KST** (`schedule:people-ssot-curation-18h-kst`). allowlist 공식/프로필 URL 없는 stub은 강제 승격 금지; empty diff는 commit 없이 no-op.
 
 ---
 
@@ -178,7 +181,16 @@ main 스냅샷: [../agents.back.yaml](../agents.back.yaml) `settings.schedules`.
 4. empty-overwrite 준수. Leantime write 금지. clean main(unpublished 비어 HEAD=`origin/main`)이면 push·Hugo 스킵해도 Done.
 5. wiki: `Publication-Gate-Empty-Overwrite-Guard`.
 
-### 5.8 `candidate-escalation-drain`
+### 5.8 `people-ssot-curation`
+
+**스킬:** `people-ssot-curation` (`deploy/personas/candidate`). cron `0 9 * * *` UTC = **18:00 KST**.
+
+1. `candidate.win` fetch; unpublished Pass 스택 diverge면 preserve 백업 후 `origin/main` detach(Pass ff-merge 금지). 그 외 main pull ff-only.
+2. allowlisted 공식/프로필 URL(≥1)로 신원·역할이 확인된 stub만 `status: curated` 승격(yaml↔wiki, orphan 0).
+3. 안전 출처 없으면 강제 승격 금지 — 잔여 stub·hold 사유 기록(부족≠실패). empty content diff → commit 없음(clean no-op).
+4. 금지: Leantime write, `data/issues/*.yaml`·`<!-- human-edit -->` 임의 재작성, host launchd 복구.
+
+### 5.9 `candidate-escalation-drain`
 
 **스킬:** `candidate-escalation` (`deploy/personas/candidate`).
 
@@ -190,13 +202,13 @@ main 스냅샷: [../agents.back.yaml](../agents.back.yaml) `settings.schedules`.
 4. `git-ship` PR `feature/escalation-drain-YYYYMMDD` + `@pm`. **merge는 pm만**.
 5. 금지: `<!-- human-edit -->` 덮어쓰기, `data/issues/*.yaml` 수정, curated people 임의 변경.
 
-### 5.9 `ta-k8s-daily`
+### 5.10 `ta-k8s-daily`
 
 - `k8s-operator-operations` **read-only** 리포트.
 - mutate/배포 금지. 조치 가능 장애 → client 프로젝트 티켓(`incident-tickets`).
 - 현재 live `agents.yaml`에서는 **주석 유지**(eric N, 2026-11-09).
 
-### 5.10 주간 NF (`ta-load-weekly` / `aa-clean-weekly` / `qa-bulk-weekly`)
+### 5.11 주간 NF (`ta-load-weekly` / `aa-clean-weekly` / `qa-bulk-weekly`)
 
 공통 패턴:
 

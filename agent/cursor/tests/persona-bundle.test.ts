@@ -87,6 +87,16 @@ describe("persona-bundle", () => {
     ).toContain("origin/main");
   });
 
+  it("buildPersonaBundle(candidate) includes people-ssot-curation skill", async () => {
+    const bundle = await buildPersonaBundle("candidate", personasRoot);
+    expect(
+      bundle[".cursor/skills/people-ssot-curation/SKILL.md"],
+    ).toContain("status: curated");
+    expect(
+      bundle[".cursor/skills/people-ssot-curation/SKILL.md"],
+    ).toContain("18:00 KST");
+  });
+
   it("applyPersonaBundle seed-once MEMORY and overwrites skills", async () => {
     const tmpRoot = path.join(repoRoot, "agent/.tmp-test");
     await mkdir(tmpRoot, { recursive: true });

@@ -119,6 +119,24 @@ settings:
         - Ran publication_gate.py --base origin/main (or reported blocker with evidence).
         - PASS/HOLD exit code + summary left on ticket; no push on HOLD.
         - No Leantime RPC; did not ff-merge Pass stack into origin/main.
+    # 18:00 KST = 09:00 UTC (schedule:people-ssot-curation-18h-kst)
+    - id: people-ssot-curation
+      cron: "0 9 * * *"
+      agents: [candidate]
+      prompt: >-
+        Use people-ssot-curation. In candidate.win: fetch origin/main; if local
+        main diverges with an unpublished Pass stack, preserve-branch backup then
+        detach to origin/main (do not ff-merge Pass into curation). Else checkout
+        main and git pull --ff-only. Promote only stubs with ≥1 allowlisted
+        official/profile URL to status:curated (yaml↔wiki, orphan 0). No safe
+        source → do not force-promote; leave stub count + hold reasons (부족≠실패).
+        Empty content diff → no commit (clean no-op Done). Else commit and push
+        HEAD:main (detach) or main. Respect human-edit / data/issues/*.yaml;
+        no Leantime writes. Wiki: Publication-Gate-Empty-Overwrite-Guard.
+      success_checks:
+        - Ran people SSoT curation path (or reported blocker with evidence).
+        - Promotions listed + SHA, or clean no-op with residual stub/hold summary.
+        - No Leantime RPC; did not rewrite human-edit or data/issues SSoT; no Pass ff-merge.
     - id: ta-k8s-daily
       cron: "0 1 * * *"
       agents: [ta]
