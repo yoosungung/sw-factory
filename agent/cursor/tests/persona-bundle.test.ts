@@ -77,6 +77,16 @@ describe("persona-bundle", () => {
     ).toContain("release.yml");
   });
 
+  it("buildPersonaBundle(candidate) includes publication-safety skill", async () => {
+    const bundle = await buildPersonaBundle("candidate", personasRoot);
+    expect(
+      bundle[".cursor/skills/publication-safety/SKILL.md"],
+    ).toContain("publication_gate.py");
+    expect(
+      bundle[".cursor/skills/publication-safety/SKILL.md"],
+    ).toContain("origin/main");
+  });
+
   it("applyPersonaBundle seed-once MEMORY and overwrites skills", async () => {
     const tmpRoot = path.join(repoRoot, "agent/.tmp-test");
     await mkdir(tmpRoot, { recursive: true });
