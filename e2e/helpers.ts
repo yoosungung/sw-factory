@@ -101,13 +101,26 @@ export async function createSoftwareProject(
   if (opts.tickets !== false) await openTickets(page);
 }
 
+export async function selectOption(locator: Locator, value: string) {
+  await locator.waitFor({ state: "attached" });
+  await locator.evaluate((el, v) => {
+    const select = el as HTMLSelectElement;
+    select.value = v;
+    select.dispatchEvent(new Event("input", { bubbles: true }));
+    select.dispatchEvent(new Event("change", { bubbles: true }));
+  }, value);
+}
+
 export async function createIssue(
   page: Page,
   title: string,
-  opts: { description?: string } = {},
+  opts: { description?: string; type?: "task" | "milestone" } = {},
 ) {
   await clickEl(page.locator(".top-nav .btn-create"));
   const dialog = page.locator("form.create-dialog");
+  if (opts.type === "milestone") {
+    await selectOption(dialog.getByLabel(/Work type/), "milestone");
+  }
   await fillField(dialog.getByPlaceholder("What needs to be done?"), title);
   if (opts.description !== undefined) {
     await fillField(dialog.getByLabel(/^Description/), opts.description);

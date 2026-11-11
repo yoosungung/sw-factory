@@ -22,6 +22,7 @@ import { EmptyState } from "../components/EmptyState";
 import { AgentPromptDialog } from "../components/agent/AgentPromptDialog";
 import { AppChrome } from "../components/chrome/AppChrome";
 import { dueClass } from "../lib/due";
+import { parseTicketTypeFilter, type TicketTypeFilter } from "../lib/ticket-type-filter";
 import { isTicketsView, parseViewMode } from "../lib/view-mode";
 import { useAllProjects, useClients } from "../hooks/useSession";
 import { touchRecentProject, touchRecentTicket } from "../lib/recent";
@@ -31,12 +32,28 @@ import {
   timelineNewestFirst,
 } from "../lib/ticketOrder";
 
+function projectSearch(params: {
+  view?: string;
+  type?: TicketTypeFilter;
+  issue?: string | null;
+  issueUi?: string | null;
+}): string {
+  const qs = new URLSearchParams();
+  if (params.view) qs.set("view", params.view);
+  if (params.type && params.type !== "all") qs.set("type", params.type);
+  if (params.issue) qs.set("issue", params.issue);
+  if (params.issueUi) qs.set("issueUi", params.issueUi);
+  const q = qs.toString();
+  return q ? `?${q}` : "";
+}
+
 export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () => void }) {
   const { id = "" } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const qs = new URLSearchParams(location.search);
   const view = parseViewMode(qs.get("view"));
+  const typeFilter = parseTicketTypeFilter(qs.get("type"));
   const issueId = qs.get("issue");
   const issueUiParam = qs.get("issueUi");
 
@@ -87,11 +104,27 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
 
   function applyIssueMode(mode: "sidebar" | "modal") {
     setIssueMode(mode);
-    const params = new URLSearchParams(location.search);
-    if (mode === "modal") params.set("issueUi", "modal");
-    else params.delete("issueUi");
-    const q = params.toString();
-    navigate(`/projects/${id}${q ? `?${q}` : ""}`, { replace: true });
+    navigate(
+      `/projects/${id}${projectSearch({
+        view: isTicketsView(view) ? view : undefined,
+        type: typeFilter,
+        issue: issueId,
+        issueUi: mode === "modal" ? "modal" : null,
+      })}`,
+      { replace: true },
+    );
+  }
+
+  function setTypeFilter(next: TicketTypeFilter) {
+    navigate(
+      `/projects/${id}${projectSearch({
+        view: isTicketsView(view) ? view : "board",
+        type: next,
+        issue: issueId,
+        issueUi: issueUiParam,
+      })}`,
+      { replace: true },
+    );
   }
 
   async function refresh() {
@@ -139,6 +172,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
         limit: 50,
         cursor: reset ? undefined : listCursor ?? undefined,
         include_archived: includeArchived || undefined,
+        type: typeFilter === "all" ? undefined : typeFilter,
       });
       const page = ticketsNewestFirst(r.tickets);
       setListTickets((prev) => (reset ? page : [...prev, ...page]));
@@ -157,17 +191,35 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
       setListCursor(null);
       void loadList(true);
     }
-  }, [id, view, includeArchived]);
+  }, [id, view, includeArchived, typeFilter]);
+
+  /** Kanban API is task-only; merge milestone tickets from `tickets?type=milestone`. */
+  const columnTickets = useMemo(() => {
+    const next: Record<string, Ticket[]> = {};
+    for (const key of statusKeys) {
+      const tasks = columns[key] ?? [];
+      const ms = milestones.filter((m) => m.status === key);
+      if (typeFilter === "task") next[key] = tasks;
+      else if (typeFilter === "milestone") next[key] = kanbanColumnNewestFirst(ms);
+      else next[key] = kanbanColumnNewestFirst([...tasks, ...ms]);
+    }
+    return next;
+  }, [columns, milestones, statusKeys, typeFilter]);
 
   const filteredColumns = useMemo(() => {
     const q = filter.trim().toLowerCase();
-    if (!q) return columns;
+    if (!q) return columnTickets;
     const next: Record<string, Ticket[]> = {};
     for (const s of statusKeys) {
-      next[s] = (columns[s] ?? []).filter((t) => t.title.toLowerCase().includes(q));
+      next[s] = (columnTickets[s] ?? []).filter((t) => t.title.toLowerCase().includes(q));
     }
     return next;
-  }, [columns, filter, statusKeys]);
+  }, [columnTickets, filter, statusKeys]);
+
+  const doneStatusKeys = useMemo(
+    () => new Set(statuses.filter((s) => s.category === "done").map((s) => s.key)),
+    [statuses],
+  );
 
   async function move(ticketId: string, status: string) {
     const ticket =
@@ -187,12 +239,27 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
 
   function openIssue(ticket: Ticket) {
     setSelected(ticket);
-    navigate(`/projects/${id}?view=${view}&issue=${ticket.id}`, { replace: true });
+    navigate(
+      `/projects/${id}${projectSearch({
+        view: isTicketsView(view) ? view : undefined,
+        type: typeFilter,
+        issue: ticket.id,
+        issueUi: issueUiParam,
+      })}`,
+      { replace: true },
+    );
   }
 
   function closeIssue() {
     setSelected(null);
-    navigate(`/projects/${id}?view=${view}`, { replace: true });
+    navigate(
+      `/projects/${id}${projectSearch({
+        view: isTicketsView(view) ? view : undefined,
+        type: typeFilter,
+        issueUi: issueUiParam,
+      })}`,
+      { replace: true },
+    );
   }
 
   function labelFor(key: string) {
@@ -208,11 +275,13 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
   }
 
   const projectRole = (project.role ?? "member") as "owner" | "member";
-  const backlogTickets = backlogKeys.flatMap((k) => columns[k] ?? []);
+  const backlogTickets = backlogKeys.flatMap((k) => columnTickets[k] ?? []);
   const ticketsView = isTicketsView(view);
+  const showTypeChips = view === "board" || view === "backlog" || view === "list";
   const activeTickets = statuses
     .filter((s) => s.category === "active")
     .flatMap((s) => columns[s.key] ?? []);
+  const openMilestones = milestones.filter((m) => !doneStatusKeys.has(m.status));
 
   const shell = (
     <>
@@ -308,12 +377,33 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
               role="tab"
               aria-selected={view === v}
               className={`view-seg ${view === v ? "active" : ""}`}
-              to={`/projects/${id}?view=${v}`}
+              to={`/projects/${id}${projectSearch({ view: v, type: typeFilter })}`}
             >
               {label}
             </Link>
           ))}
         </div>
+        {showTypeChips && (
+          <div className="type-filter" role="group" aria-label="Ticket type">
+            {(
+              [
+                ["all", "All"],
+                ["task", "Task"],
+                ["milestone", "Milestone"],
+              ] as const
+            ).map(([value, label]) => (
+              <button
+                key={value}
+                type="button"
+                className={`chip ${typeFilter === value ? "active" : ""}`}
+                aria-pressed={typeFilter === value}
+                onClick={() => setTypeFilter(value)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+        )}
         <input
           className="quick-filter"
           placeholder="Search board"
@@ -360,6 +450,28 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
           ) : (
             <div className="content-panel tableish overview-active-list">
               {activeTickets.map((t) => (
+                <div key={t.id} className="list-row linkish" onClick={() => openIssue(t)}>
+                  <span className="issue-key">
+                    <TypeIcon type={t.type} />
+                    {issueKey(project.name, t.id)}
+                  </span>
+                  <span>{t.title}</span>
+                  <span className="muted">{labelFor(t.status)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </section>
+        <section className="overview-section">
+          <h2>Open milestones</h2>
+          {openMilestones.length === 0 ? (
+            <EmptyState
+              title="No open milestones"
+              description="Milestones that are not done appear here."
+            />
+          ) : (
+            <div className="content-panel tableish overview-active-list">
+              {openMilestones.map((t) => (
                 <div key={t.id} className="list-row linkish" onClick={() => openIssue(t)}>
                   <span className="issue-key">
                     <TypeIcon type={t.type} />
@@ -475,7 +587,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
                 <strong>Board issues</strong>
               </div>
               {boardIssueKeys.flatMap((s) =>
-                (columns[s] ?? []).map((t) => (
+                (columnTickets[s] ?? []).map((t) => (
                   <div key={t.id} className="backlog-row" onClick={() => openIssue(t)}>
                     <span className="issue-key">
                       <TypeIcon type={t.type} />
@@ -538,7 +650,12 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
               (t) => !filter.trim() || t.title.toLowerCase().includes(filter.trim().toLowerCase()),
             );
             if (rows.length === 0) {
-              return (
+              return typeFilter === "milestone" ? (
+                <EmptyState
+                  title="No milestones"
+                  description="Create a milestone from the top bar Create menu to track epics in this project."
+                />
+              ) : (
                 <EmptyState
                   title="List is empty"
                   description="Work items you create show up here so you can scan the project in one table."
