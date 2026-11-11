@@ -15,6 +15,7 @@ import {
 } from "../../api";
 import { commentsNewestFirst } from "./commentOrder";
 import { RichContent } from "./RichContent";
+import { TicketPicker } from "./TicketPicker";
 import { TypeIcon } from "./TypeIcon";
 import { IconClose, IconExpandPage } from "../chrome/icons";
 
@@ -217,9 +218,7 @@ export function IssuePanel({
   >([]);
   const [statuses, setStatuses] = useState<ProjectStatus[]>([]);
   const [blockers, setBlockers] = useState<DepTicketSummary[]>([]);
-  const [blockerInput, setBlockerInput] = useState("");
   const [parent, setParent] = useState<{ id: string; title: string } | null>(null);
-  const [parentInput, setParentInput] = useState("");
   const [children, setChildren] = useState<Ticket[]>([]);
   const [childTitle, setChildTitle] = useState("");
   useEscape(onClose, true);
@@ -233,8 +232,6 @@ export function IssuePanel({
     setTitle(initial.title);
     setDescription(initial.description);
     setEditingDesc(false);
-    setBlockerInput("");
-    setParentInput("");
     setChildTitle("");
     setParent(null);
     setChildren([]);
@@ -304,7 +301,6 @@ export function IssuePanel({
         setTicket(r.ticket);
         onChanged(r.ticket);
       }
-      setBlockerInput("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "deps_failed");
     } finally {
@@ -328,7 +324,6 @@ export function IssuePanel({
       } else {
         setParent(null);
       }
-      setParentInput("");
     } catch (err) {
       setError(err instanceof Error ? err.message : "parent_failed");
     } finally {
@@ -351,6 +346,28 @@ export function IssuePanel({
       setChildren((await client.tickets(project.id, { milestone_id: ticket.id })).tickets);
     } catch (err) {
       setError(err instanceof Error ? err.message : "child_failed");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function linkExistingChild(childId: string) {
+    if (!childId || childId === ticket.id) return;
+    setError("");
+    setBusy(true);
+    try {
+      const fresh = await client.getTicket(childId);
+      await client.patchTicket(childId, {
+        milestone_id: ticket.id,
+        version: fresh.ticket.version,
+      });
+      setChildren((await client.tickets(project.id, { milestone_id: ticket.id })).tickets);
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 409) {
+        setError("Someone else updated that issue. Try again.");
+      } else {
+        setError(err instanceof Error ? err.message : "link_child_failed");
+      }
     } finally {
       setBusy(false);
     }
@@ -675,30 +692,14 @@ export function IssuePanel({
                         ) : (
                           <span className="muted">None</span>
                         )}
-                        <div className="deps-add">
-                          <input
-                            type="text"
-                            className="prop-text-input"
-                            placeholder="Parent ticket id"
-                            value={parentInput}
-                            disabled={busy}
-                            onChange={(e) => setParentInput(e.target.value)}
-                            aria-label="Parent ticket id"
-                          />
-                          <button
-                            type="button"
-                            className="btn-subtle sm"
-                            disabled={busy || !parentInput.trim()}
-                            aria-label="Set parent"
-                            onClick={() => {
-                              const id = parentInput.trim();
-                              if (!id) return;
-                              void saveParent(id);
-                            }}
-                          >
-                            Set parent
-                          </button>
-                        </div>
+                        <TicketPicker
+                          projectId={project.id}
+                          excludeIds={[ticket.id, ...children.map((c) => c.id)]}
+                          disabled={busy}
+                          ariaLabel="Parent ticket"
+                          confirmLabel="Set parent"
+                          onPick={(id) => void saveParent(id)}
+                        />
                       </div>
 
                       <div className="label">Children</div>
@@ -736,6 +737,18 @@ export function IssuePanel({
                             Add child
                           </button>
                         </div>
+                        <TicketPicker
+                          projectId={project.id}
+                          excludeIds={[
+                            ticket.id,
+                            ...children.map((c) => c.id),
+                            ...(parent ? [parent.id] : []),
+                          ]}
+                          disabled={busy}
+                          ariaLabel="Existing child ticket"
+                          confirmLabel="Link child"
+                          onPick={(id) => void linkExistingChild(id)}
+                        />
                       </div>
 
                       <div className="label">Blocked by</div>
@@ -765,29 +778,17 @@ export function IssuePanel({
                             ))}
                           </ul>
                         )}
-                        <div className="deps-add">
-                          <input
-                            type="text"
-                            className="prop-text-input"
-                            placeholder="Predecessor ticket id"
-                            value={blockerInput}
-                            disabled={busy}
-                            onChange={(e) => setBlockerInput(e.target.value)}
-                            aria-label="Predecessor ticket id"
-                          />
-                          <button
-                            type="button"
-                            className="btn-subtle sm"
-                            disabled={busy || !blockerInput.trim()}
-                            onClick={() => {
-                              const id = blockerInput.trim();
-                              if (!id || blockers.some((b) => b.id === id)) return;
-                              void saveBlockers([...blockers.map((b) => b.id), id]);
-                            }}
-                          >
-                            Add
-                          </button>
-                        </div>
+                        <TicketPicker
+                          projectId={project.id}
+                          excludeIds={[ticket.id, ...blockers.map((b) => b.id)]}
+                          disabled={busy}
+                          ariaLabel="Predecessor ticket"
+                          confirmLabel="Add blocker"
+                          onPick={(id) => {
+                            if (blockers.some((b) => b.id === id)) return;
+                            void saveBlockers([...blockers.map((b) => b.id), id]);
+                          }}
+                        />
                       </div>
                     </div>
                   </div>

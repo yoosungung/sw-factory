@@ -1,4 +1,4 @@
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Member, Project, Ticket, User } from "../../api";
@@ -31,6 +31,7 @@ vi.mock("../../api", async () => {
       deleteTicket: vi.fn(),
       getTicket: vi.fn(),
       tickets: vi.fn(async () => ({ tickets: [] })),
+      search: vi.fn(async () => ({ clients: [], projects: [], tickets: [] })),
       createTicket: vi.fn(),
       ticketDependencies: vi.fn(async () => ({
         blocker_ids: [],
@@ -179,7 +180,7 @@ describe("IssuePanel activity tabs", () => {
     );
   });
 
-  it("sets Parent via PATCH milestone_id", async () => {
+  it("sets Parent via PATCH milestone_id from picker paste", async () => {
     const { client } = await import("../../api");
     const parentId = "bbbbbbbb-bbbb-cccc-dddd-eeeeeeeeeeee";
     vi.mocked(client.getTicket).mockResolvedValue({
@@ -193,11 +194,10 @@ describe("IssuePanel activity tabs", () => {
     screen.getByRole("tab", { name: /^Details$/i }).click();
     await screen.findByTestId("issue-parent");
 
-    const input = screen.getByLabelText(/Parent ticket id/i);
-    input.setAttribute("value", parentId);
-    // fire input change properly
     const { fireEvent } = await import("@testing-library/react");
-    fireEvent.change(input, { target: { value: parentId } });
+    fireEvent.change(screen.getByRole("combobox", { name: /Parent ticket/i }), {
+      target: { value: parentId },
+    });
     screen.getByRole("button", { name: /^Set parent$/i }).click();
 
     expect(client.patchTicket).toHaveBeenCalledWith(
@@ -239,6 +239,41 @@ describe("IssuePanel activity tabs", () => {
     );
   });
 
+  it("links an existing ticket as child via picker OCC patch", async () => {
+    const { client } = await import("../../api");
+    const childId = "dddddddd-dddd-dddd-dddd-dddddddddddd";
+    vi.mocked(client.getTicket).mockResolvedValue({
+      ticket: { ...ticket, id: childId, title: "Existing", version: 3 },
+    });
+    vi.mocked(client.patchTicket).mockResolvedValue({
+      ticket: { ...ticket, id: childId, title: "Existing", milestone_id: "t1", version: 4 },
+    });
+    vi.mocked(client.tickets)
+      .mockResolvedValueOnce({ tickets: [] })
+      .mockResolvedValueOnce({
+        tickets: [{ ...ticket, id: childId, title: "Existing", milestone_id: "t1" }],
+      });
+
+    renderPanel();
+    screen.getByRole("tab", { name: /^Details$/i }).click();
+    await screen.findByTestId("issue-children");
+
+    const { fireEvent } = await import("@testing-library/react");
+    fireEvent.change(screen.getByRole("combobox", { name: /Existing child ticket/i }), {
+      target: { value: childId },
+    });
+    screen.getByRole("button", { name: /^Link child$/i }).click();
+
+    await waitFor(() => {
+      expect(client.getTicket).toHaveBeenCalledWith(childId);
+      expect(client.patchTicket).toHaveBeenCalledWith(
+        childId,
+        expect.objectContaining({ milestone_id: "t1", version: 3 }),
+      );
+    });
+    expect(await screen.findByText(/Existing/)).toBeInTheDocument();
+  });
+
   it("adds and removes FS blockers from Details", async () => {
     const { client } = await import("../../api");
     vi.mocked(client.ticketDependencies).mockResolvedValue({
@@ -257,8 +292,20 @@ describe("IssuePanel activity tabs", () => {
     screen.getByRole("tab", { name: /^Details$/i }).click();
     expect(await screen.findByText("Pred")).toBeInTheDocument();
 
+    const { fireEvent } = await import("@testing-library/react");
+    fireEvent.change(screen.getByRole("combobox", { name: /Predecessor ticket/i }), {
+      target: { value: "t3" },
+    });
+    screen.getByRole("button", { name: /^Add blocker$/i }).click();
+    await waitFor(() => {
+      expect(client.putTicketDependencies).toHaveBeenCalledWith("t1", ["t2", "t3"]);
+    });
+    expect(await screen.findByText("New")).toBeInTheDocument();
+
     screen.getByRole("button", { name: /Remove blocker Pred/i }).click();
-    expect(client.putTicketDependencies).toHaveBeenCalledWith("t1", []);
+    await waitFor(() => {
+      expect(client.putTicketDependencies).toHaveBeenCalledWith("t1", ["t3"]);
+    });
   });
 
   it("History rows put change text before timestamp inside history-list", async () => {
