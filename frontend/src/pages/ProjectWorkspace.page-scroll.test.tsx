@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import type { Ticket, User } from "../api";
@@ -46,13 +46,25 @@ const milestoneTicket = ticket({
   date_from: "2026-10-01",
   date_to: "2026-10-15",
 });
+const doneMilestone = ticket({
+  id: "t-ms-done",
+  title: "Done milestone",
+  status: "done",
+  type: "milestone",
+});
 
 const ticketsMock = vi.fn(
-  async (_id: string, opts?: { type?: string }) => {
+  async (_id: string, opts?: { type?: string; limit?: number }) => {
     if (opts?.type === "milestone") {
-      return { tickets: [] as Ticket[], next_cursor: null };
+      if (opts.limit) {
+        return { tickets: [milestoneTicket], next_cursor: null };
+      }
+      return { tickets: [milestoneTicket, doneMilestone], next_cursor: null };
     }
-    return { tickets: [] as Ticket[], next_cursor: null };
+    if (opts?.type === "task") {
+      return { tickets: [timelineTicket, backlogTicket], next_cursor: null };
+    }
+    return { tickets: [milestoneTicket, timelineTicket], next_cursor: null };
   },
 );
 
@@ -118,15 +130,21 @@ afterEach(() => {
   ticketsMock.mockReset();
   ticketsMock.mockImplementation(async (_id, opts) => {
     if (opts?.type === "milestone") {
-      return { tickets: [], next_cursor: null };
+      if (opts.limit) {
+        return { tickets: [milestoneTicket], next_cursor: null };
+      }
+      return { tickets: [milestoneTicket, doneMilestone], next_cursor: null };
     }
-    return { tickets: [], next_cursor: null };
+    if (opts?.type === "task") {
+      return { tickets: [timelineTicket, backlogTicket], next_cursor: null };
+    }
+    return { tickets: [milestoneTicket, timelineTicket], next_cursor: null };
   });
 });
 
-async function renderView(view: "backlog" | "timeline" | "list") {
+async function renderPath(path: string) {
   const result = render(
-    <MemoryRouter initialEntries={[`/projects/p1?view=${view}`]}>
+    <MemoryRouter initialEntries={[path]}>
       <Routes>
         <Route
           path="/projects/:id"
@@ -137,6 +155,11 @@ async function renderView(view: "backlog" | "timeline" | "list") {
   );
   await waitFor(() => expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument());
   return result;
+}
+
+async function renderView(view: "backlog" | "timeline" | "list" | "board" | "overview") {
+  const qs = view === "overview" ? "/projects/p1" : `/projects/p1?view=${view}`;
+  return renderPath(qs);
 }
 
 describe("ProjectWorkspace backlog/timeline scrollport", () => {
@@ -187,13 +210,6 @@ describe("ProjectWorkspace backlog/timeline scrollport", () => {
 
 describe("ProjectWorkspace type-icon unify", () => {
   it("list view uses check glyph for milestone (not diamond)", async () => {
-    ticketsMock.mockImplementation(async (_id, opts) => {
-      if (opts?.type === "milestone") {
-        return { tickets: [], next_cursor: null };
-      }
-      return { tickets: [milestoneTicket], next_cursor: null };
-    });
-
     const { container } = await renderView("list");
     expect(screen.getByText("Milestone row")).toBeInTheDocument();
     const icon = container.querySelector(".type-icon.milestone");
@@ -202,3 +218,48 @@ describe("ProjectWorkspace type-icon unify", () => {
     expect(icon!.textContent).not.toContain("◆");
   });
 });
+
+describe("ProjectWorkspace type filter UX", () => {
+  it("shows All/Task/Milestone chips on board/backlog/list and keeps URL type=", async () => {
+    const { container } = await renderPath("/projects/p1?view=board&type=milestone");
+    const group = screen.getByRole("group", { name: "Ticket type" });
+    expect(group).toBeTruthy();
+    expect(screen.getByRole("button", { name: "All" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Task" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Milestone" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
+    expect(container.querySelector(".issue-card")?.textContent).toContain("Milestone row");
+    expect(container.textContent).not.toContain("Timeline item");
+  });
+
+  it("list passes type=milestone to tickets API and empty copy is No milestones", async () => {
+    ticketsMock.mockImplementation(async (_id, opts) => {
+      if (opts?.type === "milestone") {
+        return { tickets: [], next_cursor: null };
+      }
+      return { tickets: [], next_cursor: null };
+    });
+    await renderPath("/projects/p1?view=list&type=milestone");
+    await waitFor(() => {
+      expect(
+        ticketsMock.mock.calls.some(
+          (c) => c[1]?.type === "milestone" && c[1]?.limit === 50,
+        ),
+      ).toBe(true);
+    });
+    expect(screen.getByText("No milestones")).toBeInTheDocument();
+    expect(screen.queryByText("List is empty")).toBeNull();
+  });
+
+  it("overview lists open milestones only", async () => {
+    await renderView("overview");
+    const heading = screen.getByRole("heading", { name: "Open milestones" });
+    const section = heading.closest("section");
+    expect(section).toBeTruthy();
+    expect(within(section!).getByText("Milestone row")).toBeInTheDocument();
+    expect(within(section!).queryByText("Done milestone")).toBeNull();
+  });
+});
+

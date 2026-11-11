@@ -52,27 +52,27 @@
 
 ## F4b. Project Overview — `/projects/:id` (`?view=overview` 또는 view 없음)
 
-**Layout:** 프로젝트 이름, 설명(없으면 muted 한 줄), **In progress** (`project_statuses.category=active` 티켓 목록). 행 그리드 = key(보조) · **title(주)** · status(보조) — `.overview-active-list`(공용 `.tableish` 4열 미사용).  
+**Layout:** 프로젝트 이름, 설명(없으면 muted 한 줄), **In progress** (`project_statuses.category=active` 티켓 목록), **Open milestones** (`type=milestone` 중 `category=done`이 아닌 목록; 자식 수는 생략). 행 그리드 = key(보조) · **title(주)** · status(보조) — `.overview-active-list`(공용 `.tableish` 4열 미사용).  
 **Behavior:** 티켓 행 → issue 인스펙터. 사이드바 **Overview** 활성.  
-**API:** `GET /api/projects/:id`, `GET …/kanban`.  
+**API:** `GET /api/projects/:id`, `GET …/kanban`, `GET …/tickets?type=milestone`.  
 **Connections:** → Tickets · Issue.
 
 ---
 
 ## F5. Board — `/projects/:id?view=board`
 
-**Layout:** Tickets 작업 뷰. 툴바(타이틀 + 세그먼트 탭 `Board|Backlog|Timeline|List` + 검색·•••) + **프로젝트 statuses 순서** 컬럼 + 카드. 컬럼(회색 서피스)은 툴바 아래 **잔여 뷰포트 높이를 채우고**, 카드가 넘치면 컬럼 본문만 세로 스크롤. 컬럼 폭·카드 높이는 breakpoint 상수(DS §3.4).  
+**Layout:** Tickets 작업 뷰. 툴바(타이틀 + 세그먼트 탭 `Board|Backlog|Timeline|List` + type 칩 `All|Task|Milestone`(URL `type=`) + 검색·•••) + **프로젝트 statuses 순서** 컬럼 + 카드. 컬럼(회색 서피스)은 툴바 아래 **잔여 뷰포트 높이를 채우고**, 카드가 넘치면 컬럼 본문만 세로 스크롤. 컬럼 폭·카드 높이는 breakpoint 상수(DS §3.4).  
 **카드 규격:** 타입 아이콘 + 키(`MOB-F416`) + 우선순위 뱃지(High/Medium/Low 컬러 태그) + 고정 높이 `144px` · 제목 3줄 clamp/`…` + 마감일 태그 + 우측 정렬된 담당자 아바타.  
-**Behavior:** 드래그 → `PATCH` `{ status, sort_order, version }`; 카드 클릭 → **논모달 사이드 인스펙터** 오픈; Group by(assignee/milestone/type) **Prod 포함**(클라이언트 그룹핑); 가로 스크롤(오버레이 페이드 없음). 티켓 생성은 탑바 **Create**(F14)만 — 컬럼 인라인 생성은 보류. 컬럼 안 **최신 `created_at`/높은 `sort_order`가 위**(생성 append·드롭은 맨 위).  
-**API:** `GET …/kanban` (`columns`+`statuses`; `category=done` 최근건 기본), `POST …/tickets`.  
+**Behavior:** 드래그 → `PATCH` `{ status, sort_order, version }`; 카드 클릭 → **논모달 사이드 인스펙터** 오픈; type 칩은 클라이언트 필터 — kanban은 task-only이므로 milestone은 `GET …/tickets?type=milestone` 결과를 status별로 합침; Group by(assignee/milestone/type)는 **Defer**(IA만·미구현). 가로 스크롤(오버레이 페이드 없음). 티켓 생성은 탑바 **Create**(F14)만 — 컬럼 인라인 생성은 보류. 컬럼 안 **최신 `created_at`/높은 `sort_order`가 위**(생성 append·드롭은 맨 위).  
+**API:** `GET …/kanban` (`columns`+`statuses`; task only; `category=done` 최근건 기본), `GET …/tickets?type=milestone`, `POST …/tickets`.  
 **Connections:** → Issue · Settings Board.
 
 ---
 
 ## F6. Backlog — `?view=backlog`
 
-**Layout:** 좌측 = `category=backlog` 이슈 리스트 + 우측 = 나머지 status. 빈 백로그는 EmptyState(제목+안내, CTA 없음). 티켓 생성은 탑바 **Create**(F14)만. 툴바(세그먼트·검색) 고정, 패널 본문은 `.page-scroll`(`.main` overflow hidden).  
-**Behavior:** 행 → issue 인스펙터; 인라인 status 변경(프로젝트 statuses). Sprint 섹션은 Defer. 백로그 행은 보드와 같이 최신 위.  
+**Layout:** 좌측 = `category=backlog` 이슈 리스트 + 우측 = 나머지 status. 빈 백로그는 EmptyState(제목+안내, CTA 없음). 티켓 생성은 탑바 **Create**(F14)만. 툴바(세그먼트·type 칩·검색) 고정, 패널 본문은 `.page-scroll`(`.main` overflow hidden).  
+**Behavior:** 행 → issue 인스펙터; 인라인 status 변경(프로젝트 statuses); type 칩은 Board와 동일 클라이언트 필터·URL `type=`. Sprint 섹션은 Defer. 백로그 행은 보드와 같이 최신 위.  
 **API:** `GET …/kanban` 또는 tickets + statuses.  
 **Connections:** → Issue.
 
@@ -90,9 +90,9 @@
 
 ## F8. List — `?view=list`
 
-**Layout:** 테이블 Type | Title | Status(컬러 뱃지) | Assignee | Due | Priority(아이콘+태그) | Updated. 컬럼 표시 토글. 빈 리스트는 Backlog와 동일 EmptyState(제목 `List is empty` + 안내, CTA 없음).  
-**Behavior:** 행 → issue; 헤더 정렬(정렬 방향 화살표 표시); 필터 칩(status/type). 기본 표시 `created_at` DESC(페이징 커서 동일). Board와 동일 **Include archived Done** (기본 제외, 칸반과 같은 `include_archived` 필터).  
-**API:** `GET …/tickets` (`include_archived`).  
+**Layout:** 테이블 Type | Title | Status(컬러 뱃지) | Assignee | Due | Priority(아이콘+태그) | Updated. 컬럼 표시 토글. 빈 리스트는 Backlog와 동일 EmptyState(제목 `List is empty` + 안내, CTA 없음). `type=milestone`이고 결과가 없으면 EmptyState 제목 `No milestones` + Create 안내(CTA 버튼 없음).  
+**Behavior:** 행 → issue; 헤더 정렬(정렬 방향 화살표 표시); 툴바 type 칩 `All|Task|Milestone` → URL `type=` + 서버 `GET …/tickets?type=`(all이면 type 생략). 기본 표시 `created_at` DESC(페이징 커서 동일). Board와 동일 **Include archived Done** (기본 제외, 칸반과 같은 `include_archived` 필터).  
+**API:** `GET …/tickets` (`include_archived`, 선택 `type`).  
 **Connections:** → Issue.
 
 ---

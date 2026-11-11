@@ -71,3 +71,33 @@ test("UX5: space settings in sidebar; overview vs tickets", async ({ page }) => 
   await expect(page.locator(".view-segment").getByRole("tab", { name: "Board", exact: true })).toHaveCount(1);
   await expect(page.locator(".sidebar").getByRole("link", { name: "Tickets" })).toHaveClass(/active/);
 });
+
+test("type chips filter board/list; overview shows open milestones", async ({ page }) => {
+  await loginAsAdmin(page);
+  const stamp = Date.now();
+  await createSpace(page, `TypeFilt Space ${stamp}`);
+  await createSoftwareProject(page, `TypeFilt Proj ${stamp}`);
+  const taskTitle = `TypeFilt task ${stamp}`;
+  const msTitle = `TypeFilt milestone ${stamp}`;
+  await createIssue(page, taskTitle);
+  await createIssue(page, msTitle, { type: "milestone" });
+  await clickEl(page.getByRole("dialog").getByRole("button", { name: "Close" }));
+
+  await clickEl(page.getByRole("button", { name: "Milestone", exact: true }));
+  await expect(page).toHaveURL(/type=milestone/);
+  await expect(page.locator(".issue-card", { hasText: msTitle })).toBeVisible();
+  await expect(page.locator(".issue-card", { hasText: taskTitle })).toHaveCount(0);
+
+  await clickEl(page.locator(".view-segment").getByRole("tab", { name: "List", exact: true }));
+  await expect(page).toHaveURL(/view=list/);
+  await expect(page).toHaveURL(/type=milestone/);
+  await expect(page.getByText(msTitle)).toBeVisible();
+  await expect(page.locator(".list-row.list-issue", { hasText: taskTitle })).toHaveCount(0);
+
+  await clickEl(page.locator(".sidebar").getByRole("link", { name: "Overview" }));
+  await expect(page.getByRole("heading", { name: "Open milestones", exact: true })).toBeVisible();
+  const msSection = page.locator(".overview-section", {
+    has: page.getByRole("heading", { name: "Open milestones", exact: true }),
+  });
+  await expect(msSection.getByText(msTitle)).toBeVisible();
+});

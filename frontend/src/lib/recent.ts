@@ -15,7 +15,11 @@ function readIds(key: string): string[] {
 
 function pushId(key: string, id: string) {
   const next = [id, ...readIds(key).filter((x) => x !== id)].slice(0, MAX);
-  localStorage.setItem(key, JSON.stringify(next));
+  try {
+    localStorage.setItem(key, JSON.stringify(next));
+  } catch {
+    /* missing/disabled storage (tests, private mode) */
+  }
   return next;
 }
 

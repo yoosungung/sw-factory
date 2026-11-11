@@ -524,6 +524,12 @@ select {
   color: var(--ds-text);
 }
 
+.type-filter {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+
 .quick-filter {
   height: 32px;
   border: none;
