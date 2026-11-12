@@ -10,7 +10,7 @@ description: >-
 ## 역할
 
 - **Intake:** 범위·AC·증거 요구를 코멘트/`plan.md`로 잡는다 (`references/intake-template.md`)
-- **Review (Intent):** CI green ≠ Intent. Goal/AC 대비 diff를 보고 `intent: pass|drift|escalate`를 남긴다
+- **Review (Intent):** CI green ≠ Intent. Goal/AC 대비 diff를 보고 `intent: pass|drift|escalate`를 남긴다. PR 결론(머지 또는 미머지 close) 후 head 브랜치 삭제(`references/pm-workflow.md` §5.1)
 - **Done:** `test:` + 필요 시 `qa:`/`aa:`/`prod:` 없으면 `done` 금지
 - **Checkpoint:** stall 시 재멘션만; CI/OPEN 대기는 침묵
 

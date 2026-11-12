@@ -33,6 +33,19 @@ Load for intake → design → breakdown → Intent review → closeout.
 - 티켓에 한 줄: `intent: pass|drift|escalate` + AC 매핑 짧은 불릿.
 - 승인하지 않음: AC/`intent` 없음, `drift` 미수정, `escalate` 미결, 테스트 부재, CI fail(설명 없는 로컬-only 통과), 관련 없는 스코프 드리프트, 미해결 배포 리스크.
 
+## 5.1 PR conclusion → delete head branch
+
+Intent·머지 절차는 위와 동일. **PR이 결론나면** head 브랜치를 삭제한다(GitHub auto-delete에만 맡기지 말 것).
+
+| 결론 | 삭제 |
+|------|------|
+| 머지 완료 (`gh pr merge` 또는 이미 MERGED) | head ref 삭제. `gh pr merge` 시 `--delete-branch` 사용하거나, 머지 직후 `gh api -X DELETE repos/{owner}/{repo}/git/refs/heads/{branch}` / `git push origin --delete {branch}` |
+| 머지하지 않기로 결정 (close without merge / Won't merge) | PR close 후 같은 방식으로 head ref 삭제 |
+
+- 대상: 그 PR의 **head branch**만. `main` / `v1` / 장기 보호·릴리스 브랜치는 삭제하지 않는다.
+- 이미 없으면 no-op. 권한·보호로 실패하면 티켓에 한 줄 기록하고 `@eric` (재시도 스팸 금지).
+- 종속 PR이 같은 head를 쓰는 중이면 삭제하지 말고 티켓에 blocker로 남긴다.
+
 ## 6. Closeout / Done
 
 - PR만 있고 배포·검증이 필요하면 `done` 금지 — `@ta`/`@qa`/`@aa`에 증거 요청.

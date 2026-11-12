@@ -32,3 +32,15 @@ gh pr create --title "..." --body "..."
 ```
 
 실패 시 Active 티켓에 blocker 코멘트 + `@eric` 후 중단.
+
+## Branch cleanup (작업 종료 후)
+
+개발/실험으로 **올렸던 head 브랜치**는 일이 끝나면 원격에서 정리한다. GitHub auto-delete만 믿지 말 것.
+
+| 상황 | 행동 |
+|------|------|
+| PR 머지됨 · 또는 머지 없이 close(불필요 판정) | head 삭제: `gh pr merge … --delete-branch` 또는 `git push origin --delete <branch>` |
+| 로컬에만 남은 작업 브랜치 | 원격에 없으면 `git branch -d`로 로컬 정리; 원격 잔여면 위와 같이 삭제 |
+
+**삭제 금지:** `main`, `v1`(보호·장기 참고 브랜치). 그 외 릴리스/보호 브랜치도 삭제하지 않는다.  
+이미 없으면 no-op. 권한 실패 → Active에 한 줄 + `@eric` (재시도 스팸 금지).

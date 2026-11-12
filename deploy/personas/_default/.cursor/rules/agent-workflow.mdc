@@ -27,3 +27,4 @@ Tools: Remote ship = `git-ship`, Ticket = `factory-collab`
 | 2 | PR summary + verification; ticket comment with **test evidence** or `test: N/A — reason`. Also `wiki: inbox/...` or `wiki: N/A — reason` (`org-knowledge`). | Ticket, commit, PR align |
 | 3 | Status → review intent; assignee → **pm**; `@pm` once | Handoff complete |
 | 4 | Stop additional implementation | CI wait = silence — no remount/@pm spam |
+| 5 | PR 결론(머지 또는 미머지 close) 후 **head 브랜치 삭제** (`git-ship` cleanup). `main`/`v1` 삭제 금지 | 원격 head 없음 또는 삭제 증거 |
