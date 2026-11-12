@@ -76,7 +76,8 @@ Resolve mention/`assignee_id` from `agents.yaml` — **never hardcode names or n
    - Marker: `<!-- roadmap:{repo_id}:milestone:{next-slug} -->`
    - Skip if marker already present.
    - Else `create_ticket`: `title` = `next` title; `status` = `backlog`; `milestone_id` = that milestone; `created_by_owner: true`; `assignee_id` = pm; description = marker + intake sections filled **only** from the `###` section bullets / success criteria (do not invent product scope).
-3. Do **not** rewrite the tenant ROADMAP in this sync. Later everyday sync again uses the first incomplete `##` only.
+3. **Milestone → In Progress:** after enqueue, `update_ticket` the next milestone (`type=milestone`) to `status` = `in_progress` if its status is still `backlog` (or unset). Do **not** demote if already further along (`review`…`done`) or `blocked` / `waiting_for_approval`.
+4. Do **not** rewrite the tenant ROADMAP in this sync. Later everyday sync again uses the first incomplete `##` only.
 
 ### Milestone upsert + Tickets (when current `##` has `- [ ]`)
 
@@ -95,7 +96,8 @@ Resolve mention/`assignee_id` from `agents.yaml` — **never hardcode names or n
      - `milestone_id` = current milestone id
      - `description` includes the marker + intake sections (Goal / Non-goals / Acceptance criteria / Risks / Required test·deploy evidence / Architecture notes) filled from the item and section context; leave open questions explicit rather than inventing product scope
 8. Do not force ticket Done from checklist alone; if tickets lag the doc, note once in the session reply (no spam comments).
+9. **Milestone → In Progress (after sync):** once upsert + ticket create/skip for the current `##` finish, `update_ticket` that milestone (`type=milestone`, id from step 6) to `status` = `in_progress` if still `backlog` (or unset). Idempotent: already `in_progress` → no-op. Do **not** demote from later dual-loop statuses or from `blocked` / `waiting_for_approval`. Child task tickets stay `backlog` until intake/assignee handoff — only the **milestone** advances here.
 
 ## Session reply
 
-Per repo: `current` title **or** `pass-gate → @{who}` **or** `approved → created next`; milestones created/reused; tickets created/skipped; “blocked on current” if later `##` sections were ignored.
+Per repo: `current` title **or** `pass-gate → @{who}` **or** `approved → created next`; milestones created/reused; tickets created/skipped; milestone `in_progress` set/skipped; “blocked on current” if later `##` sections were ignored.

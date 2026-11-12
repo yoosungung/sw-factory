@@ -46,7 +46,8 @@ settings:
         Use factory-pm roadmap-sync. Read .cursor/roadmap-registry.json.
         Current milestone = first ## with open - [ ] items. Create tickets
         only for that section. Pass-gate <!-- roadmap-pass:approved --> before
-        next M{n}. Dedup <!-- roadmap:repo_id:… -->.
+        next M{n}. Dedup <!-- roadmap:repo_id:… -->. After sync, set that
+        milestone ticket status to in_progress (backlog/unset only).
     - id: github-issue-check
       cron: "0 23 * * *"
       agents: [pm]
