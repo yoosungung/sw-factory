@@ -40,7 +40,7 @@ settings:
         - At most 5 new actionable add_comment this run (status-board edit_comment excluded).
         - Final reply lists acted/skipped tickets with classification.
     - id: pm-roadmap-sync
-      cron: "0 22 * * *"
+      cron: "0 3,9,15,21 * * *"
       agents: [pm]
       prompt: >-
         Use factory-pm roadmap-sync. Read .cursor/roadmap-registry.json.

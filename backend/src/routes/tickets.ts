@@ -154,6 +154,7 @@ ticketRoutes.post("/projects/:projectId/tickets", async (c) => {
     milestone_id?: string | null;
     date_from?: string | null;
     date_to?: string | null;
+    created_by_owner?: boolean;
   }>();
 
   const title = body.title?.trim();
@@ -182,6 +183,21 @@ ticketRoutes.post("/projects/:projectId/tickets", async (c) => {
       body.assignee_id,
     );
     if (!assigneeMember) return c.json({ error: "invalid_assignee" }, 400);
+  }
+
+  let createdBy = user.id;
+  if (body.created_by_owner === true) {
+    const ownerRow = await c.env.DB.prepare(
+      `SELECT user_id FROM project_members
+       WHERE project_id = ? AND role = 'owner'
+       ORDER BY user_id ASC LIMIT 1`,
+    )
+      .bind(projectId)
+      .first<{ user_id: string }>();
+    if (!ownerRow?.user_id) {
+      return c.json({ error: "no_project_owner" }, 400);
+    }
+    createdBy = ownerRow.user_id;
   }
 
   const max = await c.env.DB.prepare(
@@ -227,7 +243,7 @@ ticketRoutes.post("/projects/:projectId/tickets", async (c) => {
       body.due_at ?? null,
       dates.date_from,
       dates.date_to,
-      user.id,
+      createdBy,
       ts,
       ts,
     )

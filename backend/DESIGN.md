@@ -177,7 +177,7 @@ erDiagram
 | REST | 비고 |
 | --- | --- |
 | `GET /api/tickets/:id` | |
-| `POST /api/projects/:id/tickets` | title, type, … |
+| `POST /api/projects/:id/tickets` | title, type, …; optional `created_by_owner: true` → `created_by` = project owner |
 | `PATCH /api/tickets/:id` | status/sort/priority/assignee/due/`version` → 409 |
 | `GET /api/projects/:id/tickets` | type, status, assignee_id, created_by, limit, cursor, `include_archived`, `exclude_done` |
 | `GET /api/projects/:id/kanban` | `{ columns, statuses }`; 기본 최근 7일 `category=done` (초과분은 archived Done; list와 동일 필터) |

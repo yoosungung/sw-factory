@@ -10,7 +10,7 @@ GitHub `leantime-mcp`(JSON-RPC + PAT) 대신 Worker **REST + 세션 쿠키**를 
 |----------|--------|
 | `get_ticket` | `GET /api/tickets/:id` |
 | `list_tickets` | `GET /api/projects/:id/tickets` (+ assignee/me, `milestone_id`) |
-| `create_ticket` | `POST /api/projects/:id/tickets` |
+| `create_ticket` | `POST /api/projects/:id/tickets` (`created_by_owner?: true` → `created_by`=project owner; 기본은 세션 유저) |
 | `update_ticket` | `PATCH /api/tickets/:id` (+ `version` 권장) |
 | `get_comments` | `GET /api/tickets/:id/comments` |
 | `add_comment` | `POST /api/tickets/:id/comments` |

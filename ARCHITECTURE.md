@@ -242,7 +242,7 @@ CHECK (successor_id != blocker_id)
 | Method | Path | 비고 |
 | --- | --- | --- |
 | GET | `/api/projects/:id/tickets` | query: `type`, `status`, `assignee_id` (`me` = 현재 사용자), `created_by` (`me` = 현재 사용자), `milestone_id`, `limit`, `cursor` (Cursor 페이징, `created_at DESC, id DESC`), `include_archived` (기본 제외: archived Done), `exclude_done` (`true`면 `category=done` 전부 제외; archived soft-filter보다 우선). 기본 정렬 `created_at DESC, id DESC` |
-| POST | `/api/projects/:id/tickets` | `{ title, description?, type, status?, priority?, assignee_id?, due_at?, milestone_id?, date_from?, date_to? }` |
+| POST | `/api/projects/:id/tickets` | `{ title, description?, type, status?, priority?, assignee_id?, due_at?, milestone_id?, date_from?, date_to?, created_by_owner? }`. 기본 `created_by`=세션 유저. `created_by_owner: true`이면 해당 프로젝트 `owner` 중 하나(`user_id` ASC 첫 행)를 `created_by`로 씀; owner 없으면 `400 no_project_owner`. `agent_event_log.actor_user_id`는 항상 세션 유저 |
 | GET | `/api/tickets/:id` | 멤버만. 응답 `ticket`에 `blocker_ids: string[]`(dual-read) |
 | PATCH | `/api/tickets/:id` | body에 `{ status, sort_order, priority, assignee_id, due_at, version? }` 포함. 버전 전달 시 불일치하면 `409 Conflict`; 성공 시 `version` 증가 및 변경 필드 `ticket_activities` 기록. **status가 `category=done`으로 바뀌면** 이 티켓을 `blocker_id`로 갖는 FS 행을 제거하고, 후속이 남은 blocker가 없으며 `status=blocked`이면 **`in_progress`로 복귀**한 뒤 후속 `ticket_id`로 `ticket_updated` append(`dependency_cleared`, `unblocked_from`) |
 | DELETE | `/api/tickets/:id` | **작성자(`created_by`) 또는 project owner만 삭제 가능** |

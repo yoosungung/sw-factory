@@ -40,7 +40,11 @@ export function createFactoryMcp(client: FactoryClient) {
     tools: [
       { name: "get_ticket", description: "GET /api/tickets/:id" },
       { name: "list_tickets", description: "GET /api/projects/:id/tickets (+ milestone_id filter)" },
-      { name: "create_ticket", description: "POST /api/projects/:id/tickets" },
+      {
+        name: "create_ticket",
+        description:
+          "POST /api/projects/:id/tickets — body may set created_by_owner:true (created_by=project owner; actor stays session user)",
+      },
       { name: "update_ticket", description: "PATCH /api/tickets/:id" },
       { name: "get_comments", description: "GET /api/tickets/:id/comments" },
       { name: "add_comment", description: "POST /api/tickets/:id/comments (body = Markdown/GFM)" },

@@ -91,7 +91,7 @@ main 스냅샷: [../agents.back.yaml](../agents.back.yaml) `settings.schedules`.
 | id | cron (UTC) | KST 대략 | agents | gates | 목적 |
 |----|------------|----------|---------|-------|------|
 | `pm-checkpoint` | `5,20,35,50 * * * *` | 매시 :05/:20/:35/:50 | pm | `flow_active` | dual-loop stall·misroute·storm |
-| `pm-roadmap-sync` | `0 22 * * *` | 07:00 | pm | — | ROADMAP current 1섹션 / pass-gate |
+| `pm-roadmap-sync` | `0 3,9,15,21 * * *` | 06:00 / 12:00 / 18:00 / 00:00 | pm | — | ROADMAP current 1섹션 / pass-gate |
 | `github-issue-check` | `0 23 * * *` | 08:00 | pm | — | GH Issue → client 티켓 (`client_id`+`project_id`) |
 | `rhwp-batch-upstream-check` | `0 21 * * *` | 06:00 | rhwp_batch | — | edwardkim/rhwp Release → `rhwp/` · test · `v*` Action 배포 |
 | `km-wiki` | `30 23 * * *` | 08:30 | km | — | inbox drain + research → main |

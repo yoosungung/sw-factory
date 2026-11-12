@@ -511,7 +511,27 @@ describe("M6 collaboration", () => {
     expect(ticket.priority).toBe("high");
     expect(ticket.assignee_id).toBe(member.userId);
     expect(ticket.due_at).toBe("2026-10-01");
+    expect(ticket.created_by).toBe(owner.userId);
     const ticketId = ticket.id as string;
+
+    const asOwnerCreator = await request(
+      `/api/projects/${projectId}/tickets`,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          title: "Sync stub",
+          type: "task",
+          status: "backlog",
+          assignee_id: member.userId,
+          created_by_owner: true,
+        }),
+      },
+      member.cookie,
+    );
+    expect(asOwnerCreator.status).toBe(201);
+    const syncTicket = asOwnerCreator.json.ticket as Json;
+    expect(syncTicket.created_by).toBe(owner.userId);
+    expect(syncTicket.assignee_id).toBe(member.userId);
 
     const patched = await request(
       `/api/tickets/${ticketId}`,

@@ -4,6 +4,8 @@ Use when schedule `pm-roadmap-sync` runs, or admin asks to sync a repo ROADMAP i
 
 Registry: `.cursor/roadmap-registry.json` (ensure/seed가 `agents.yaml` `pm.roadmaps[]` + `repos[]`로 씀). Empty/`repos: []` → no-op with a short final reply.
 
+**create_ticket attribution (this skill only):** every `create_ticket` in this file MUST pass `created_by_owner: true` so `created_by` = project owner. Keep `assignee_id` = pm (or Delegate table). Do **not** invent a free-form `created_by` UUID. Other PM skills omit the flag (session user = creator).
+
 ## Per-repo steps
 
 1. **Read registry entry:** `repo_id`, `git_repo_url`, `path` (default `ROADMAP.md`), `project_id`, `client_id`.
@@ -30,8 +32,8 @@ Registry: `.cursor/roadmap-registry.json` (ensure/seed가 `agents.yaml` `pm.road
    - `next` = **Next `###` resolve** (below). If missing → session reply “no next ###”; do not invent scope. **Do not** use “first `###` after `passed` in document order” — catalogs like `### M0`… under a later `## 마일스톤` would wrongly pick M0.
    - Marker: `<!-- roadmap:{repo_id}:pass-gate:{passed-slug} -->` (`passed-slug` = stable slug of passed title).
    - Find existing ticket with that marker (`list_tickets` + description/comments). Missing → `create_ticket`:
-     - `headline` = `ROADMAP pass gate — {passed} → {next}`
-     - `project_id`, `user_id` = pm, `status` / assignee per **Delegate** below
+     - `title` = `ROADMAP pass gate — {passed} → {next}`
+     - `project_id`, `created_by_owner: true`, `status` / `assignee_id` per **Delegate** below
      - `description` = marker + Goal (confirm `{passed}` done; approve opening `{next}`) + Non-goals + AC (`<!-- roadmap-pass:approved -->` from assignee) + evidence notes from ticket history / tenant_cd if any
    - Existing open gate → update assignee/status only if wrong; one `@mention` handoff if stale (no spam).
    - **Approved only when** a comment from the **delegated assignee** contains `<!-- roadmap-pass:approved -->`.
@@ -69,29 +71,29 @@ Resolve mention/`assignee_id` from `agents.yaml` — **never hardcode names or n
 
 ### Next enqueue (only after pass-gate approved)
 
-1. `list_milestones(project_id)`; match `next` headline; missing → `create_milestone(headline=next, project_id, user_id=pm)`.
+1. `list_tickets(project_id, type=milestone)` (or project milestones list); match `next` headline; missing → `create_ticket` with `type=milestone`, `created_by_owner: true`, `assignee_id` = pm, `title` = `next`.
 2. Parent ticket (one per next milestone):
    - Marker: `<!-- roadmap:{repo_id}:milestone:{next-slug} -->`
    - Skip if marker already present.
-   - Else `create_ticket`: headline = `next` title; `status` = New; `milestoneid` = that milestone; description = marker + intake sections filled **only** from the `###` section bullets / success criteria (do not invent product scope).
+   - Else `create_ticket`: `title` = `next` title; `status` = `backlog`; `milestone_id` = that milestone; `created_by_owner: true`; `assignee_id` = pm; description = marker + intake sections filled **only** from the `###` section bullets / success criteria (do not invent product scope).
 3. Do **not** rewrite the tenant ROADMAP in this sync. Later everyday sync again uses the first incomplete `##` only.
 
 ### Milestone upsert + Tickets (when current `##` has `- [ ]`)
 
-6. **Milestone upsert:** `list_milestones(project_id)`. Match by headline (section title trimmed). Missing → `create_milestone(headline, project_id, user_id=<pm>)`. Keep `milestoneid`.
+6. **Milestone upsert:** list milestones for `project_id`. Match by headline (section title trimmed). Missing → `create_ticket` `type=milestone`, `created_by_owner: true`, `assignee_id` = pm, `title` = section title. Keep `milestone_id`.
 7. **Tickets (current section only):**
    - `list_tickets(project_id)`.
    - For each unchecked item, stable slug from headline text (lowercase, non-alnum→`-`, max ~60).
    - Marker: `<!-- roadmap:{repo_id}:{slug} -->`.
    - Skip if any ticket description/comment already contains that marker, or an open ticket headline equals the item text.
    - Else `create_ticket`:
-     - `headline` = item text
+     - `title` = item text
      - `project_id` from registry
-     - `user_id` = pm
-- `status` = `backlog`
-     - `milestoneid` = current milestone id
+     - `created_by_owner: true`
+     - `assignee_id` = pm (do not invent developer assignee)
+     - `status` = `backlog`
+     - `milestone_id` = current milestone id
      - `description` includes the marker + intake sections (Goal / Non-goals / Acceptance criteria / Risks / Required test·deploy evidence / Architecture notes) filled from the item and section context; leave open questions explicit rather than inventing product scope
-     - Leave assignee empty or pm — do not invent developer assignee
 8. Do not force ticket Done from checklist alone; if tickets lag the doc, note once in the session reply (no spam comments).
 
 ## Session reply
