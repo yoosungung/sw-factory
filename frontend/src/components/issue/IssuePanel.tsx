@@ -54,11 +54,6 @@ function issueKey(prefix: string, id: string) {
   return `${p}-${n}`;
 }
 
-/** Details Parent/Children rows: short id + title (full id in title attr). */
-function idAndName(id: string, title: string) {
-  return `${id.slice(0, 8)} ${title}`;
-}
-
 function useEscape(onClose: () => void, active: boolean) {
   useEffect(() => {
     if (!active) return;
@@ -218,7 +213,11 @@ export function IssuePanel({
   >([]);
   const [statuses, setStatuses] = useState<ProjectStatus[]>([]);
   const [blockers, setBlockers] = useState<DepTicketSummary[]>([]);
-  const [parent, setParent] = useState<{ id: string; title: string } | null>(null);
+  const [parent, setParent] = useState<{
+    id: string;
+    title: string;
+    type: Ticket["type"];
+  } | null>(null);
   const [children, setChildren] = useState<Ticket[]>([]);
   const [childTitle, setChildTitle] = useState("");
   useEscape(onClose, true);
@@ -252,9 +251,9 @@ export function IssuePanel({
       setChildren(kids.tickets);
       setParent(
         parentTicket
-          ? { id: parentTicket.id, title: parentTicket.title }
+          ? { id: parentTicket.id, title: parentTicket.title, type: parentTicket.type }
           : initial.milestone_id
-            ? { id: initial.milestone_id, title: initial.milestone_id }
+            ? { id: initial.milestone_id, title: initial.milestone_id, type: "task" }
             : null,
       );
     });
@@ -317,9 +316,9 @@ export function IssuePanel({
       if (nextId) {
         try {
           const p = await client.getTicket(nextId);
-          setParent({ id: p.ticket.id, title: p.ticket.title });
+          setParent({ id: p.ticket.id, title: p.ticket.title, type: p.ticket.type });
         } catch {
-          setParent({ id: nextId, title: nextId });
+          setParent({ id: nextId, title: nextId, type: "task" });
         }
       } else {
         setParent(null);
@@ -674,10 +673,19 @@ export function IssuePanel({
                       <div className="prop-val deps-blockers" data-testid="issue-parent">
                         {parent ? (
                           <ul className="deps-list">
-                            <li>
-                              <Link to={`/browse/${parent.id}`} title={parent.id}>
-                                {idAndName(parent.id, parent.title)}
-                              </Link>
+                            <li
+                              className={
+                                parent.type === "milestone" ? "deps-item-milestone" : undefined
+                              }
+                            >
+                              <span className="deps-item-main">
+                                {parent.type === "milestone" ? (
+                                  <TypeIcon type="milestone" />
+                                ) : null}
+                                <Link to={`/browse/${parent.id}`} title={parent.id}>
+                                  {parent.title}
+                                </Link>
+                              </span>
                               <button
                                 type="button"
                                 className="btn-subtle sm"
@@ -709,10 +717,20 @@ export function IssuePanel({
                         ) : (
                           <ul className="deps-list">
                             {children.map((ch) => (
-                              <li key={ch.id}>
-                                <Link to={`/browse/${ch.id}`} title={ch.id}>
-                                  {idAndName(ch.id, ch.title)}
-                                </Link>
+                              <li
+                                key={ch.id}
+                                className={
+                                  ch.type === "milestone" ? "deps-item-milestone" : undefined
+                                }
+                              >
+                                <span className="deps-item-main">
+                                  {ch.type === "milestone" ? (
+                                    <TypeIcon type="milestone" />
+                                  ) : null}
+                                  <Link to={`/browse/${ch.id}`} title={ch.id}>
+                                    {ch.title}
+                                  </Link>
+                                </span>
                               </li>
                             ))}
                           </ul>
@@ -758,10 +776,20 @@ export function IssuePanel({
                         ) : (
                           <ul className="deps-list">
                             {blockers.map((b) => (
-                              <li key={b.id}>
-                                <span title={b.id}>
-                                  {b.title}{" "}
-                                  <span className="muted">({b.status})</span>
+                              <li
+                                key={b.id}
+                                className={
+                                  b.type === "milestone" ? "deps-item-milestone" : undefined
+                                }
+                              >
+                                <span className="deps-item-main" title={b.id}>
+                                  {b.type === "milestone" ? (
+                                    <TypeIcon type="milestone" />
+                                  ) : null}
+                                  <span>
+                                    {b.title}{" "}
+                                    <span className="muted">({b.status})</span>
+                                  </span>
                                 </span>
                                 <button
                                   type="button"

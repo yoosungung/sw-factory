@@ -246,7 +246,7 @@ CHECK (successor_id != blocker_id)
 | GET | `/api/tickets/:id` | 멤버만. 응답 `ticket`에 `blocker_ids: string[]`(dual-read) |
 | PATCH | `/api/tickets/:id` | body에 `{ status, sort_order, priority, assignee_id, due_at, version? }` 포함. 버전 전달 시 불일치하면 `409 Conflict`; 성공 시 `version` 증가 및 변경 필드 `ticket_activities` 기록. **status가 `category=done`으로 바뀌면** 이 티켓을 `blocker_id`로 갖는 FS 행을 제거하고, 후속이 남은 blocker가 없으며 `status=blocked`이면 **`in_progress`로 복귀**한 뒤 후속 `ticket_id`로 `ticket_updated` append(`dependency_cleared`, `unblocked_from`) |
 | DELETE | `/api/tickets/:id` | **작성자(`created_by`) 또는 project owner만 삭제 가능** |
-| GET | `/api/tickets/:id/dependencies` | 멤버; `{ blocker_ids, blockers: [{id,title,status}], blocking: [{id,title,status}] }` |
+| GET | `/api/tickets/:id/dependencies` | 멤버; `{ blocker_ids, blockers: [{id,title,status,type}], blocking: [{id,title,status,type}] }` |
 | PUT | `/api/tickets/:id/dependencies` | 멤버; `{ blocker_ids: string[] }` 전체 교체(동일 project만). 사이클→`400 dependency_cycle`; parent 혼동→`400 parent_not_fs`; 없는/타 project→`400 invalid_blocker`. description soft 마커 제거 |
 | GET | `/api/tickets/:id/activities` | 티켓 변경 이력 (최신순) |
 | GET | `/api/projects/:id/kanban` | `{ columns, statuses }` — 컬럼 키=project statuses 순서. 컬럼 안 `sort_order DESC, created_at DESC`(드래그 저장값 유지, 생성 append는 위). `category=done` 중 `updated_at`이 7일 초과인 건은 기본 제외(archived Done; `include_archived=true`로 포함) |

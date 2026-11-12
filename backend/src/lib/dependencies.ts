@@ -9,6 +9,7 @@ export type DepTicketRef = {
   id: string;
   title: string;
   status: string;
+  type: "task" | "milestone";
   project_id: string;
   milestone_id: string | null;
   assignee_id: string | null;
@@ -46,7 +47,7 @@ async function loadTicketRef(
 ): Promise<DepTicketRef | null> {
   return db
     .prepare(
-      `SELECT id, title, status, project_id, milestone_id, assignee_id, version, description
+      `SELECT id, title, status, type, project_id, milestone_id, assignee_id, version, description
        FROM tickets WHERE id = ?`,
     )
     .bind(id)
@@ -139,7 +140,12 @@ export async function setBlockers(
   return { ok: true, blocker_ids: ids };
 }
 
-export type DepSummary = { id: string; title: string; status: string };
+export type DepSummary = {
+  id: string;
+  title: string;
+  status: string;
+  type: "task" | "milestone";
+};
 
 export async function listDependencyView(
   db: D1Database,
@@ -158,12 +164,12 @@ export async function listDependencyView(
   const blockers: DepSummary[] = [];
   for (const id of blocker_ids) {
     const t = await loadTicketRef(db, id);
-    if (t) blockers.push({ id: t.id, title: t.title, status: t.status });
+    if (t) blockers.push({ id: t.id, title: t.title, status: t.status, type: t.type });
   }
 
   const { results: blockingRows } = await db
     .prepare(
-      `SELECT t.id, t.title, t.status
+      `SELECT t.id, t.title, t.status, t.type
        FROM ticket_dependencies d
        JOIN tickets t ON t.id = d.successor_id
        WHERE d.blocker_id = ?

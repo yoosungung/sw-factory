@@ -1113,6 +1113,19 @@ select {
   font-size: 13px;
 }
 
+.deps-item-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.deps-list li.deps-item-milestone {
+  background: var(--color-brand-subtle);
+  border-radius: var(--radius-sm);
+  padding: 4px 8px;
+}
+
 .deps-add {
   display: flex;
   gap: 8px;

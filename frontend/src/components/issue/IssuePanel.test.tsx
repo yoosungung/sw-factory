@@ -156,23 +156,31 @@ describe("IssuePanel activity tabs", () => {
     expect(document.querySelector(".properties-panel")).toBeTruthy();
   });
 
-  it("shows Parent and Children as id + title separate from Blocked by", async () => {
+  it("shows Parent and Children as title only; milestone gets TypeIcon + row class", async () => {
     const { client } = await import("../../api");
     const parentId = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
     vi.mocked(client.getTicket).mockResolvedValue({
-      ticket: { ...ticket, id: parentId, title: "Parent Epic" },
+      ticket: { ...ticket, id: parentId, title: "Parent Epic", type: "milestone" },
     });
     vi.mocked(client.tickets).mockResolvedValue({
-      tickets: [{ ...ticket, id: "child-1111-2222-3333-444444444444", title: "Child Task" }],
+      tickets: [
+        { ...ticket, id: "child-1111-2222-3333-444444444444", title: "Child Task", type: "task" },
+      ],
     });
 
     renderPanel({ ticket: { ...ticket, milestone_id: parentId } });
     screen.getByRole("tab", { name: /^Details$/i }).click();
 
     const parent = await screen.findByTestId("issue-parent");
-    expect(parent).toHaveTextContent(/aaaaaaaa.*Parent Epic/);
+    expect(parent).toHaveTextContent("Parent Epic");
+    expect(parent).not.toHaveTextContent(/aaaaaaaa/);
+    expect(parent.querySelector(".type-icon.milestone")).toBeTruthy();
+    expect(parent.querySelector(".deps-item-milestone")).toBeTruthy();
     const children = await screen.findByTestId("issue-children");
-    expect(children).toHaveTextContent(/child-11.*Child Task/);
+    expect(children).toHaveTextContent("Child Task");
+    expect(children).not.toHaveTextContent(/child-11/);
+    expect(children.querySelector(".type-icon")).toBeNull();
+    expect(children.querySelector(".deps-item-milestone")).toBeNull();
     expect(screen.getByTestId("blocked-by")).toBeInTheDocument();
     expect(client.tickets).toHaveBeenCalledWith(
       "p1",
@@ -278,12 +286,17 @@ describe("IssuePanel activity tabs", () => {
     const { client } = await import("../../api");
     vi.mocked(client.ticketDependencies).mockResolvedValue({
       blocker_ids: ["t2"],
-      blockers: [{ id: "t2", title: "Pred", status: "in_progress" }],
+      blockers: [{ id: "t2", title: "Pred", status: "in_progress", type: "task" }],
       blocking: [],
     });
     vi.mocked(client.putTicketDependencies).mockImplementation(async (_id, ids) => ({
       blocker_ids: ids,
-      blockers: ids.map((id) => ({ id, title: id === "t2" ? "Pred" : "New", status: "backlog" })),
+      blockers: ids.map((id) => ({
+        id,
+        title: id === "t2" ? "Pred" : "New",
+        status: "backlog",
+        type: "task" as const,
+      })),
       blocking: [],
       ticket: { ...ticket, blocker_ids: ids, version: ticket.version + 1 },
     }));

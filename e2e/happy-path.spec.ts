@@ -76,7 +76,7 @@ test.describe("happy path", () => {
     await expect(panel.locator(".issue-desc-view .rich-content")).toContainText(body);
   });
 
-  test("issue Details Parent and Children show id + name", async ({ page }) => {
+  test("issue Details Parent and Children show title only", async ({ page }) => {
     await loginAsAdmin(page);
 
     const space = `PC Space ${Date.now()}`;
@@ -104,7 +104,7 @@ test.describe("happy path", () => {
       .getAttribute("href");
     expect(childHref).toMatch(/\/browse\//);
     const childId = childHref!.split("/").pop()!;
-    await expect(parentPanel.getByTestId("issue-children")).toContainText(childId.slice(0, 8));
+    await expect(parentPanel.getByTestId("issue-children")).not.toContainText(childId.slice(0, 8));
 
     await clickEl(parentPanel.getByRole("button", { name: "Close" }));
 

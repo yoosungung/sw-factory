@@ -68,7 +68,12 @@ export type Ticket = {
   blocker_ids?: string[];
 };
 
-export type DepTicketSummary = { id: string; title: string; status: string };
+export type DepTicketSummary = {
+  id: string;
+  title: string;
+  status: string;
+  type: "task" | "milestone";
+};
 
 export type Comment = {
   id: string;
