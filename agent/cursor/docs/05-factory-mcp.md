@@ -28,4 +28,26 @@ GitHub `leantime-mcp`(JSON-RPC + PAT) 대신 Worker **REST + 세션 쿠키**를 
 4. MCP는 persona workspace의 `.cursor/mcp.json`이 가리키며, 쿠키는 그 persona 것. `GATEWAY_SESSION_COOKIE`(폴링용, 보통 pm)를 공유하지 않는다.
 5. **stdio 진입점은 절대 경로** — `seed-cookies-cli` / `apply-persona-seeds`가 `AGENT_APP_ROOT`(Docker 기본 `/app`) 기준 `…/agent/cursor/mcp/stdio.ts`를 쓴다. 상대경로면 SDK cwd(`/data/workspaces/{persona}`)에서 로드 실패한다. 쿠키가 없는 workspace는 mcp.json을 쓰지 않으므로 factory 네임스페이스가 없다.
 
+## REST fallback (MCP 부재 시)
+
+세션에 `factory` 네임스페이스가 없으면 persona `secrets/session.cookie`로 Worker REST를 쓴다. **응답은 항상 래핑**된다.
+
+| 메서드 | 경로 | 성공 body |
+|--------|------|-----------|
+| POST | `/api/projects/:id/tickets` | `{ "ticket": { "id": "…", … } }` |
+| GET | `/api/tickets/:id` | `{ "ticket": { … } }` |
+| GET | `/api/tickets/:id/comments` | `{ "comments": [ … ] }` |
+
+**Create-once (티켓리스 스케줄):**
+
+1. 동일 `date_from`(또는 당일 `created_at`) + **동일 title** 이 있으면 **reuse** — POST 하지 않음.
+2. 없으면 `POST` **1회만**. id는 `json["ticket"]["id"]` (또는 `unwrapTicketId` / `ensureTicketCreateOnce` in [../mcp/ticket-id.ts](../mcp/ticket-id.ts)).
+3. 파싱·IO가 애매하면 **POST 재시도 금지** — `list_tickets`/`get`으로 확인·reuse.
+4. 잘못된 예: `json["id"]` → KeyError로 성공을 실패로 오인 → 다중 orphan (2026-11-14 escalation-drain).
+
+```bash
+# parse id from create response (never top-level .id)
+TICKET_ID=$(printf '%s' "$RESP" | python3 -c 'import sys,json; print(json.load(sys.stdin)["ticket"]["id"])')
+```
+
 구현: [../mcp/](../mcp/) (A4). 도구 매핑·세션 쿠키 계약은 이 문서.

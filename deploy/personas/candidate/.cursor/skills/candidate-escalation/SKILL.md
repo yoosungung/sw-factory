@@ -15,6 +15,15 @@ description: >
 - 티켓/멘션이 candidate.win escalation·stance·Pass A 품질을 가리킬 때
 - 핸드오프 프롬프트가 escalation drain 을 요청할 때
 
+## Ticket (ticketless → Active)
+
+스케줄은 **티켓리스**로 시작. 증거를 남길 Outcome 티켓이 필요하면:
+
+1. Prefer **factory-mcp** `create_ticket` / `list_tickets`.
+2. MCP 부재 시 REST+`secrets/session.cookie` — 응답은 `{ "ticket": { "id": … } }` 래핑. id는 **`ticket.id`만** (`json["id"]` 금지). 헬퍼: `agent/cursor/mcp/ticket-id.ts` (`unwrapTicketId` / `ensureTicketCreateOnce`). 문서: `agent/cursor/docs/05-factory-mcp.md` REST fallback.
+3. **Create-once:** 동일 일자(`date_from`/당일) + 동일 title 있으면 **reuse**. `POST`는 **최대 1회**. 파싱·IO 애매 → list/get으로 확인, **POST 재시도 금지**.
+4. title 예: `candidate-escalation-drain 1100 KST (YYYY-MM-DD)`.
+
 ## Steps
 
 1. `cd $ROOT && git checkout main && git pull --ff-only`
@@ -37,3 +46,4 @@ description: >
 - `<!-- human-edit -->` 덮어쓰기
 - `data/issues/*.yaml` 수정 (사람 SSoT)
 - curated `data/people` 필드 임의 변경 (stub 생성만 허용 시 기존 규칙 준수)
+- create 성공을 파싱 실패로 오인해 **POST 재시도**

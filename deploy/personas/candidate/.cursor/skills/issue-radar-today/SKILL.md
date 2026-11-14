@@ -25,7 +25,8 @@ Wiki: `Publication-Gate-Empty-Overwrite-Guard` · schedule id `issue-radar-today
 4. `git status`: 커밋 범위는 **`wiki/data/today.yaml`만**. cache JSON·리포트 MD 제외
 5. items 비어 덮어쓰기가 스킵되면 no-op 증거만 남기고 종료(빈 커밋 금지)
 6. 변경 있으면 commit → push(`main` 직푸시 허용: 공개 큐 단일 파일). SHA + `generated_at`을 티켓에 남김
-7. 성공 → Active에 증거 또는 Done 티켓. 실패 → New/Active blocker
+7. 성공 → Active에 증거 또는 Done 티켓. 실패 → New/Active blocker.
+   티켓 생성 시 create-once(`ticket.id` · POST≤1 · 동일 일자+title reuse). MCP 우선; REST는 `05-factory-mcp.md` fallback.
 
 ## Do not
 

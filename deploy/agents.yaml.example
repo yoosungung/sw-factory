@@ -84,10 +84,13 @@ settings:
         Missing/empty pending → no-op (exit without writes unless a ticket was opened).
         Usable rows → wiki agent:stances → git-ship PR feature/escalation-drain-YYYYMMDD → @pm.
         Do not merge. Do not edit data/issues/*.yaml or <!-- human-edit -->.
+        Outcome ticket: create-once (reuse same-day same title; POST ≤1; parse ticket.id only;
+        on parse ambiguity list/get — never retry POST). Prefer factory-mcp; REST wrap {ticket:{id}}.
       success_checks:
         - Pulled candidate.win ff-only (or reported blocker).
         - No-op with missing/empty pending, or PR opened with @pm + counts.
         - Did not merge; did not rewrite human-edit or data/issues SSoT.
+        - At most one create POST for the schedule title (or reuse existing).
     # 08:00 KST = 23:00 UTC (schedule:issue-radar-today-0800-kst)
     - id: issue-radar-today
       cron: "0 23 * * *"

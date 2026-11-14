@@ -204,6 +204,7 @@ main 스냅샷: [../agents.back.yaml](../agents.back.yaml) `settings.schedules`.
 3. 행 단위 재분류 → wiki `<!-- agent:stances -->` (URL 없으면 미기록) → `processed.jsonl` · pending 제거.
 4. `git-ship` PR `feature/escalation-drain-YYYYMMDD` + `@pm`. **merge는 pm만**.
 5. 금지: `<!-- human-edit -->` 덮어쓰기, `data/issues/*.yaml` 수정, curated people 임의 변경.
+6. **Outcome 티켓:** create-once — 동일 일자+title reuse · `POST`≤1 · id=`ticket.id` (MCP 우선; REST fallback은 `05-factory-mcp.md`). 파싱 애매 시 POST 재시도 금지.
 
 ### 5.10 `ta-k8s-daily`
 
