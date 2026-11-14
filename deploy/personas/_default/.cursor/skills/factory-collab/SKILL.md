@@ -26,6 +26,15 @@ MCP 서버 `factory` 도구를 사용한다. 작업 전 읽기, 작업 후 코�
 2. `get_comments`(Active)
 3. 필요 시 `list_tickets` / `search` / `get_project` / `list_project_members`(lane 배정)로 범위 확인
 
+## Ticketless create (스케줄 Outcome)
+
+Active가 없어 티켓을 **새로** 열 때:
+
+1. Prefer factory-mcp. 부재 시 REST+persona `session.cookie`.
+2. Create 응답 id = **`ticket.id`** (`{ "ticket": { "id" } }` 래핑). top-level `id` 파싱 금지.
+3. 동일 일자 + 동일 title → **reuse**. `POST` ≤ 1. 파싱/IO 애매 → list/get만, **POST 재시도 금지**.
+4. 헬퍼/문서: `agent/cursor/mcp/ticket-id.ts`, `agent/cursor/docs/05-factory-mcp.md` REST fallback.
+
 ## 작업 중
 
 - 진행·결정은 `add_comment` 우선

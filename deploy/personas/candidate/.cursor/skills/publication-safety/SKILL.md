@@ -27,6 +27,7 @@ Wiki: `Publication-Gate-Empty-Overwrite-Guard` · schedule id `publication-safet
 6. **exit 2 (HOLD):** `PUBLICATION HOLD` + slug 목록을 Active/New에 남기고 **push 금지**.
 7. empty-overwrite: 빈 공개 산출물로 기존 비어 있지 않은 파일을 덮어쓰지 않는다.
 8. 성공 → Active에 PASS 증거 또는 Done 티켓. 실패/HOLD → New/Active blocker.
+   티켓 생성 시 create-once(`ticket.id` · POST≤1 · 동일 일자+title reuse). MCP 우선; REST는 `05-factory-mcp.md` fallback.
 
 ## Do not
 
