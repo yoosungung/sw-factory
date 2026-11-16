@@ -66,10 +66,10 @@ test("FE3: your-work, search, account", async ({ page }) => {
   await expect(page.getByText(title)).toBeVisible();
   await clickEl(page.getByRole("button", { name: "Recently viewed" }));
   await expect(page.locator(".your-work-issues .list-row.head")).toContainText("Due");
-  await clickEl(page.getByRole("button", { name: "Recent projects" }));
-  await expect(page.getByText("FE3 Proj")).toBeVisible();
-  await expect(page.locator(".your-work-projects .list-row.head")).toContainText("Description");
-  await expect(page.locator(".your-work-projects")).toContainText("FE3 grid desc");
+  await clickEl(page.getByRole("button", { name: "Overviews" }));
+  await expect(page.getByRole("link", { name: "FE3 Proj" })).toBeVisible();
+  await expect(page.locator(".your-work-overviews")).toContainText("In progress");
+  await expect(page.locator(".your-work-overviews")).toContainText("Open milestones");
 
   await page.goto(`/search?q=${encodeURIComponent("SearchableNeedle")}`);
   await expect(page.getByRole("heading", { name: "Search" })).toBeVisible();

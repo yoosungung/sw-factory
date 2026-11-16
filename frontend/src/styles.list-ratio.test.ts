@@ -36,11 +36,9 @@ describe("list column ratio scopes", () => {
     );
   });
 
-  it("your-work projects list uses name · description · action columns", () => {
-    const body = ruleBody(".your-work-projects .list-row");
-    expect(body).toMatch(
-      /grid-template-columns:\s*minmax\(0,\s*1\.2fr\)\s+minmax\(0,\s*1fr\)\s+auto/,
-    );
+  it("your-work overviews pulse rows use title · status columns", () => {
+    const body = ruleBody(".your-work-overviews .overview-active-list .list-row");
+    expect(body).toMatch(/grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto/);
   });
 
   it("timeline list-row uses 4 cols with title as main 1fr", () => {

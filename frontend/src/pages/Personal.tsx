@@ -1,10 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { client, type Client, type Project, type Ticket, type User } from "../api";
-import { initials, statusLabel } from "../components/issue/IssuePanel";
+import { statusLabel } from "../components/issue/IssuePanel";
 import { EmptyState } from "../components/EmptyState";
-import { recentProjectIds, recentTicketIds } from "../lib/recent";
+import { recentTicketIds } from "../lib/recent";
 import { ticketsNewestFirst } from "../lib/ticketOrder";
+
+const OVERVIEW_PREVIEW_LIMIT = 5;
+
+type ProjectOverviewPulse = {
+  project: Project;
+  active: Ticket[];
+  milestones: Ticket[];
+};
 
 function useClients() {
   const [clients, setClients] = useState<Client[]>([]);
@@ -44,17 +52,11 @@ export function YourWorkPage({
 }) {
   const clients = useClients();
   const projects = useAllProjects();
-  const [tab, setTab] = useState<"assigned" | "created" | "viewed" | "projects">("assigned");
+  const [tab, setTab] = useState<"assigned" | "created" | "viewed" | "overviews">("assigned");
   const [assigned, setAssigned] = useState<Array<Ticket & { project?: Project }>>([]);
   const [created, setCreated] = useState<Array<Ticket & { project?: Project }>>([]);
   const [viewed, setViewed] = useState<Array<Ticket & { project?: Project }>>([]);
-
-  const recentProjects = useMemo(() => {
-    const ids = recentProjectIds();
-    const byId = new Map(projects.map((p) => [p.id, p]));
-    const ordered = ids.map((id) => byId.get(id)).filter(Boolean) as Project[];
-    return ordered.length > 0 ? ordered : projects.slice(0, 8);
-  }, [projects]);
+  const [overviews, setOverviews] = useState<ProjectOverviewPulse[] | null>(null);
 
   useEffect(() => {
     void (async () => {
@@ -101,6 +103,44 @@ export function YourWorkPage({
     })();
   }, [projects]);
 
+  useEffect(() => {
+    if (tab !== "overviews") return;
+    if (projects.length === 0) {
+      setOverviews([]);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      const pulses = await Promise.all(
+        projects.map(async (p) => {
+          try {
+            const [k, m] = await Promise.all([
+              client.kanban(p.id),
+              client.tickets(p.id, { type: "milestone" }),
+            ]);
+            const active = k.statuses
+              .filter((s) => s.category === "active")
+              .flatMap((s) => k.columns[s.key] ?? [])
+              .slice(0, OVERVIEW_PREVIEW_LIMIT);
+            const doneKeys = new Set(
+              k.statuses.filter((s) => s.category === "done").map((s) => s.key),
+            );
+            const milestones = m.tickets
+              .filter((t) => !doneKeys.has(t.status))
+              .slice(0, OVERVIEW_PREVIEW_LIMIT);
+            return { project: p, active, milestones };
+          } catch {
+            return { project: p, active: [], milestones: [] };
+          }
+        }),
+      );
+      if (!cancelled) setOverviews(pulses);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tab, projects]);
+
   return chrome({
     user,
     onLogout,
@@ -117,7 +157,7 @@ export function YourWorkPage({
                 ["assigned", "Assigned to me"],
                 ["created", "Created by me"],
                 ["viewed", "Recently viewed"],
-                ["projects", "Recent projects"],
+                ["overviews", "Overviews"],
               ] as const
             ).map(([id, label]) => (
               <button
@@ -204,24 +244,53 @@ export function YourWorkPage({
             )}
           </div>
         )}
-        {tab === "projects" && (
-          <div className="content-panel tableish your-work-projects">
-            <div className="list-row head">
-              <span>Project</span>
-              <span>Description</span>
-              <span>Action</span>
-            </div>
-            {recentProjects.map((p) => (
-              <Link key={p.id} to={`/projects/${p.id}`} className="list-row linkish">
-                <span className="name-cell">
-                  <span className="project-icon sm">{initials(p.name)}</span>
-                  {p.name}
-                </span>
-                <span className={p.description.trim() ? "your-work-project-desc" : "muted"}>
-                  {p.description.trim() || "No description"}
-                </span>
-                <span className="muted">Open</span>
-              </Link>
+        {tab === "overviews" && (
+          <div className="your-work-overviews">
+            {overviews === null && <p className="muted pad">Loading…</p>}
+            {overviews !== null && overviews.length === 0 && (
+              <EmptyState
+                title="No projects yet"
+                description="Join or create a project to see In progress work and open milestones here."
+              />
+            )}
+            {overviews?.map(({ project: p, active, milestones }) => (
+              <section key={p.id} className="overview-section" data-project-id={p.id}>
+                <h2>
+                  <Link to={`/projects/${p.id}`}>{p.name}</Link>
+                </h2>
+                <h3>In progress</h3>
+                {active.length === 0 ? (
+                  <EmptyState
+                    title="Nothing in progress"
+                    description="Tickets in an active status show up here."
+                  />
+                ) : (
+                  <div className="content-panel tableish overview-active-list">
+                    {active.map((t) => (
+                      <Link key={t.id} to={`/browse/${t.id}`} className="list-row linkish">
+                        <span className="your-work-issue-title">{t.title}</span>
+                        <span className="muted">{statusLabel(t.status)}</span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+                <h3>Open milestones</h3>
+                {milestones.length === 0 ? (
+                  <EmptyState
+                    title="No open milestones"
+                    description="Milestones that are not done appear here."
+                  />
+                ) : (
+                  <div className="content-panel tableish overview-active-list">
+                    {milestones.map((t) => (
+                      <Link key={t.id} to={`/browse/${t.id}`} className="list-row linkish">
+                        <span className="your-work-issue-title">{t.title}</span>
+                        <span className="muted">{statusLabel(t.status)}</span>
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </section>
             ))}
           </div>
         )}

@@ -2523,15 +2523,27 @@ select {
   overflow-wrap: anywhere;
 }
 
-.your-work-projects .list-row {
-  grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr) auto;
+.your-work-overviews .overview-section h2 {
+  margin-bottom: 8px;
 }
 
-.your-work-projects .your-work-project-desc {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.your-work-overviews .overview-section h2 a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.your-work-overviews .overview-section h2 a:hover {
+  text-decoration: underline;
+}
+
+.your-work-overviews .overview-section h3 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 12px 0 8px;
+}
+
+.your-work-overviews .overview-active-list .list-row {
+  grid-template-columns: minmax(0, 1fr) auto;
 }
 
 @media (max-width: 767px) {
