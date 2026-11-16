@@ -1,13 +1,13 @@
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { Project, Ticket, User } from "../api";
+import type { Project, ProjectStatus, Ticket, User } from "../api";
 import { YourWorkPage, type ChromeFn } from "./Personal";
 
 const projectsApi = vi.fn();
 const ticketsApi = vi.fn();
 const getTicketApi = vi.fn();
-const recentProjectIdsMock = vi.fn();
+const kanbanApi = vi.fn();
 const recentTicketIdsMock = vi.fn();
 
 vi.mock("../api", () => ({
@@ -16,11 +16,11 @@ vi.mock("../api", () => ({
     projects: () => projectsApi(),
     tickets: (...args: unknown[]) => ticketsApi(...args),
     getTicket: (...args: unknown[]) => getTicketApi(...args),
+    kanban: (...args: unknown[]) => kanbanApi(...args),
   },
 }));
 
 vi.mock("../lib/recent", () => ({
-  recentProjectIds: () => recentProjectIdsMock(),
   recentTicketIds: () => recentTicketIdsMock(),
 }));
 
@@ -70,6 +70,28 @@ const ticket: Ticket = {
   updated_at: "2026-01-01T00:00:00.000Z",
 };
 
+const statuses: ProjectStatus[] = [
+  { key: "backlog", label: "Backlog", category: "backlog", sort_order: 0 },
+  { key: "in_progress", label: "In progress", category: "active", sort_order: 1 },
+  { key: "done", label: "Done", category: "done", sort_order: 2 },
+];
+
+const openMilestone: Ticket = {
+  ...ticket,
+  id: "m-open",
+  title: "Ship MVP",
+  type: "milestone",
+  status: "in_progress",
+};
+
+const doneMilestone: Ticket = {
+  ...ticket,
+  id: "m-done",
+  title: "Done milestone",
+  type: "milestone",
+  status: "done",
+};
+
 const chrome: ChromeFn = ({ children }) => <div>{children}</div>;
 
 function renderPage() {
@@ -89,14 +111,23 @@ describe("YourWorkPage grid UX", () => {
     projectsApi.mockReset();
     ticketsApi.mockReset();
     getTicketApi.mockReset();
-    recentProjectIdsMock.mockReset();
+    kanbanApi.mockReset();
     recentTicketIdsMock.mockReset();
     projectsApi.mockResolvedValue({ projects: [project, emptyProject] });
-    ticketsApi.mockImplementation(async (projectId: string) => ({
-      tickets: projectId === project.id ? [ticket] : [],
-    }));
+    ticketsApi.mockImplementation(async (projectId: string, opts?: { assignee_id?: string; created_by?: string; type?: string }) => {
+      if (opts?.type === "milestone") {
+        return { tickets: projectId === project.id ? [openMilestone, doneMilestone] : [] };
+      }
+      return { tickets: projectId === project.id ? [ticket] : [] };
+    });
     getTicketApi.mockResolvedValue({ ticket });
-    recentProjectIdsMock.mockReturnValue(["p1", "p2"]);
+    kanbanApi.mockImplementation(async (projectId: string) => ({
+      statuses,
+      columns:
+        projectId === project.id
+          ? { backlog: [], in_progress: [ticket], done: [] }
+          : { backlog: [], in_progress: [], done: [] },
+    }));
     recentTicketIdsMock.mockReturnValue(["t1"]);
   });
 
@@ -167,15 +198,61 @@ describe("YourWorkPage grid UX", () => {
     expect(panel?.querySelector("a.list-row")?.children).toHaveLength(4);
   });
 
-  it("Recent projects shows description or No description placeholder", async () => {
+  it("Overviews tab replaces Recent projects and shows membership pulse", async () => {
     const { container } = renderPage();
-    fireEvent.click(screen.getByRole("button", { name: "Recent projects" }));
-    await waitFor(() => expect(screen.getByText("Alpha")).toBeInTheDocument());
-    const panel = container.querySelector(".your-work-projects") as HTMLElement;
-    expect(panel).toBeTruthy();
-    expect(panel.querySelector(".list-row.head")?.textContent).toMatch(/Project.*Description/s);
-    expect(within(panel).getByText("Ship the grid")).toBeInTheDocument();
-    expect(within(panel).getByText("No description")).toBeInTheDocument();
-    expect(panel.querySelectorAll("a.list-row").length).toBe(2);
+    expect(screen.queryByRole("button", { name: "Recent projects" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: "Overviews" }));
+    await waitFor(() => expect(screen.getByRole("link", { name: "Alpha" })).toBeInTheDocument());
+    expect(screen.getByRole("link", { name: "Alpha" })).toHaveAttribute("href", "/projects/p1");
+    expect(screen.getByRole("link", { name: "Beta" })).toHaveAttribute("href", "/projects/p2");
+    expect(kanbanApi).toHaveBeenCalled();
+    const alphaSection = container.querySelector('[data-project-id="p1"]') as HTMLElement;
+    expect(alphaSection).toBeTruthy();
+    expect(within(alphaSection).getByRole("heading", { name: "In progress" })).toBeInTheDocument();
+    expect(within(alphaSection).getByText(ticket.title)).toBeInTheDocument();
+    expect(within(alphaSection).getByRole("heading", { name: "Open milestones" })).toBeInTheDocument();
+    expect(within(alphaSection).getByText("Ship MVP")).toBeInTheDocument();
+    expect(within(alphaSection).queryByText("Done milestone")).toBeNull();
+    const betaSection = container.querySelector('[data-project-id="p2"]') as HTMLElement;
+    expect(within(betaSection).getByText("Nothing in progress")).toBeInTheDocument();
+    expect(within(betaSection).getByText("No open milestones")).toBeInTheDocument();
+  });
+
+  it("Overviews caps In progress and Open milestones at 5 each", async () => {
+    const manyActive = Array.from({ length: 7 }, (_, i) => ({
+      ...ticket,
+      id: `active-${i}`,
+      title: `Active ${i}`,
+    }));
+    const manyMs = Array.from({ length: 7 }, (_, i) => ({
+      ...openMilestone,
+      id: `ms-${i}`,
+      title: `Milestone ${i}`,
+      status: "in_progress" as const,
+    }));
+    projectsApi.mockResolvedValue({ projects: [project] });
+    kanbanApi.mockResolvedValue({
+      statuses,
+      columns: { backlog: [], in_progress: manyActive, done: [] },
+    });
+    ticketsApi.mockImplementation(async (_projectId: string, opts?: { type?: string }) => {
+      if (opts?.type === "milestone") return { tickets: manyMs };
+      return { tickets: [] };
+    });
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "Overviews" }));
+    await waitFor(() => expect(screen.getByText("Active 0")).toBeInTheDocument());
+    expect(screen.getByText("Active 4")).toBeInTheDocument();
+    expect(screen.queryByText("Active 5")).toBeNull();
+    expect(screen.getByText("Milestone 0")).toBeInTheDocument();
+    expect(screen.getByText("Milestone 4")).toBeInTheDocument();
+    expect(screen.queryByText("Milestone 5")).toBeNull();
+  });
+
+  it("Overviews shows empty membership state", async () => {
+    projectsApi.mockResolvedValue({ projects: [] });
+    renderPage();
+    fireEvent.click(screen.getByRole("button", { name: "Overviews" }));
+    await waitFor(() => expect(screen.getByText("No projects yet")).toBeInTheDocument());
   });
 });

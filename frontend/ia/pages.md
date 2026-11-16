@@ -34,10 +34,10 @@
 
 ## F3. Your work — `/` (alias `/your-work` → `/`)
 
-**Layout:** 탭 — Assigned to me | Created by me | Recently viewed | Recent projects. Assigned/Created/Viewed = `.your-work-issues` 4열(Issue `minmax(0,1fr)` · Project · Status · Due); Recent projects = `.your-work-projects` 3열(Project(+icon) · Description 1줄/`No description` · Open). 헤더·탭은 고정, 그리드는 `.page-scroll`(`.main` overflow hidden 유지)로 세로 스크롤.  
-**Behavior:** 이슈 행 → `/browse/:id` 또는 프로젝트 보드+`?issue=`; 프로젝트 행 → Board. Assigned/Created는 `created_at` DESC(동일 시각 id DESC). List API 기본도 DESC. Recently viewed·Recent projects 순서는 기존 유지. **Assigned to me는 `category=done` 제외**(최근 done 포함; Created/Viewed·칸반은 비범위).  
-**API:** `GET /api/projects`; tickets by `assignee_id=me&exclude_done=true` / `created_by=me` (ARCHITECTURE §4); recent은 클라이언트 저장.  
-**Connections:** → Issue · Project board. Top nav **Your work**. 로그인·로고 홈.
+**Layout:** 탭 — Assigned to me | Created by me | Recently viewed | Overviews. Assigned/Created/Viewed = `.your-work-issues` 4열(Issue `minmax(0,1fr)` · Project · Status · Due); Overviews = `.your-work-overviews` 멤버십 프로젝트 섹션(프로젝트명 → Overview 링크 · **In progress** · **Open milestones**, 각 상한 5). 헤더·탭은 고정, 그리드는 `.page-scroll`(`.main` overflow hidden 유지)로 세로 스크롤.  
+**Behavior:** 이슈 행 → `/browse/:id`; Overviews 프로젝트명 → `/projects/:id`(Overview). Assigned/Created는 `created_at` DESC(동일 시각 id DESC). List API 기본도 DESC. Recently viewed 순서는 클라이언트 저장. 프로젝트 섹션 순서는 `GET /api/projects`(`created_at` DESC). **Assigned to me는 `category=done` 제외**(최근 done 포함; Created/Viewed·칸반은 비범위). 멤버십 없음·섹션 데이터 없음은 EmptyState.  
+**API:** `GET /api/projects`; tickets by `assignee_id=me&exclude_done=true` / `created_by=me` (ARCHITECTURE §4); Overviews는 프로젝트별 `GET …/kanban` + `GET …/tickets?type=milestone`(F4b와 동일 소스, 신규 aggregate 없음).  
+**Connections:** → Issue · Project Overview. Top nav **Your work**. 로그인·로고 홈.
 
 ---
 
