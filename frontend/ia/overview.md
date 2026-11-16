@@ -4,12 +4,12 @@
 
 | 축 | 선택 |
 | --- | --- |
-| 무엇을 | Space(Client)·Project·Board/Backlog/Timeline/List·Issue·관리 |
+| 무엇을 | Space(Client)·Project·Board/Backlog/List·Issue·관리 |
 | 어떻게 | Top nav·Create·보드·이슈 패널·Project settings 중심 SPA |
 | 데이터 | backend REST + 세션 쿠키만 |
 | 권한 UI | 플랫폼 `is_admin`(Space 생성·계정 목록) + Space/Project `owner` \| `member` |
 
-사용성: 탑바 Create → 보드 드래그 → 이슈와 보드 동시(논모달 인스펙터) → Esc/바깥 클릭 → 최근·검색·멤버 관리까지 한 제품 흐름. Board/Backlog/Timeline in-view 생성은 보류.  
+사용성: 탑바 Create → 보드 드래그 → 이슈와 보드 동시(논모달 인스펙터) → Esc/바깥 클릭 → 최근·검색·멤버 관리까지 한 제품 흐름. Board/Backlog/List in-view 생성은 보류.  
 디자인 시스템·토큰·인터랙션 표준: [design-system.md](design-system.md).
 
 ## 2. 공통 크롬
@@ -24,7 +24,7 @@
 └────────────────────────────────────┴────────────────────────────────┘
 ```
 
-- **Overview vs Tickets:** Overview는 프로젝트 랜딩(이름·설명·수행 중 티켓). 4대 뷰(`Board | Backlog | Timeline | List`)는 Tickets 툴바 세그먼트만 — 사이드바에 4뷰를 두지 않는다.
+- **Overview vs Tickets:** Overview는 프로젝트 랜딩(이름·설명·수행 중 티켓). Tickets 뷰(`Board | Backlog | List`)는 툴바 세그먼트만 — 사이드바에 두지 않는다. (`?view=timeline` → List)
 - **스페이스 스위처:** 프로젝트 사이드바에 모든 전역 스페이스를 덤프하지 않고, 사이드바 상단 콤보박스 스위처로 압축한다.
 - **설정 전용 셸:** `/projects/:id/settings/*` 진입 시 이중 사이드바 병렬 노출을 방지하고 설정 전용 단일 사이드바/전환 레이아웃을 사용한다.
 - **전역 화면:** (`/`, `/projects`, `/spaces`, `/search`, `/account`, `/admin`)에는 프로젝트 사이드바를 두지 않는다.
@@ -42,7 +42,7 @@ flowchart TB
   Space["/clients/:id"]
   SpaceSet["/clients/:id/settings/*"]
   Proj["/projects/:id Overview"]
-  Views["?view=board|backlog|timeline|list Tickets"]
+  Views["?view=board|backlog|list Tickets"]
   PSet["/projects/:id/settings/*"]
   Filters["/filters · /filters/:id"]
   Teams["/teams"]
@@ -143,7 +143,7 @@ frontend/src/
   components/issue/    IssuePanel, IssuePage
   pages/               Auth, YourWork, Projects, Space, ProjectShell, Filters,
                        Teams, Search, Account, settings/*
-  views/               Board, Backlog, Timeline, List
+  views/               Board, Backlog, List
 ```
 
 Commands: [../DESIGN.md](../DESIGN.md).

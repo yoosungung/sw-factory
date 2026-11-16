@@ -22,15 +22,12 @@ import { EmptyState } from "../components/EmptyState";
 import { AgentPromptDialog } from "../components/agent/AgentPromptDialog";
 import { AppChrome } from "../components/chrome/AppChrome";
 import { dueClass } from "../lib/due";
+import { formatListDue } from "../lib/list-due";
 import { parseTicketTypeFilter, type TicketTypeFilter } from "../lib/ticket-type-filter";
 import { isTicketsView, parseViewMode } from "../lib/view-mode";
 import { useAllProjects, useClients } from "../hooks/useSession";
 import { touchRecentProject, touchRecentTicket } from "../lib/recent";
-import {
-  kanbanColumnNewestFirst,
-  ticketsNewestFirst,
-  timelineNewestFirst,
-} from "../lib/ticketOrder";
+import { kanbanColumnNewestFirst, ticketsNewestFirst } from "../lib/ticketOrder";
 
 function projectSearch(params: {
   view?: string;
@@ -63,7 +60,6 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
   const [org, setOrg] = useState<Client | null>(null);
   const [statuses, setStatuses] = useState<ProjectStatus[]>([]);
   const [columns, setColumns] = useState<Record<string, Ticket[]>>({});
-  const [timeline, setTimeline] = useState<Ticket[]>([]);
   const [milestones, setMilestones] = useState<Ticket[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [filter, setFilter] = useState("");
@@ -128,10 +124,9 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
   }
 
   async function refresh() {
-    const [p, k, t, m, mem] = await Promise.all([
+    const [p, k, m, mem] = await Promise.all([
       client.project(id),
       client.kanban(id, includeArchived),
-      client.timeline(id),
       client.tickets(id, { type: "milestone" }),
       client.projectMembers(id),
     ]);
@@ -143,7 +138,6 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
       orderedColumns[key] = kanbanColumnNewestFirst(col);
     }
     setColumns(orderedColumns);
-    setTimeline(timelineNewestFirst(t.items));
     setMilestones(m.tickets);
     setMembers(mem.members);
     setOrg((await client.getClient(p.project.client_id)).client);
@@ -306,9 +300,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
                   ? "Board"
                   : view === "backlog"
                     ? "Backlog"
-                    : view === "timeline"
-                      ? "Timeline"
-                      : "List"}
+                    : "List"}
             </h1>
             {ticketsView && (
               <div className="menu menu-right">
@@ -368,7 +360,6 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
             [
               ["board", "Board"],
               ["backlog", "Backlog"],
-              ["timeline", "Timeline"],
               ["list", "List"],
             ] as const
           ).map(([v, label]) => (
@@ -603,45 +594,6 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
         </div>
       )}
 
-      {view === "timeline" && (
-        <div className="page-scroll">
-          <div className="content-panel">
-            {(() => {
-              const items = timelineNewestFirst(
-                [...timeline, ...milestones.filter((m) => m.date_from && m.date_to)].filter(
-                  (item, idx, arr) => arr.findIndex((x) => x.id === item.id) === idx,
-                ),
-              );
-              if (items.length === 0) {
-                return (
-                  <EmptyState
-                    title="Timeline is empty"
-                    description="Work items you create show up here so you can see the project schedule."
-                  />
-                );
-              }
-              return items.map((item) => (
-                <div
-                  key={item.id}
-                  className="list-row list-timeline"
-                  onClick={() => openIssue(item)}
-                >
-                  <span className="muted">
-                    {item.date_from ?? "—"} → {item.date_to ?? "—"}
-                  </span>
-                  <span className="issue-key">
-                    <TypeIcon type={item.type} />
-                    {issueKey(project.name, item.id)}
-                  </span>
-                  <span>{item.title}</span>
-                  <span className="muted">{labelFor(item.status)}</span>
-                </div>
-              ));
-            })()}
-          </div>
-        </div>
-      )}
-
       {view === "list" && (
         <div className="page-scroll">
         <div className="content-panel tableish">
@@ -681,7 +633,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
                     <span>{t.title}</span>
                     <span className="muted">{labelFor(t.status)}</span>
                     <span className="muted">{memberName(t.assignee_id) ?? "—"}</span>
-                    <span className="muted">{t.due_at ?? "—"}</span>
+                    <span className="muted">{formatListDue(t)}</span>
                     <span className="muted">{PRIORITY_LABEL[t.priority]}</span>
                   </div>
                 ))}

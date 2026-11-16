@@ -91,7 +91,6 @@ vi.mock("../api", () => ({
           done: [],
         },
       }),
-    timeline: () => Promise.resolve({ items: [timelineTicket] }),
     tickets: (...args: Parameters<typeof ticketsMock>) => ticketsMock(...args),
     projectMembers: () => Promise.resolve({ members: [] }),
     getClient: () =>
@@ -157,12 +156,12 @@ async function renderPath(path: string) {
   return result;
 }
 
-async function renderView(view: "backlog" | "timeline" | "list" | "board" | "overview") {
+async function renderView(view: "backlog" | "list" | "board" | "overview") {
   const qs = view === "overview" ? "/projects/p1" : `/projects/p1?view=${view}`;
   return renderPath(qs);
 }
 
-describe("ProjectWorkspace backlog/timeline scrollport", () => {
+describe("ProjectWorkspace backlog/list scrollport", () => {
   it("keeps toolbar fixed; backlog body scrolls in .page-scroll", async () => {
     const { container } = await renderView("backlog");
 
@@ -176,10 +175,10 @@ describe("ProjectWorkspace backlog/timeline scrollport", () => {
     expect(scroll?.textContent).toContain("Backlog item");
   });
 
-  it("keeps toolbar fixed; timeline body scrolls in .page-scroll", async () => {
-    const { container } = await renderView("timeline");
+  it("keeps toolbar fixed; list body scrolls in .page-scroll", async () => {
+    const { container } = await renderView("list");
 
-    expect(screen.getByRole("heading", { name: "Timeline" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "List" })).toBeTruthy();
     const toolbar = container.querySelector(".toolbar");
     const scroll = container.querySelector(".page-scroll");
     expect(toolbar).toBeTruthy();
@@ -189,24 +188,17 @@ describe("ProjectWorkspace backlog/timeline scrollport", () => {
     expect(scroll?.textContent).toContain("Timeline item");
   });
 
-  it("shows unified type-icon check on timeline rows", async () => {
-    const { container } = await renderView("timeline");
-    const icon = container.querySelector(".page-scroll .type-icon.task");
-    expect(icon).toBeTruthy();
-    expect(icon!.textContent).toBe("✓");
-    expect(container.querySelector(".page-scroll .type-icon")!.textContent).not.toContain("◆");
-  });
-
-  it("timeline rows use list-timeline with date · key · title · status cells", async () => {
-    const { container } = await renderView("timeline");
-    const row = container.querySelector(".page-scroll .list-row.list-timeline");
-    expect(row).toBeTruthy();
-    expect(row!.children).toHaveLength(4);
-    expect(row!.textContent).toContain("Timeline item");
-    expect(row!.textContent).toMatch(/In progress/i);
-    expect(row!.querySelector(".issue-key")).toBeTruthy();
+  it("maps legacy ?view=timeline to List (no Timeline tab)", async () => {
+    const { container } = await renderPath("/projects/p1?view=timeline");
+    expect(screen.getByRole("heading", { name: "List" })).toBeTruthy();
+    expect(screen.queryByRole("tab", { name: "Timeline" })).toBeNull();
+    expect(container.querySelector(".list-row.list-timeline")).toBeNull();
+    expect(screen.getByText("Due")).toBeTruthy();
+    expect(container.querySelector(".page-scroll")?.textContent).toContain("Timeline item");
+    expect(container.querySelector(".page-scroll")?.textContent).toContain("2026-10-01 → 2026-10-10");
   });
 });
+
 
 describe("ProjectWorkspace type-icon unify", () => {
   it("list view uses check glyph for milestone (not diamond)", async () => {

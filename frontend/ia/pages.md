@@ -61,7 +61,7 @@
 
 ## F5. Board — `/projects/:id?view=board`
 
-**Layout:** Tickets 작업 뷰. 툴바(타이틀 + 세그먼트 탭 `Board|Backlog|Timeline|List` + type 칩 `All|Task|Milestone`(URL `type=`) + 검색·•••) + **프로젝트 statuses 순서** 컬럼 + 카드. 컬럼(회색 서피스)은 툴바 아래 **잔여 뷰포트 높이를 채우고**, 카드가 넘치면 컬럼 본문만 세로 스크롤. 컬럼 폭·카드 높이는 breakpoint 상수(DS §3.4).  
+**Layout:** Tickets 작업 뷰. 툴바(타이틀 + 세그먼트 탭 `Board|Backlog|List` + type 칩 `All|Task|Milestone`(URL `type=`) + 검색·•••) + **프로젝트 statuses 순서** 컬럼 + 카드. 컬럼(회색 서피스)은 툴바 아래 **잔여 뷰포트 높이를 채우고**, 카드가 넘치면 컬럼 본문만 세로 스크롤. 컬럼 폭·카드 높이는 breakpoint 상수(DS §3.4).  
 **카드 규격:** 타입 아이콘 + 키(`MOB-F416`) + 우선순위 뱃지(High/Medium/Low 컬러 태그) + 고정 높이 `144px` · 제목 3줄 clamp/`…` + 마감일 태그 + 우측 정렬된 담당자 아바타.  
 **Behavior:** 드래그 → `PATCH` `{ status, sort_order, version }`; 카드 클릭 → **논모달 사이드 인스펙터** 오픈; type 칩은 클라이언트 필터 — kanban은 task-only이므로 milestone은 `GET …/tickets?type=milestone` 결과를 status별로 합침; Group by(assignee/milestone/type)는 **Defer**(IA만·미구현). 가로 스크롤(오버레이 페이드 없음). 티켓 생성은 탑바 **Create**(F14)만 — 컬럼 인라인 생성은 보류. 컬럼 안 **최신 `created_at`/높은 `sort_order`가 위**(생성 append·드롭은 맨 위).  
 **API:** `GET …/kanban` (`columns`+`statuses`; task only; `category=done` 최근건 기본), `GET …/tickets?type=milestone`, `POST …/tickets`.  
@@ -78,19 +78,16 @@
 
 ---
 
-## F7. Timeline — `?view=timeline`
+## F7. Timeline — removed (merged into List)
 
-**Layout:** 날짜 축 + `date_from`/`date_to` 간트 바; milestone 강조. 툴바 고정, 행 목록은 `.page-scroll`(List와 동일 스크롤포트). 행은 `.list-row.list-timeline` 4셀(date · key · title · status); title이 `1fr`로 주 폭, 공용 `.list-row` 3열은 유지.  
-**Empty State (필수):** Backlog와 동일 형태 — 제목 `Timeline is empty` + 안내 한 줄, CTA 없음. 티켓 생성은 탑바 **Create**(F14)만.  
-**Behavior:** 클릭 → issue; 바 드래그로 기간 `PATCH` (**Prod**). 수동 기간이 없는 task도 status/생성 시각으로 채운 `date_from`/`date_to`로 행이 보인다. **행**은 최신 `date_from`(없으면 `created_at`)이 위; 간트 축은 과거→미래 LTR.  
-**API:** `GET …/timeline`, `PATCH /api/tickets/:id`.  
-**Connections:** → Issue.
+**Status:** Tickets 세그먼트에서 제거. 레거시 `?view=timeline` → List fallback. 일정/마감은 List **Due** 컬럼(+ Issue `date_from`/`date_to`)으로 충분.  
+**API:** `GET …/timeline`은 당분간 호환 유지(deprecate 별도). 간트 바·기간 드래그는 Non-goal(캘린더 뷰는 별 옵션).
 
 ---
 
 ## F8. List — `?view=list`
 
-**Layout:** 테이블 Type | Title | Status(컬러 뱃지) | Assignee | Due | Priority(아이콘+태그) | Updated. 컬럼 표시 토글. 빈 리스트는 Backlog와 동일 EmptyState(제목 `List is empty` + 안내, CTA 없음). `type=milestone`이고 결과가 없으면 EmptyState 제목 `No milestones` + Create 안내(CTA 버튼 없음).  
+**Layout:** 테이블 Type | Title | Status(컬러 뱃지) | Assignee | Due | Priority(아이콘+태그) | Updated. Due는 `due_at` 우선, 없으면 `date_from`→`date_to`. 컬럼 표시 토글. 빈 리스트는 Backlog와 동일 EmptyState(제목 `List is empty` + 안내, CTA 없음). `type=milestone`이고 결과가 없으면 EmptyState 제목 `No milestones` + Create 안내(CTA 버튼 없음).  
 **Behavior:** 행 → issue; 헤더 정렬(정렬 방향 화살표 표시); 툴바 type 칩 `All|Task|Milestone` → URL `type=` + 서버 `GET …/tickets?type=`(all이면 type 생략). 기본 표시 `created_at` DESC(페이징 커서 동일). Board와 동일 **Include archived Done** (기본 제외, 칸반과 같은 `include_archived` 필터).  
 **API:** `GET …/tickets` (`include_archived`, 선택 `type`).  
 **Connections:** → Issue.

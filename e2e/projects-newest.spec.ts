@@ -32,7 +32,7 @@ test("projects list scrolls under a fixed header; ticket views show newest first
   const backlogCol = page.locator(".board-col").filter({ hasText: "Backlog" });
   await expect(backlogCol.locator(".issue-card").first()).toContainText(newer);
 
-  for (const tab of ["Backlog", "Timeline"] as const) {
+  for (const tab of ["Backlog", "List"] as const) {
     await clickEl(page.locator(".view-segment").getByRole("tab", { name: tab }));
     await expect
       .poll(async () => page.locator("main.main").evaluate((el) => getComputedStyle(el).overflow))
