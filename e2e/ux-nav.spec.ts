@@ -9,7 +9,7 @@ test("UX1: single view source + space switcher + settings shell", async ({ page 
   await expect(page).toHaveURL(/\/projects\//);
   await expect(page.getByRole("heading", { name: "Board" })).toBeVisible();
 
-  // Board/Backlog/Timeline/List: toolbar segment only (not duplicated in sidebar)
+  // Board/Backlog/List: toolbar segment only (not duplicated in sidebar)
   await expect(page.getByRole("tab", { name: "Board", exact: true })).toHaveCount(1);
   await expect(page.locator(".sidebar").getByRole("link", { name: "Board", exact: true })).toHaveCount(0);
   await expect(page.locator(".view-segment").getByRole("tab", { name: "Board", exact: true })).toHaveCount(1);

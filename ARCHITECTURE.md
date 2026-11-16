@@ -250,7 +250,7 @@ CHECK (successor_id != blocker_id)
 | PUT | `/api/tickets/:id/dependencies` | 멤버; `{ blocker_ids: string[] }` 전체 교체(동일 project만). 사이클→`400 dependency_cycle`; parent 혼동→`400 parent_not_fs`; 없는/타 project→`400 invalid_blocker`. description soft 마커 제거 |
 | GET | `/api/tickets/:id/activities` | 티켓 변경 이력 (최신순) |
 | GET | `/api/projects/:id/kanban` | `{ columns, statuses }` — 컬럼 키=project statuses 순서. 컬럼 안 `sort_order DESC, created_at DESC`(드래그 저장값 유지, 생성 append는 위). `category=done` 중 `updated_at`이 7일 초과인 건은 기본 제외(archived Done; `include_archived=true`로 포함) |
-| GET | `/api/projects/:id/timeline` | date_from/date_to 있는 항목. 행 `date_from DESC`(축 LTR은 UI) |
+| GET | `/api/projects/:id/timeline` | date_from/date_to 있는 항목. 행 `date_from DESC`(축 LTR은 UI). **SPA Timeline 세그먼트는 제거됨(List로 통합)** — 엔드포인트는 당분간 호환 유지; deprecate는 별도 |
 
 ### Search
 

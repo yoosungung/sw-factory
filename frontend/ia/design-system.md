@@ -8,7 +8,7 @@ IA 구조는 [overview.md](overview.md), 메뉴는 [menus.md](menus.md), 화면�
 ## 1. 제품 비주얼 원칙 (Product Principles)
 
 1. **Clarity over Clutter (명확성 우선):** 엔터프라이즈 이슈 트래커의 본질은 "지금 내가 해야 할 일"을 즉시 파악하는 데 있다. 시각적 장식(과도한 그라데이션, 제각각인 원색)을 걷어내고 데이터와 액션의 대비를 명확히 한다.
-2. **Single Purpose Navigation (단일 내비게이션 진실 공급원):** 동일한 뷰 전환(Board/Backlog/Timeline/List)이나 동일한 설정 메뉴가 한 화면의 여러 곳(사이드바와 툴바)에 중복 노출되지 않도록 엄격히 일원화한다.
+2. **Single Purpose Navigation (단일 내비게이션 진실 공급원):** 동일한 뷰 전환(Board/Backlog/List)이나 동일한 설정 메뉴가 한 화면의 여러 곳(사이드바와 툴바)에 중복 노출되지 않도록 엄격히 일원화한다.
 3. **Continuous Context (작업 맥락 유지):** 이슈 상세 조회 시 보드나 리스트 작업 화면을 완전히 덮지 않는 **논모달 사이드 인스펙터(Non-modal Side Panel)**를 기본으로 하여, 카드를 넘나들며 편집할 수 있는 연속성을 보장한다.
 4. **No White Void (빈 상태 안내 의무):** 데이터가 없는 화면(타임라인, 검색 결과, 빈 백로그)에서 흰색 공백 화면을 방치하지 않고, 표준 `EmptyState` 컴포넌트를 통해 "현재 상태 설명 + 등록 가이드 + 즉시 생성 액션(CTA)"을 필수로 제공한다.
 5. **Mobile First Readability (모바일 가독성 완결):** 390px 뷰포트에서도 텍스트 잘림이나 가로 넘침이 발생하지 않도록 반응형 헤더와 적응형 레이아웃을 준수한다. **≤900px**에서 좌측 사이드바를 숨길 때는 동일 Work/Settings 링크를 햄버거 드로어에 포함해 Settings 등 컨텍스트 내비에 도달할 수 있게 한다.
@@ -94,14 +94,14 @@ IA 구조는 [overview.md](overview.md), 메뉴는 [menus.md](menus.md), 화면�
 - **검색창:** 탑바 검색창은 ⌘K 단축키 힌트를 우측에 노출하는 컴팩트한 인풋으로 유지하고, 전역 검색 페이지(`/search`) 진입 시에는 탑바 검색창이 아닌 중앙 포커스 인풋을 메인으로 동작시킴.
 
 ### 3.2 View Switching (뷰 전환 일원화)
-- **문제 해결:** 사이드바와 메인 툴바의 `Timeline/Backlog/Board/List` 링크 완전 중복 제거.
+- **문제 해결:** 사이드바와 메인 툴바의 `Backlog/Board/List` 링크 완전 중복 제거.
 - **표준 구조:**
   - **사이드바:** 프로젝트 컨텍스트 전환(개요, 작업, 설정)만 담당.
-  - **작업 화면 툴바:** 상단 타이틀 우측의 **세그먼트 탭(Segmented Tab Control)**에서만 `Board | Backlog | Timeline | List` 전환 수행. (단일 진실 공급원)
+  - **작업 화면 툴바:** 상단 타이틀 우측의 **세그먼트 탭(Segmented Tab Control)**에서만 `Board | Backlog | List` 전환 수행. (단일 진실 공급원; Timeline 세그먼트는 List로 통합)
 
 ```
 ┌─ Toolbar ────────────────────────────────────────────────────────┐
-│ Mobile Banking App  [ Board | Backlog | Timeline | List ]  [Filter] [Search] │
+│ Mobile Banking App  [ Board | Backlog | List ]  [Filter] [Search] │
 └──────────────────────────────────────────────────────────────────┘
 ```
 
@@ -123,14 +123,14 @@ IA 구조는 [overview.md](overview.md), 메뉴는 [menus.md](menus.md), 화면�
   - 하단 푸터: 마감일 태그(`due_at`, 기한 임박 시 주황/경과 시 빨강) + 우측 정렬된 담당자 원형 아바타(20px).
 - **가로 스크롤 UX:** 컬럼이 뷰포트보다 넓으면 `.board-scroll`에서 가로 스크롤. 우측 고정 캔버스 그라데이션 오버레이는 쓰지 않는다 — 컬럼 위를 덮어 회색 박스가 잘린 것처럼 보이기 때문.
 
-### 3.5 Timeline & Empty State System (공백 화면 방지)
-- 모든 뷰(Timeline, Search, Backlog, Your work)는 데이터가 0건일 때 표준 `EmptyState` 컴포넌트를 렌더링한다.
+### 3.5 Empty State System (공백 화면 방지)
+- 모든 뷰(Search, Backlog, List, Your work)는 데이터가 0건일 때 표준 `EmptyState` 컴포넌트를 렌더링한다.
 - **EmptyState 규격:**
   1. 중앙 정렬 (수직/수평 가운데 배치, 최소 높이 240px)
   2. 부드러운 서피스 일러스트/아이콘 (48px Slate-400)
-  3. 명확한 상태 제목 (예: "Timeline is empty" — Backlog/List와 `{View} is empty` 동일 형태)
+  3. 명확한 상태 제목 (예: "Backlog is empty" — List와 `{View} is empty` 동일 형태)
   4. 구체적인 안내 문구 (예: "Work items you create show up here so you can see the project schedule.")
-  5. 즉시 액션 버튼 — **의미 있는 next step이 있을 때만.** Board/Backlog/Timeline의 in-view 티켓 생성은 보류(탑바 **Create**만). Timeline·Backlog empty는 제목+안내만. Your work Assigned/Created/Viewed도 CTA 생략. "Go to projects" 같은 자리채우기 링크는 넣지 않는다.
+  5. 즉시 액션 버튼 — **의미 있는 next step이 있을 때만.** Board/Backlog/List의 in-view 티켓 생성은 보류(탑바 **Create**만). Backlog·List empty는 제목+안내만. Your work Assigned/Created/Viewed도 CTA 생략. "Go to projects" 같은 자리채우기 링크는 넣지 않는다.
 
 ### 3.6 Issue Panel: Non-modal Inspector vs Centered Modal
 - **Non-modal Inspector (기본):**

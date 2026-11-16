@@ -70,19 +70,19 @@ Space switcher와 본문 제목이 같은 이름을 두 번 쓰지 않는다. �
 [ Icon · Project name ]
 ──────────── Work
   Overview                 → `/projects/:id` (이름·설명·수행 중 티켓)
-  Tickets                  → `/projects/:id?view=board` (툴바 Board|Backlog|Timeline|List)
+  Tickets                  → `/projects/:id?view=board` (툴바 Board|Backlog|List)
 ──────────── Settings
   Project settings → /projects/:id/settings/* (단일 셸 전환, 이중 사이드바 금지)
 ```
 
 - **Overview ≠ Board:** Overview는 프로젝트 랜딩(이름·설명·`category=active` 티켓). Tickets가 작업 뷰.
-- **뷰 전환 일원화:** Board/Backlog/Timeline/List는 **Tickets 툴바 세그먼트만**. 사이드바에 4뷰 링크를 두지 않는다.
+- **뷰 전환 일원화:** Board/Backlog/List는 **Tickets 툴바 세그먼트만**. 사이드바에 뷰 링크를 두지 않는다. (`?view=timeline` → List fallback)
 - **전역 스페이스 덤프 금지:** 사이드바 하단에 시스템의 모든 스페이스를 수직 나열하지 않고, 상단 Space Switcher로 압축한다.
 - **설정 셸:** `Project settings` 진입 시 프로젝트 사이드바를 숨기고, 설정 전용 단일 사이드바만 사용한다.
 
 | 구역 | 항목 | 비고 |
 | --- | --- | --- |
-| Work | Overview · Tickets | 4대 뷰 전환은 Tickets 툴바 세그먼트 |
+| Work | Overview · Tickets | Board\|Backlog\|List 전환은 Tickets 툴바 세그먼트 |
 | Settings | Project settings | **단일 셸 관리** — [admin.md](admin.md) |
 | Development | — | 비표시 |
 | Think | Ideas/Wiki/Goals | **Exclude** |
@@ -104,7 +104,7 @@ Space switcher와 본문 제목이 같은 이름을 두 번 쓰지 않는다. �
 
 ## 5. Tickets 툴바 — Agent prompt
 
-Tickets 뷰(`?view=board|backlog|timeline|list`) 툴바에 **Prompt agent** 버튼. 클릭 → [pages F16](pages.md) 모달(project 스코프, `ticket_id` 없음).  
+Tickets 뷰(`?view=board|backlog|list`) 툴바에 **Prompt agent** 버튼. 클릭 → [pages F16](pages.md) 모달(project 스코프, `ticket_id` 없음).  
 Issue 인스펙터 헤더에도 동일 액션 — 열릴 때 현재 이슈 `ticket_id`를 기본값으로 넣는다.
 
 ---

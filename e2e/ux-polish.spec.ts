@@ -7,39 +7,36 @@ import {
   loginAsAdmin,
 } from "./helpers";
 
-test("timeline shows a ticket created without a manual date range", async ({ page }) => {
+test("legacy ?view=timeline falls back to List and shows created ticket", async ({ page }) => {
   await loginAsAdmin(page);
   const stamp = Date.now();
   await createSpace(page, `TL Space ${stamp}`);
   await createSoftwareProject(page, `TL Proj ${stamp}`);
-  const title = `Timeline visible ${stamp}`;
+  const title = `List via timeline deep link ${stamp}`;
   await createIssue(page, title);
   const closeIssue = page.getByRole("button", { name: "Close" });
   if (await closeIssue.count()) await clickEl(closeIssue);
 
-  await clickEl(page.locator(".view-segment").getByRole("tab", { name: "Timeline" }));
-  await expect(page.getByRole("heading", { name: "Timeline", exact: true })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Timeline is empty" })).toHaveCount(0);
+  const url = page.url();
+  const base = url.split("?")[0];
+  await page.goto(`${base}?view=timeline`);
+  await expect(page.getByRole("heading", { name: "List", exact: true })).toBeVisible();
+  await expect(page.locator(".view-segment").getByRole("tab", { name: "Timeline" })).toHaveCount(0);
   await expect(page.locator(".list-row").getByText(title)).toBeVisible();
 });
 
-test("UX2: empty timeline and list match backlog EmptyState form", async ({ page }) => {
+test("UX2: empty list matches backlog EmptyState form", async ({ page }) => {
   await loginAsAdmin(page);
   const stamp = Date.now();
   await createSpace(page, `UX2 Space ${stamp}`);
   await createSoftwareProject(page, `UX2 Proj ${stamp}`);
   await expect(page).toHaveURL(/\/projects\//);
+  await expect(page.locator(".view-segment").getByRole("tab", { name: "Timeline" })).toHaveCount(0);
 
   await clickEl(page.locator(".view-segment").getByRole("tab", { name: "Backlog" }));
   const backlogEmpty = page.getByTestId("empty-state");
   await expect(backlogEmpty.getByRole("heading", { name: "Backlog is empty" })).toBeVisible();
   await expect(backlogEmpty.getByRole("button")).toHaveCount(0);
-
-  await clickEl(page.locator(".view-segment").getByRole("tab", { name: "Timeline" }));
-  await expect(page.getByRole("heading", { name: "Timeline", exact: true })).toBeVisible();
-  const timelineEmpty = page.getByTestId("empty-state");
-  await expect(timelineEmpty.getByRole("heading", { name: "Timeline is empty" })).toBeVisible();
-  await expect(timelineEmpty.getByRole("button")).toHaveCount(0);
 
   await clickEl(page.locator(".view-segment").getByRole("tab", { name: "List" }));
   await expect(page.getByRole("heading", { name: "List", exact: true })).toBeVisible();
