@@ -68,6 +68,15 @@ const ticketsMock = vi.fn(
   },
 );
 
+const kanbanMock = vi.fn(async () => ({
+  statuses,
+  columns: {
+    backlog: [backlogTicket],
+    in_progress: [timelineTicket],
+    done: [],
+  },
+}));
+
 vi.mock("../api", () => ({
   client: {
     project: () =>
@@ -82,15 +91,7 @@ vi.mock("../api", () => ({
           role: "owner",
         },
       }),
-    kanban: () =>
-      Promise.resolve({
-        statuses,
-        columns: {
-          backlog: [backlogTicket],
-          in_progress: [timelineTicket],
-          done: [],
-        },
-      }),
+    kanban: (...args: unknown[]) => kanbanMock(...args),
     tickets: (...args: Parameters<typeof ticketsMock>) => ticketsMock(...args),
     projectMembers: () => Promise.resolve({ members: [] }),
     getClient: () =>
@@ -139,6 +140,15 @@ afterEach(() => {
     }
     return { tickets: [milestoneTicket, timelineTicket], next_cursor: null };
   });
+  kanbanMock.mockReset();
+  kanbanMock.mockImplementation(async () => ({
+    statuses,
+    columns: {
+      backlog: [backlogTicket],
+      in_progress: [timelineTicket],
+      done: [],
+    },
+  }));
 });
 
 async function renderPath(path: string) {
@@ -252,6 +262,25 @@ describe("ProjectWorkspace type filter UX", () => {
     expect(section).toBeTruthy();
     expect(within(section!).getByText("Milestone row")).toBeInTheDocument();
     expect(within(section!).queryByText("Done milestone")).toBeNull();
+  });
+
+  it("overview section empties use compact EmptyState", async () => {
+    kanbanMock.mockResolvedValue({
+      statuses,
+      columns: { backlog: [], in_progress: [], done: [] },
+    });
+    ticketsMock.mockImplementation(async (_id, opts) => {
+      if (opts?.type === "milestone") return { tickets: [], next_cursor: null };
+      return { tickets: [], next_cursor: null };
+    });
+    await renderView("overview");
+    await waitFor(() => expect(screen.getByText("Nothing in progress")).toBeInTheDocument());
+    expect(screen.getByText("No open milestones")).toBeInTheDocument();
+    const empties = screen.getAllByTestId("empty-state");
+    expect(empties).toHaveLength(2);
+    for (const el of empties) {
+      expect(el).toHaveClass("empty-state--compact");
+    }
   });
 });
 

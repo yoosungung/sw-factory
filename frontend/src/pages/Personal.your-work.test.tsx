@@ -216,6 +216,11 @@ describe("YourWorkPage grid UX", () => {
     const betaSection = container.querySelector('[data-project-id="p2"]') as HTMLElement;
     expect(within(betaSection).getByText("Nothing in progress")).toBeInTheDocument();
     expect(within(betaSection).getByText("No open milestones")).toBeInTheDocument();
+    const sectionEmpties = within(betaSection).getAllByTestId("empty-state");
+    expect(sectionEmpties).toHaveLength(2);
+    for (const el of sectionEmpties) {
+      expect(el).toHaveClass("empty-state--compact");
+    }
   });
 
   it("Overviews caps In progress and Open milestones at 5 each", async () => {
@@ -254,5 +259,7 @@ describe("YourWorkPage grid UX", () => {
     renderPage();
     fireEvent.click(screen.getByRole("button", { name: "Overviews" }));
     await waitFor(() => expect(screen.getByText("No projects yet")).toBeInTheDocument());
+    const empty = screen.getByTestId("empty-state");
+    expect(empty).not.toHaveClass("empty-state--compact");
   });
 });

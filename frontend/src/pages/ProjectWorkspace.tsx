@@ -443,6 +443,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
           <h2>In progress</h2>
           {activeTickets.length === 0 ? (
             <EmptyState
+              variant="compact"
               title="Nothing in progress"
               description="Tickets in an active status show up here."
             />
@@ -465,6 +466,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
           <h2>Open milestones</h2>
           {openMilestones.length === 0 ? (
             <EmptyState
+              variant="compact"
               title="No open milestones"
               description="Milestones that are not done appear here."
             />
