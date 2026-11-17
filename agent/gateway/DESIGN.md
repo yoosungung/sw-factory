@@ -14,8 +14,11 @@ GitHub 원본 개념: CursorBridge Listener / Router / DeferredDispatch / Resili
 | prompt 조립 → cursor에 전달 | `add_comment` / `PATCH ticket` |
 | 로컬 retry 큐 · `acked_id` checkpoint | SDK import / inference |
 | `settings.schedules[]` 로컬 cron · catch-up | Worker Cron `schedule_tick` outbox |
+| HITL Gmail (human approval/mention → ops 메일) | SPA/API notifications 제품 · PM Gmail 도구 · 제2 outbox 컨슈머 |
 
 **갭(의도):** FS `dependency_cleared`는 Worker가 후속 `ticket_updated`로 append한다. gateway는 기존 assignee/`ticket_updated` 라우팅만 쓰며 전용 prompt 분기는 두지 않는다.
+
+**HITL mail:** 동일 tick에서 `type: human`에 대한 `waiting_for_approval`(payload `status`) 또는 `@mention`만 Gmail 발송. env(`HITL_MAIL_TO` + `HITL_GMAIL_*`) 없으면 no-op. 실패해도 `acked_id`는 막지 않는다. dedupe는 `data-dir/hitl-mail-sent.json`(TTL).
 
 ## Layout
 
@@ -26,7 +29,7 @@ agent/gateway/
   docs/
   reference/
   scripts/      # build-native.sh (bun --compile)
-  src/          # tail · router · prompts · dispatch · retry · loop · schedule-tick · catch-up
+  src/          # tail · router · prompts · dispatch · retry · loop · schedule-tick · catch-up · hitl-mail
   tests/        # mock cursor E2E + native binary smoke
   dist/         # sw-factory-gateway (gitignore; build artifact)
 ```
@@ -45,6 +48,9 @@ agent/gateway/
 | `schedule-tick` | ScheduleTicker | 로컬 UTC cron · gates · `(id, minute)` dedupe → 티켓리스 `POST /sessions` |
 | `catch-up` | ReadyCatchupTicker | 기동 시 `prompts.catch_up` 1회 (sessions persona) |
 | `manual-prompt` | (outbox) | `event_type=manual_prompt` → target resolve → `deliverTicketless`(티켓리스) 또는 Active 스코프 `deliverOne`; 동일 payload 분단위 claim dedupe |
+| `hitl-mail` | (ops) | human HITL 감지 → Gmail API send; ack 비차단 |
+
+환경(선택): `HITL_MAIL_TO`, `HITL_GMAIL_CLIENT_ID`, `HITL_GMAIL_CLIENT_SECRET`, `HITL_GMAIL_REFRESH_TOKEN`, `HITL_MAIL_TTL_MS`(기본 1800000).
 
 ## Commands
 
@@ -62,6 +68,6 @@ npm run agent:gateway:build
 ./agent/gateway/dist/sw-factory-gateway --config agent/cursor/reference/agents.yaml.sample --data-dir /tmp/swf-data/gateway
 ```
 
-환경: `GATEWAY_SESSION_COOKIE`, 선택 `FACTORY_BASE_URL`, `CURSOR_API_KEY`(실 SDK; 없으면/`--mock`이면 mock).
+환경: `GATEWAY_SESSION_COOKIE`, 선택 `FACTORY_BASE_URL`, `CURSOR_API_KEY`(실 SDK; 없으면/`--mock`이면 mock), HITL Gmail 변수(위).
 
 **배포:** Docker entrypoint·macOS `run-gateway.sh`는 `sw-factory-gateway` 바이너리가 있으면 그걸 쓰고, 없으면 기존 `tsx` 경로로 폴백한다. cursor/persona seed는 Node 유지(이미지에서 Node 제거는 별 범위).

@@ -17,6 +17,7 @@ import { routeEvent } from "./router";
 import { pullEvents } from "./tail";
 import { resolveTicketNo } from "./ticket-no";
 import { deliverTicketless } from "./ticketless";
+import { maybeSendHitlMail } from "./hitl-mail";
 import type { AgentEvent, GatewayConfig, StickyMap } from "./types";
 import type { DispatchResult } from "./dispatch";
 
@@ -304,6 +305,14 @@ export async function tick(deps: TickDeps): Promise<TickResult> {
 
   for (const event of events) {
     const result = await processEvent(config, sticky, event, deps.fetchImpl);
+    // HITL mail is ops-only; never block outbox ack on send failure.
+    await maybeSendHitlMail({
+      event,
+      agents: config.agents,
+      dataDir: config.dataDir,
+      factoryBaseUrl: config.factoryBaseUrl,
+      mail: config.hitlMail,
+    });
     dispatched.push(...result.dispatched);
     if (result.allOk) {
       acked = event.id;

@@ -34,6 +34,7 @@ Worker mutate 경로·`POST /api/agent/prompts`에서 동기 INSERT 후 응답. 
   "comment_id": "…",
   "mention_user_ids": ["…"],
   "changed_fields": ["assignee_id", "status"],
+  "status": "waiting_for_approval",
   "dependency_cleared": true,
   "unblocked_from": ["blocker-ticket-id"],
   "prompt": "…",
@@ -41,6 +42,8 @@ Worker mutate 경로·`POST /api/agent/prompts`에서 동기 INSERT 후 응답. 
   "target_user_id": "…"
 }
 ```
+
+`ticket_updated`는 `changed_fields`와 함께 현재 `status` 스냅샷을 포함한다(HITL 메일 등).
 
 FS auto-unblock은 전용 `event_type` 없이 `ticket_updated` + 위 payload 필드를 쓴다(gateway 라우팅 변경 없음).
 
