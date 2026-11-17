@@ -1254,6 +1254,25 @@ select {
   text-decoration: none;
 }
 
+/* Section-inline empty (Overviews pulse); do not change default .empty-state */
+.empty-state--compact {
+  min-height: 0;
+  padding: 4px 0 8px;
+  align-items: flex-start;
+  text-align: left;
+  gap: 2px;
+}
+
+.empty-state--compact .empty-state-title {
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.empty-state--compact .empty-state-desc {
+  font-size: 12px;
+  max-width: none;
+}
+
 .modal {
   position: fixed;
   inset: 0;
@@ -2507,11 +2526,15 @@ select {
 
 .overview-active-list .list-row {
   grid-template-columns: auto minmax(0, 1fr) auto;
+  font-weight: 400;
+  letter-spacing: 0.01em;
+  padding: 8px 12px;
 }
 
 .overview-active-list .list-row > span:nth-child(2) {
   min-width: 0;
   overflow-wrap: anywhere;
+  font-weight: 400;
 }
 
 .your-work-issues .list-row {

@@ -41,4 +41,15 @@ describe("list column ratio scopes", () => {
     expect(body).toMatch(/grid-template-columns:\s*minmax\(0,\s*1fr\)\s+auto/);
   });
 
+  it("empty-state--compact drops full-page min-height", () => {
+    const body = ruleBody(".empty-state--compact");
+    expect(body).toMatch(/min-height:\s*0/);
+    expect(body).not.toMatch(/min-height:\s*240px/);
+  });
+
+  it("overview-active-list softens title-column weight and tracking", () => {
+    const body = ruleBody(".overview-active-list .list-row");
+    expect(body).toMatch(/font-weight:\s*400/);
+    expect(body).toMatch(/letter-spacing:\s*0\.01em/);
+  });
 });

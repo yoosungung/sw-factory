@@ -261,6 +261,7 @@ export function YourWorkPage({
                 <h3>In progress</h3>
                 {active.length === 0 ? (
                   <EmptyState
+                    variant="compact"
                     title="Nothing in progress"
                     description="Tickets in an active status show up here."
                   />
@@ -277,6 +278,7 @@ export function YourWorkPage({
                 <h3>Open milestones</h3>
                 {milestones.length === 0 ? (
                   <EmptyState
+                    variant="compact"
                     title="No open milestones"
                     description="Milestones that are not done appear here."
                   />

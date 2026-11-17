@@ -6,17 +6,29 @@ type Props = {
   actionLabel?: string;
   onAction?: () => void;
   actionHref?: string;
+  /** Section-inline empty; keeps full-page `.empty-state` defaults intact. */
+  variant?: "default" | "compact";
 };
 
-export function EmptyState({ title, description, actionLabel, onAction, actionHref }: Props) {
+export function EmptyState({
+  title,
+  description,
+  actionLabel,
+  onAction,
+  actionHref,
+  variant = "default",
+}: Props) {
+  const className = variant === "compact" ? "empty-state empty-state--compact" : "empty-state";
   return (
-    <div className="empty-state" role="status" data-testid="empty-state">
-      <div className="empty-state-icon" aria-hidden>
-        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
-          <rect x="8" y="12" width="32" height="24" rx="4" stroke="currentColor" strokeWidth="2" />
-          <path d="M14 20h20M14 26h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
-        </svg>
-      </div>
+    <div className={className} role="status" data-testid="empty-state">
+      {variant !== "compact" && (
+        <div className="empty-state-icon" aria-hidden>
+          <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+            <rect x="8" y="12" width="32" height="24" rx="4" stroke="currentColor" strokeWidth="2" />
+            <path d="M14 20h20M14 26h12" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />
+          </svg>
+        </div>
+      )}
       <h2 className="empty-state-title">{title}</h2>
       <p className="empty-state-desc">{description}</p>
       {actionLabel && actionHref && (
