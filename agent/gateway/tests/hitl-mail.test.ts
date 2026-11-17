@@ -1,0 +1,343 @@
+import { mkdtemp, rm } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
+import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import { afterEach, describe, expect, it } from "vitest";
+import {
+  detectHitlMail,
+  maybeSendHitlMail,
+  type HitlMailConfig,
+  type HitlSendMail,
+} from "../src/hitl-mail";
+import { tick } from "../src/loop";
+import { loadCheckpoint } from "../src/checkpoint";
+import type { AgentEvent, GatewayConfig, PromptTemplates } from "../src/types";
+
+const prompts: PromptTemplates = {
+  ticket_created: "Ticket {ticket_id} created. Active ticket_id={ticket_id}",
+  ticket_updated: "Ticket {ticket_id} updated. Active ticket_id={ticket_id}",
+  comment_added: "New comment on ticket {ticket_id}. Active ticket_id={ticket_id}",
+  assignee_changed: "You are assignee of ticket {ticket_id}. Active ticket_id={ticket_id}",
+  mention: "You were mentioned on ticket {ticket_id}. Active ticket_id={ticket_id}",
+  handoff: "Handoff on ticket {ticket_id}. Active ticket_id={ticket_id}",
+  catch_up: "Catch-up since {lookback_since}.",
+};
+
+const PM = {
+  name: "pm",
+  user_id: "user-pm",
+  email: "pm@example.com",
+  persona: "pm",
+  type: "sessions" as const,
+};
+
+const ADMIN = {
+  name: "eric",
+  user_id: "user-eric",
+  email: "eric@example.com",
+  persona: "admin",
+  type: "human" as const,
+};
+
+const tempDirs: string[] = [];
+afterEach(async () => {
+  while (tempDirs.length) {
+    const d = tempDirs.pop();
+    if (d) await rm(d, { recursive: true, force: true });
+  }
+});
+
+async function tempDir(): Promise<string> {
+  const d = await mkdtemp(path.join(os.tmpdir(), "swf-hitl-"));
+  tempDirs.push(d);
+  return d;
+}
+
+describe("detectHitlMail", () => {
+  it("detects waiting_for_approval when assignee is human", () => {
+    const event: AgentEvent = {
+      id: "e1",
+      at: "2026-01-01T00:00:00.000Z",
+      event_type: "ticket_updated",
+      ticket_id: "t1",
+      project_id: "p1",
+      actor_user_id: PM.user_id,
+      assignee_user_id: ADMIN.user_id,
+      payload: {
+        changed_fields: ["status", "assignee_id"],
+        status: "waiting_for_approval",
+      },
+    };
+    expect(detectHitlMail(event, [PM, ADMIN])).toEqual({
+      kind: "approval",
+      ticket_id: "t1",
+    });
+  });
+
+  it("ignores waiting_for_approval for sessions assignee", () => {
+    const event: AgentEvent = {
+      id: "e2",
+      at: "2026-01-01T00:00:00.000Z",
+      event_type: "ticket_updated",
+      ticket_id: "t1",
+      project_id: "p1",
+      actor_user_id: "human-1",
+      assignee_user_id: PM.user_id,
+      payload: {
+        changed_fields: ["status"],
+        status: "waiting_for_approval",
+      },
+    };
+    expect(detectHitlMail(event, [PM, ADMIN])).toBeNull();
+  });
+
+  it("ignores other status updates", () => {
+    const event: AgentEvent = {
+      id: "e3",
+      at: "2026-01-01T00:00:00.000Z",
+      event_type: "ticket_updated",
+      ticket_id: "t1",
+      project_id: "p1",
+      actor_user_id: PM.user_id,
+      assignee_user_id: ADMIN.user_id,
+      payload: { changed_fields: ["status"], status: "in_progress" },
+    };
+    expect(detectHitlMail(event, [PM, ADMIN])).toBeNull();
+  });
+
+  it("detects human mention on comment_added", () => {
+    const event: AgentEvent = {
+      id: "e4",
+      at: "2026-01-01T00:00:00.000Z",
+      event_type: "comment_added",
+      ticket_id: "t2",
+      project_id: "p1",
+      actor_user_id: PM.user_id,
+      assignee_user_id: PM.user_id,
+      payload: { comment_id: "c1", mention_user_ids: [ADMIN.user_id] },
+    };
+    expect(detectHitlMail(event, [PM, ADMIN])).toEqual({
+      kind: "mention",
+      ticket_id: "t2",
+    });
+  });
+
+  it("ignores sessions-only mentions", () => {
+    const event: AgentEvent = {
+      id: "e5",
+      at: "2026-01-01T00:00:00.000Z",
+      event_type: "comment_added",
+      ticket_id: "t2",
+      project_id: "p1",
+      actor_user_id: "human-1",
+      assignee_user_id: PM.user_id,
+      payload: { mention_user_ids: [PM.user_id] },
+    };
+    expect(detectHitlMail(event, [PM, ADMIN])).toBeNull();
+  });
+});
+
+describe("maybeSendHitlMail", () => {
+  it("sends once then dedupes within TTL", async () => {
+    const dataDir = await tempDir();
+    const sent: Array<{ to: string; subject: string }> = [];
+    const sendMail: HitlSendMail = async (msg) => {
+      sent.push({ to: msg.to, subject: msg.subject });
+    };
+    const mail: HitlMailConfig = {
+      to: "eric@example.com",
+      ttlMs: 60_000,
+      sendMail,
+    };
+    const event: AgentEvent = {
+      id: "e1",
+      at: "2026-01-01T00:00:00.000Z",
+      event_type: "ticket_updated",
+      ticket_id: "t1",
+      project_id: "p1",
+      actor_user_id: PM.user_id,
+      assignee_user_id: ADMIN.user_id,
+      payload: {
+        changed_fields: ["status"],
+        status: "waiting_for_approval",
+      },
+    };
+    await maybeSendHitlMail({
+      event,
+      agents: [PM, ADMIN],
+      dataDir,
+      factoryBaseUrl: "https://factory.example",
+      mail,
+    });
+    await maybeSendHitlMail({
+      event: { ...event, id: "e2" },
+      agents: [PM, ADMIN],
+      dataDir,
+      factoryBaseUrl: "https://factory.example",
+      mail,
+    });
+    expect(sent).toHaveLength(1);
+    expect(sent[0]!.to).toBe("eric@example.com");
+    expect(sent[0]!.subject).toContain("waiting_for_approval");
+  });
+
+  it("no-ops when mail config missing", async () => {
+    const dataDir = await tempDir();
+    const event: AgentEvent = {
+      id: "e1",
+      at: "2026-01-01T00:00:00.000Z",
+      event_type: "comment_added",
+      ticket_id: "t1",
+      project_id: "p1",
+      actor_user_id: PM.user_id,
+      assignee_user_id: PM.user_id,
+      payload: { mention_user_ids: [ADMIN.user_id] },
+    };
+    await maybeSendHitlMail({
+      event,
+      agents: [PM, ADMIN],
+      dataDir,
+      factoryBaseUrl: "https://factory.example",
+      mail: undefined,
+    });
+  });
+
+  it("swallows send errors", async () => {
+    const dataDir = await tempDir();
+    const mail: HitlMailConfig = {
+      to: "eric@example.com",
+      sendMail: async () => {
+        throw new Error("gmail down");
+      },
+    };
+    const event: AgentEvent = {
+      id: "e1",
+      at: "2026-01-01T00:00:00.000Z",
+      event_type: "comment_added",
+      ticket_id: "t1",
+      project_id: "p1",
+      actor_user_id: PM.user_id,
+      assignee_user_id: PM.user_id,
+      payload: { mention_user_ids: [ADMIN.user_id] },
+    };
+    await expect(
+      maybeSendHitlMail({
+        event,
+        agents: [PM, ADMIN],
+        dataDir,
+        factoryBaseUrl: "https://factory.example",
+        mail,
+      }),
+    ).resolves.toBeUndefined();
+  });
+});
+
+describe("tick + hitl mail", () => {
+  async function readJson(req: IncomingMessage): Promise<Record<string, unknown>> {
+    const chunks: Buffer[] = [];
+    for await (const c of req) chunks.push(c as Buffer);
+    const raw = Buffer.concat(chunks).toString("utf8");
+    return raw ? (JSON.parse(raw) as Record<string, unknown>) : {};
+  }
+
+  function startMockCursor() {
+    const server = createServer(async (req: IncomingMessage, res: ServerResponse) => {
+      const url = req.url ?? "";
+      if (req.method === "POST" && url === "/sessions") {
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ agent_id: "agent-1" }));
+        return;
+      }
+      if (req.method === "POST" && url.startsWith("/sessions/") && url.endsWith("/prompt")) {
+        await readJson(req);
+        res.writeHead(202, { "content-type": "application/json" });
+        res.end(JSON.stringify({ run_id: "run-1", status: "accepted" }));
+        return;
+      }
+      res.writeHead(404);
+      res.end();
+    });
+    return new Promise<{ port: number; close: () => Promise<void> }>((resolve) => {
+      server.listen(0, "127.0.0.1", () => {
+        const addr = server.address();
+        const port = typeof addr === "object" && addr ? addr.port : 0;
+        resolve({
+          port,
+          close: () => new Promise((r) => server.close(() => r())),
+        });
+      });
+    });
+  }
+
+  function startMockFactory(events: AgentEvent[]) {
+    const server = createServer(async (req, res) => {
+      const url = new URL(req.url ?? "/", "http://127.0.0.1");
+      if (url.pathname === "/api/agent/events") {
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ events }));
+        return;
+      }
+      if (req.method === "GET" && url.pathname === "/api/projects/p1") {
+        res.writeHead(200, { "content-type": "application/json" });
+        res.end(JSON.stringify({ project: { id: "p1", name: "sw-factory" } }));
+        return;
+      }
+      res.writeHead(404);
+      res.end();
+    });
+    return new Promise<{ port: number; close: () => Promise<void> }>((resolve) => {
+      server.listen(0, "127.0.0.1", () => {
+        const addr = server.address();
+        const port = typeof addr === "object" && addr ? addr.port : 0;
+        resolve({
+          port,
+          close: () => new Promise((r) => server.close(() => r())),
+        });
+      });
+    });
+  }
+
+  it("advances ack when hitl send throws", async () => {
+    const dataDir = await tempDir();
+    const cursor = await startMockCursor();
+    const events: AgentEvent[] = [
+      {
+        id: "ev-hitl",
+        at: "2026-01-01T00:00:00.000Z",
+        event_type: "comment_added",
+        ticket_id: "t-hitl",
+        project_id: "p1",
+        actor_user_id: PM.user_id,
+        assignee_user_id: PM.user_id,
+        payload: { mention_user_ids: [ADMIN.user_id] },
+      },
+    ];
+    const factory = await startMockFactory(events);
+    const config: GatewayConfig = {
+      factoryBaseUrl: `http://127.0.0.1:${factory.port}`,
+      cursorBaseUrl: `http://127.0.0.1:${cursor.port}`,
+      dataDir,
+      sessionCookie: "lt_session=test",
+      agents: [PM, ADMIN],
+      prompts,
+      debounceMs: 0,
+      pollLimit: 50,
+      retryMaxAttempts: 3,
+      hitlMail: {
+        to: "eric@example.com",
+        sendMail: async () => {
+          throw new Error("boom");
+        },
+      },
+    };
+    try {
+      const result = await tick({ config });
+      expect(result.acked_id).toBe("ev-hitl");
+      const cp = await loadCheckpoint(dataDir);
+      expect(cp.acked_id).toBe("ev-hitl");
+    } finally {
+      await cursor.close();
+      await factory.close();
+    }
+  });
+});

@@ -1458,6 +1458,7 @@ describe("A1 agent event log", () => {
 
     const updatedPayload = events[1].payload as Json;
     expect(updatedPayload.changed_fields).toEqual(expect.arrayContaining(["status"]));
+    expect(updatedPayload.status).toBe("in_progress");
     expect((events[2].payload as Json).comment_id).toBe(commentId);
 
     const mid = events[1].id as string;
@@ -1868,6 +1869,7 @@ describe("ticket FS dependencies", () => {
     );
     expect(cleared).toBeTruthy();
     expect((cleared!.payload as Json).unblocked_from).toEqual([blocker.id]);
+    expect((cleared!.payload as Json).status).toBe("in_progress");
   });
 });
 

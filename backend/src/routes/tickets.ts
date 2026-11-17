@@ -472,7 +472,10 @@ ticketRoutes.patch("/tickets/:id", async (c) => {
       project_id: ticket.project_id,
       actor_user_id: user.id,
       assignee_user_id: next.assignee_id,
-      payload: { changed_fields: tracked.map((t) => t.field) },
+      payload: {
+        changed_fields: tracked.map((t) => t.field),
+        status: next.status,
+      },
       at: updated_at,
     });
   }

@@ -288,6 +288,7 @@ export async function onBlockerReachedDone(
       payload: {
         dependency_cleared: true,
         unblocked_from: [blocker.id],
+        status: nextStatus,
         ...(changedFields.length ? { changed_fields: changedFields } : {}),
       },
     });

@@ -55,7 +55,7 @@ This file provides guidance to AI coding assistants (Claude Code, Codex, Gemini,
 
 ## 3. Status
 
-M0–M10 · FE0–FE8 완료. Agent: A0–A10 완료. UX: UX0–UX5 완료 ([frontend/ia/menus.md](frontend/ia/menus.md)).  
+M0–M10 · FE0–FE8 완료. Agent: A0–A11·A13 완료 (A12 mm planned). UX: UX0–UX5 완료 ([frontend/ia/menus.md](frontend/ia/menus.md)).  
 로컬: `npm install` 후 `npm run local:run` (native) 또는 `npm run db:migrate:local && npm run dev`. 중지: `npm run local:stop`.  
 테스트: npm test · E2E: npm run test:e2e ([e2e/DESIGN.md](e2e/DESIGN.md)).  
 디버그: [.vscode/launch.json](.vscode/launch.json) — Run and Debug → **Debug All**.  

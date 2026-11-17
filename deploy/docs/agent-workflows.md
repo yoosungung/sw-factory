@@ -99,6 +99,8 @@ New → In Progress → Review → Deploying Test → QA → Deploying Prod → 
 
 시크릿·RBAC·범위 충돌·비용·비가역·stall/storm 터미널 → `Waiting for Approval` + admin `@mention` + **구체 ask**.
 
+**Ops 알림 (gateway HITL Gmail):** SPA notifications가 아니라 gateway가 같은 outbox tick에서 human assignee의 `waiting_for_approval` 또는 human `@mention`을 감지해 `HITL_MAIL_TO`로 메일 1통(dedupe TTL). PM/에이전트 Gmail 도구 없음 — [agent/gateway/DESIGN.md](../../agent/gateway/DESIGN.md).
+
 ---
 
 ## 3. developer (IC)

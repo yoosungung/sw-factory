@@ -1,4 +1,5 @@
 import type { LoadedSchedule } from "../../shared/load-config";
+import type { HitlMailConfig } from "./hitl-mail";
 
 export type AgentEventType =
   | "ticket_created"
@@ -51,6 +52,8 @@ export type GatewayConfig = {
   retryMaxAttempts: number;
   schedules?: LoadedSchedule[];
   successChecks?: string[];
+  /** Ops HITL Gmail; omit/undefined = disabled. */
+  hitlMail?: HitlMailConfig;
 };
 
 export type Checkpoint = {

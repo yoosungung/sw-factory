@@ -2,6 +2,7 @@
 import path from "node:path";
 import { loadAgentsYaml } from "../../shared/load-config";
 import { formatTickError } from "./errors";
+import { hitlMailFromEnv } from "./hitl-mail";
 import type { GatewayConfig } from "./types";
 import { runLoop } from "./run-loop";
 
@@ -57,6 +58,7 @@ async function main() {
     retryMaxAttempts: 5,
     schedules: file.settings.schedules ?? [],
     successChecks: file.settings.success_checks ?? [],
+    hitlMail: hitlMailFromEnv(),
   };
 
   const intervalMs = file.settings.poll_interval_ms ?? 3000;

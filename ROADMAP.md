@@ -77,11 +77,12 @@
 | **A10** | Soft 레지스트리·persona/문서 정합 (Done 하드 게이트 없음) | tenant-cd/clients-repos/roadmap 샘플 시드; Leantime 잔재 제거; workflows/schedules 갭 갱신 | done |
 | **A11** | macOS 새벽 위생 재기동 + R2 active-run 실패 시 세션 drop (zombie sticky 방지) | `daily-restart` LaunchAgent·`restart` 시 sticky 비움; R2 후 prompt 404→rebind 테스트 green | done |
 | **A12** | mm(마케터) — HITL topic-radar/comment-draft + 제품 `.factory/marketing.yaml` | docs·persona overlay·agents wire·macmini 배포; 로그인 크롤/자동댓글 없음 | planned |
+| **A13** | gateway HITL Gmail — human `waiting_for_approval` / `@mention` → Eric 메일 | outbox 동일 tick·dedupe·env OAuth; SPA notifications 제품화 없음 | done |
 
 ## 범위 밖 (Exclude)
 
 - Dashboards (Your work / Projects로 충분; 고급 리포트는 Defer)
-- timesheets, calendar / notifications
+- timesheets, calendar / notifications (**제품 SPA·API 인앱 알림**; gateway ops HITL Gmail은 A13·[agent/gateway](agent/gateway/) — Exclude 유지)
 - canvas / ideas / wiki / goals — **제품 SPA·Workers 도메인 UI/스키마** (에이전트용 외부 **org-wiki** git·`ORG_WIKI_URL`·km librarian은 유지; [deploy/personas](deploy/personas/) `org-knowledge`)
 - plugins / settings, access_tokens (PAT)
 - LDAP / OIDC, Hyperdrive / 외부 MySQL
