@@ -7,7 +7,8 @@ export function ticketsNewestFirst<T extends { id: string; created_at: string }>
   });
 }
 
-/** Board/Backlog column: append/new (higher sort_order) above older cards; then created_at. */
+/** Board column only: higher sort_order (create/status-change MAX+1) above; then created_at.
+ *  Backlog/List use `ticketsNewestFirst` (created_at), not this helper. */
 export function kanbanColumnNewestFirst<
   T extends { id: string; sort_order: number; created_at: string },
 >(tickets: T[]): T[] {

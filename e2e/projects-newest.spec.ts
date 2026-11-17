@@ -32,6 +32,17 @@ test("projects list scrolls under a fixed header; ticket views show newest first
   const backlogCol = page.locator(".board-col").filter({ hasText: "Backlog" });
   await expect(backlogCol.locator(".issue-card").first()).toContainText(newer);
 
+  await clickEl(page.locator(".view-segment").getByRole("tab", { name: "Backlog" }));
+  const backlogRows = page.locator(".backlog-panel").first().locator(".backlog-row");
+  await expect(backlogRows.first()).toContainText(newer);
+
+  // Status change → Done column top (server MAX+1).
+  const olderRow = backlogRows.filter({ hasText: older });
+  await olderRow.locator("select").selectOption({ label: "Done" });
+  await clickEl(page.locator(".view-segment").getByRole("tab", { name: "Board" }));
+  const doneCol = page.locator(".board-col").filter({ hasText: "Done" });
+  await expect(doneCol.locator(".issue-card").first()).toContainText(older);
+
   for (const tab of ["Backlog", "List"] as const) {
     await clickEl(page.locator(".view-segment").getByRole("tab", { name: tab }));
     await expect

@@ -378,6 +378,7 @@ ticketRoutes.patch("/tickets/:id", async (c) => {
   }
 
   const nextStatus = body.status ?? ticket.status;
+  const statusChanged = nextStatus !== ticket.status;
   const nextCat = await statusCategory(c.env.DB, ticket.project_id, nextStatus);
   const prevCat = await statusCategory(c.env.DB, ticket.project_id, ticket.status);
   if (!nextCat || !prevCat) return c.json({ error: "invalid_input" }, 400);
@@ -395,12 +396,24 @@ ticketRoutes.patch("/tickets/:id", async (c) => {
     prevCategory: prevCat,
   });
 
+  // Status change → column top (MAX+1), same as create. Ignore client sort_order
+  // so FE length/archived-column guesses cannot bury the card under legacy highs.
+  let nextSortOrder = body.sort_order ?? ticket.sort_order;
+  if (statusChanged) {
+    const max = await c.env.DB.prepare(
+      `SELECT COALESCE(MAX(sort_order), -1) AS m FROM tickets WHERE project_id = ? AND status = ?`,
+    )
+      .bind(ticket.project_id, nextStatus)
+      .first<{ m: number }>();
+    nextSortOrder = (max?.m ?? -1) + 1;
+  }
+
   const next = {
     title: body.title?.trim() ?? ticket.title,
     description: body.description !== undefined ? body.description.trim() : ticket.description,
     status: nextStatus,
     priority: body.priority ?? ticket.priority,
-    sort_order: body.sort_order ?? ticket.sort_order,
+    sort_order: nextSortOrder,
     assignee_id: body.assignee_id !== undefined ? body.assignee_id : ticket.assignee_id,
     due_at: body.due_at !== undefined ? body.due_at : ticket.due_at,
     milestone_id: body.milestone_id !== undefined ? body.milestone_id : ticket.milestone_id,

@@ -41,6 +41,25 @@ describe("kanbanColumnNewestFirst", () => {
     ];
     expect(kanbanColumnNewestFirst(input).map((x) => x.id)).toEqual(["new", "old"]);
   });
+
+  it("keeps high sort_order above newer created_at (Board key is sort_order)", () => {
+    const input = [
+      { id: "fresh", sort_order: 2, created_at: "2026-11-17T00:00:00.000Z" },
+      { id: "legacy", sort_order: 40, created_at: "2026-11-01T00:00:00.000Z" },
+    ];
+    expect(kanbanColumnNewestFirst(input).map((x) => x.id)).toEqual(["legacy", "fresh"]);
+  });
+});
+
+describe("Backlog/List vs Board helpers", () => {
+  it("ticketsNewestFirst ignores sort_order so Backlog shows created_at newest first", () => {
+    const input = [
+      { id: "legacy", sort_order: 40, created_at: "2026-11-01T00:00:00.000Z" },
+      { id: "fresh", sort_order: 2, created_at: "2026-11-17T00:00:00.000Z" },
+    ];
+    expect(ticketsNewestFirst(input).map((x) => x.id)).toEqual(["fresh", "legacy"]);
+    expect(kanbanColumnNewestFirst(input).map((x) => x.id)).toEqual(["legacy", "fresh"]);
+  });
 });
 
 describe("timelineNewestFirst", () => {
