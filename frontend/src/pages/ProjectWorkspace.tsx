@@ -217,10 +217,12 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
 
   async function move(ticketId: string, status: string) {
     const ticket =
-      statusKeys.flatMap((s) => columns[s] ?? []).find((t) => t.id === ticketId) ?? null;
+      statusKeys.flatMap((s) => columns[s] ?? []).find((t) => t.id === ticketId) ??
+      milestones.find((t) => t.id === ticketId) ??
+      null;
+    // Omit sort_order: server assigns MAX+1 on status change (column top).
     await client.patchTicket(ticketId, {
       status,
-      sort_order: (columns[status] ?? []).length,
       version: ticket?.version,
     });
     await refresh();
@@ -269,7 +271,13 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
   }
 
   const projectRole = (project.role ?? "member") as "owner" | "member";
-  const backlogTickets = backlogKeys.flatMap((k) => columnTickets[k] ?? []);
+  // Backlog vertical lists: created_at newest first (not Board sort_order).
+  const backlogTickets = ticketsNewestFirst(
+    backlogKeys.flatMap((k) => columnTickets[k] ?? []),
+  );
+  const boardIssuesList = ticketsNewestFirst(
+    boardIssueKeys.flatMap((s) => columnTickets[s] ?? []),
+  );
   const ticketsView = isTicketsView(view);
   const showTypeChips = view === "board" || view === "backlog" || view === "list";
   const activeTickets = statuses
@@ -577,8 +585,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
               <div className="backlog-head">
                 <strong>Board issues</strong>
               </div>
-              {boardIssueKeys.flatMap((s) =>
-                (columnTickets[s] ?? []).map((t) => (
+              {boardIssuesList.map((t) => (
                   <div key={t.id} className="backlog-row" onClick={() => openIssue(t)}>
                     <span className="issue-key">
                       <TypeIcon type={t.type} />
@@ -587,8 +594,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
                     <span className="grow">{t.title}</span>
                     <span className="muted">{labelFor(t.status)}</span>
                   </div>
-                )),
-              )}
+                ))}
             </div>
           </div>
         </div>

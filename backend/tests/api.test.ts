@@ -838,6 +838,66 @@ describe("M7 scale and durability", () => {
     expect((excludedCustom.json.tickets as Json[]).map((t) => t.id)).not.toContain(customDoneId);
   });
 
+  it("puts status-changed tickets at column top via MAX(sort_order)+1", async () => {
+    const { cookie } = await register("StatusTop", { admin: true });
+    const clientId = await createClient(cookie, "StatusTopCo");
+    const proj = await request(
+      "/api/projects",
+      { method: "POST", body: JSON.stringify({ name: "StatusTop", client_id: clientId }) },
+      cookie,
+    );
+    const projectId = (proj.json.project as Json).id as string;
+
+    const oldDone = await request(
+      `/api/projects/${projectId}/tickets`,
+      {
+        method: "POST",
+        body: JSON.stringify({ title: "OldDone", type: "task", status: "done" }),
+      },
+      cookie,
+    );
+    expect(oldDone.status).toBe(201);
+    const oldDoneId = (oldDone.json.ticket as Json).id as string;
+    await env.DB.prepare(`UPDATE tickets SET sort_order = 50 WHERE id = ?`)
+      .bind(oldDoneId)
+      .run();
+
+    const mover = await request(
+      `/api/projects/${projectId}/tickets`,
+      {
+        method: "POST",
+        body: JSON.stringify({ title: "Mover", type: "task", status: "backlog" }),
+      },
+      cookie,
+    );
+    expect(mover.status).toBe(201);
+    const moverId = (mover.json.ticket as Json).id as string;
+
+    // Client sends a low sort_order (legacy length-based); server must still top the column.
+    const patched = await request(
+      `/api/tickets/${moverId}`,
+      { method: "PATCH", body: JSON.stringify({ status: "done", sort_order: 0 }) },
+      cookie,
+    );
+    expect(patched.status).toBe(200);
+    expect((patched.json.ticket as Json).status).toBe("done");
+    expect((patched.json.ticket as Json).sort_order).toBe(51);
+
+    const sameStatus = await request(
+      `/api/tickets/${moverId}`,
+      { method: "PATCH", body: JSON.stringify({ sort_order: 10 }) },
+      cookie,
+    );
+    expect(sameStatus.status).toBe(200);
+    expect((sameStatus.json.ticket as Json).sort_order).toBe(10);
+
+    const kanban = await request(`/api/projects/${projectId}/kanban`, {}, cookie);
+    expect(kanban.status).toBe(200);
+    // After DnD-style same-status reorder to 10, oldDone (50) stays above mover (10).
+    const done = (kanban.json.columns as Record<string, Json[]>).done;
+    expect(done.map((t) => t.title)).toEqual(["OldDone", "Mover"]);
+  });
+
   it("lists tickets, kanban columns, and timeline rows newest-first", async () => {
     const { cookie } = await register("NewestFirst", { admin: true });
     const clientId = await createClient(cookie, "NewestCo");

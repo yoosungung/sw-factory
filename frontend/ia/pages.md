@@ -63,7 +63,7 @@
 
 **Layout:** Tickets 작업 뷰. 툴바(타이틀 + 세그먼트 탭 `Board|Backlog|List` + type 칩 `All|Task|Milestone`(URL `type=`) + 검색·•••) + **프로젝트 statuses 순서** 컬럼 + 카드. 컬럼(회색 서피스)은 툴바 아래 **잔여 뷰포트 높이를 채우고**, 카드가 넘치면 컬럼 본문만 세로 스크롤. 컬럼 폭·카드 높이는 breakpoint 상수(DS §3.4).  
 **카드 규격:** 타입 아이콘 + 키(`MOB-F416`) + 우선순위 뱃지(High/Medium/Low 컬러 태그) + 고정 높이 `144px` · 제목 3줄 clamp/`…` + 마감일 태그 + 우측 정렬된 담당자 아바타.  
-**Behavior:** 드래그 → `PATCH` `{ status, sort_order, version }`; 카드 클릭 → **논모달 사이드 인스펙터** 오픈; type 칩은 클라이언트 필터 — kanban은 task-only이므로 milestone은 `GET …/tickets?type=milestone` 결과를 status별로 합침; Group by(assignee/milestone/type)는 **Defer**(IA만·미구현). 가로 스크롤(오버레이 페이드 없음). 티켓 생성은 탑바 **Create**(F14)만 — 컬럼 인라인 생성은 보류. 컬럼 안 **최신 `created_at`/높은 `sort_order`가 위**(생성 append·드롭은 맨 위).  
+**Behavior:** 드래그(컬럼 드롭) → `PATCH` `{ status, version }` — 서버가 `sort_order = MAX+1`로 **맨 위**; 이후 같은 컬럼 DnD만 `sort_order` 조정. 카드 클릭 → **논모달 사이드 인스펙터** 오픈; type 칩은 클라이언트 필터 — kanban은 task-only이므로 milestone은 `GET …/tickets?type=milestone` 결과를 status별로 합침; Group by(assignee/milestone/type)는 **Defer**(IA만·미구현). 가로 스크롤(오버레이 페이드 없음). 티켓 생성은 탑바 **Create**(F14)만 — 컬럼 인라인 생성은 보류. 컬럼 안 **높은 `sort_order`가 위**(생성·status 변경 append는 맨 위).  
 **API:** `GET …/kanban` (`columns`+`statuses`; task only; `category=done` 최근건 기본), `GET …/tickets?type=milestone`, `POST …/tickets`.  
 **Connections:** → Issue · Settings Board.
 
@@ -72,7 +72,7 @@
 ## F6. Backlog — `?view=backlog`
 
 **Layout:** 좌측 = `category=backlog` 이슈 리스트 + 우측 = 나머지 status. 빈 백로그는 EmptyState(제목+안내, CTA 없음). 티켓 생성은 탑바 **Create**(F14)만. 툴바(세그먼트·type 칩·검색) 고정, 패널 본문은 `.page-scroll`(`.main` overflow hidden).  
-**Behavior:** 행 → issue 인스펙터; 인라인 status 변경(프로젝트 statuses); type 칩은 Board와 동일 클라이언트 필터·URL `type=`. Sprint 섹션은 Defer. 백로그 행은 보드와 같이 최신 위.  
+**Behavior:** 행 → issue 인스펙터; 인라인 status 변경(프로젝트 statuses); type 칩은 Board와 동일 클라이언트 필터·URL `type=`. Sprint 섹션은 Defer. 세로 목록은 **`created_at` 최신 위**(`ticketsNewestFirst`; Board `sort_order`와 분리).  
 **API:** `GET …/kanban` 또는 tickets + statuses.  
 **Connections:** → Issue.
 
