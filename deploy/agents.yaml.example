@@ -166,6 +166,22 @@ settings:
       prompt: >-
         Use tenant-repo-sync then bulk-api-probe / opik-eval per tenant
         .factory/quality.yaml. Failures → New tickets. Long-run: nf-progress:.
+    # Monday 04:00 UTC = 13:00 KST (weekly topic-radar)
+    - id: mm-topic-radar
+      cron: "0 4 * * 1"
+      agents: [mm]
+      prompt: >-
+        Use tenant-repo-sync then topic-radar (then comment-draft). For each
+        synced product repo: missing/empty .factory/marketing.yaml → skip with
+        reason. Else public web search sites×keywords only (no login scrape,
+        no HTML scrapers, no external auto-comment). Candidate tickets with
+        <!-- mm-radar:… --> dedupe; drafts stay on factory tickets.
+        Outcome: create-once Done/New with counts (reuse same-day same title;
+        POST ≤1; parse ticket.id only). Prefer factory-mcp; REST wrap {ticket:{id}}.
+      success_checks:
+        - Ran topic-radar over repo_ids (or reported blocker with evidence).
+        - Skips listed for missing marketing.yaml; no external posts.
+        - At most one create POST for the schedule title (or reuse existing).
 
 
 prompts:
@@ -255,5 +271,17 @@ agents:
     type: sessions
     workspace: /data/workspaces/candidate
     primary_repo: candidate.win
+
+  # mm — HITL marketing mentions (topic-radar / comment-draft).
+  # Production user_id: register on macmini deploy (`./register-agent-users.sh`), then paste real UUID.
+  - name: mm
+    user_id: "00000000-0000-0000-0000-000000000009"
+    email: mm@example.com
+    persona: mm
+    type: sessions
+    workspace: /data/workspaces/mm
+    repo_ids:
+      - sw-factory
+      - candidate.win
 
 
