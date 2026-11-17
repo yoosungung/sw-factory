@@ -59,7 +59,7 @@ export function createFactoryMcp(client: FactoryClient) {
       {
         name: "list_project_members",
         description:
-          "GET /api/projects/:id/members — role (access) + lane (pm|ta|qa|aa|km|developer) for assignment",
+          "GET /api/projects/:id/members — role (access) + lane (pm|ta|qa|aa|km|developer|mm) for assignment",
       },
       { name: "search", description: "GET /api/search?q=" },
     ] as const,

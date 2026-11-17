@@ -4,7 +4,7 @@ import { client, type Client, type Member, type MemberLane, type Project, type P
 import { initials } from "../components/issue/IssuePanel";
 import { UserSearchField, type UserHit } from "../components/UserSearchField";
 
-const MEMBER_LANES: MemberLane[] = ["pm", "ta", "qa", "aa", "km", "developer"];
+const MEMBER_LANES: MemberLane[] = ["pm", "ta", "qa", "aa", "km", "developer", "mm"];
 
 function SettingsNav({
   base,
