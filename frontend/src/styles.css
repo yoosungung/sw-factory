@@ -1704,7 +1704,12 @@ select {
 }
 
 .overview-section {
-  padding: 8px 0 24px;
+  padding: 8px 24px 24px;
+}
+
+.overview-section .content-panel {
+  margin-left: 0;
+  margin-right: 0;
 }
 
 .overview-section h2 {
@@ -2528,7 +2533,8 @@ select {
   grid-template-columns: auto minmax(0, 1fr) auto;
   font-weight: 400;
   letter-spacing: 0.01em;
-  padding: 8px 12px;
+  padding: 10px 16px 10px 24px;
+  column-gap: 12px;
 }
 
 .overview-active-list .list-row > span:nth-child(2) {

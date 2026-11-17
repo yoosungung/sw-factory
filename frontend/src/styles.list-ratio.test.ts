@@ -52,4 +52,23 @@ describe("list column ratio scopes", () => {
     expect(body).toMatch(/font-weight:\s*400/);
     expect(body).toMatch(/letter-spacing:\s*0\.01em/);
   });
+
+  it("overview-active-list gives rows more left inset than base list-row", () => {
+    const body = ruleBody(".overview-active-list .list-row");
+    // Explicit left ≥24px so title/key are not flush to the panel edge
+    // (rework: previous 8px 12px was tighter than base 12px 16px).
+    expect(body).toMatch(/padding:\s*\d+px\s+\d+px\s+\d+px\s+24px/);
+    expect(body).toMatch(/column-gap:\s*12px/);
+  });
+
+  it("overview-section pads left so headings match page-header inset", () => {
+    const body = ruleBody(".overview-section");
+    expect(body).toMatch(/padding:\s*8px\s+24px\s+24px/);
+  });
+
+  it("overview-section content-panel drops horizontal margin (section pad owns inset)", () => {
+    const body = ruleBody(".overview-section .content-panel");
+    expect(body).toMatch(/margin-left:\s*0/);
+    expect(body).toMatch(/margin-right:\s*0/);
+  });
 });
