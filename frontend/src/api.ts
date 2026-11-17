@@ -6,7 +6,7 @@ export type User = {
   is_admin: boolean;
 };
 
-export type MemberLane = "pm" | "ta" | "qa" | "aa" | "km" | "developer";
+export type MemberLane = "pm" | "ta" | "qa" | "aa" | "km" | "developer" | "mm";
 
 export type Member = {
   user_id: string;

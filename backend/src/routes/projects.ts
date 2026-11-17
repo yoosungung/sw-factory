@@ -14,7 +14,7 @@ import {
   requireProjectMember,
 } from "../middleware/auth";
 
-const MEMBER_LANES = new Set(["pm", "ta", "qa", "aa", "km", "developer"]);
+const MEMBER_LANES = new Set(["pm", "ta", "qa", "aa", "km", "developer", "mm"]);
 
 /** Parse optional lane: omit → undefined (no change on PATCH); null/"" → null; valid string → lane. */
 function parseLane(

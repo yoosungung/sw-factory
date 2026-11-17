@@ -78,7 +78,7 @@ Project settings (Details / People).
 ### 4.2 People — `.../people`
 
 Space People와 동일 UX + **Lane** 컬럼(프로젝트만). 초대는 해당 Space 멤버만(이메일/`user_id`).  
-**Access** = `owner`\|`member`(권한). **Lane** = 배정용 `pm`\|`ta`\|`qa`\|`aa`\|`km`\|`developer`\|비움.  
+**Access** = `owner`\|`member`(권한). **Lane** = 배정용 `pm`\|`ta`\|`qa`\|`aa`\|`km`\|`developer`\|`mm`\|비움.  
 **API(ARCHITECTURE §4 / M6·M9):**
 
 | Method | Path | 비고 |

@@ -108,7 +108,7 @@ erDiagram
 | `users` | `id` UUID, `email` UNIQUE, `password_hash`, `name`, `is_admin` 0\|1 |
 | `sessions` | opaque cookie `id`, `user_id`, `expires_at` |
 | `clients` | `name`, `description`, `created_by` + `client_members`(role) |
-| `projects` | `client_id` NOT NULL + `project_members`(role ∈ {owner, member}; optional `lane` ∈ {pm,ta,qa,aa,km,developer}) |
+| `projects` | `client_id` NOT NULL + `project_members`(role ∈ {owner, member}; optional `lane` ∈ {pm,ta,qa,aa,km,developer,mm}) |
 | `project_statuses` | 프로젝트별 칸반 컬럼 (`key`/`label`/`category` backlog\|active\|done / `sort_order`); 생성 시 v1 기본 9개 시드 |
 | `tickets` | `type` task\|milestone; `status` = `project_statuses.key`; `priority`; `sort_order`; `milestone_id`; `assignee_id`; `due_at`; `date_from`/`date_to`; `version`; `created_by` |
 | `comments` | `entity_type`+`entity_id` (MVP: ticket), `body`, `author_id` |
@@ -222,7 +222,7 @@ erDiagram
 | --- | --- |
 | 플랫폼 | `users.is_admin` (시드 1명+) |
 | Client | `client_members.role` (`owner`, `member`) |
-| Project | `project_members.role` (`owner`, `member`) + optional `lane` (`pm`\|`ta`\|`qa`\|`aa`\|`km`\|`developer`) |
+| Project | `project_members.role` (`owner`, `member`) + optional `lane` (`pm`\|`ta`\|`qa`\|`aa`\|`km`\|`developer`\|`mm`) |
 | 계정별 CRUD | 없음 |
 
 1. **Space 생성:** `is_admin`만. 가입 계정은 초대 전까지 멤버십 없음  

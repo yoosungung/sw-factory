@@ -430,6 +430,17 @@ describe("M6 collaboration", () => {
     expect(laneSet.status).toBe(200);
     expect((laneSet.json.member as Json).lane).toBe("developer");
 
+    const laneMm = await request(
+      `/api/projects/${projectId}/members/${invitee.userId}`,
+      {
+        method: "PATCH",
+        body: JSON.stringify({ lane: "mm" }),
+      },
+      owner.cookie,
+    );
+    expect(laneMm.status).toBe(200);
+    expect((laneMm.json.member as Json).lane).toBe("mm");
+
     const laneClear = await request(
       `/api/projects/${projectId}/members/${invitee.userId}`,
       {
