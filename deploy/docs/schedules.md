@@ -103,6 +103,7 @@ main 스냅샷: [../agents.back.yaml](../agents.back.yaml) `settings.schedules`.
 | `ta-load-weekly` | `0 2 * * 1` | 월 11:00 | ta | — | 주간 load (tenant quality) |
 | `aa-clean-weekly` | `30 2 * * 1` | 월 11:30 | aa | — | 주간 clean-code |
 | `qa-bulk-weekly` | `0 3 * * 1` | 월 12:00 | qa | — | 주간 bulk/Opik |
+| `mm-topic-radar` | `0 4 * * 1` | 월 13:00 | mm | — | 주간 topic-radar → comment-draft (HITL; 외부 게시 금지) |
 
 `github-issue-check`는 **pm만**. 대상 repo는 `repos[]` 중 `client_id`와 `project_id`가 **둘 다** 있는 항목(시드가 `.cursor/github-issues-registry.json`에 씀). `nl2sql`·`org-wiki`처럼 한쪽만 있거나 없는 행은 제외.
 
@@ -226,6 +227,13 @@ main 스냅샷: [../agents.back.yaml](../agents.back.yaml) `settings.schedules`.
 | ta-load-weekly | `load` + `load-weekly` |
 | aa-clean-weekly | `clean_code` + `clean-code-weekly` (mechanical + heuristic) |
 | qa-bulk-weekly | bulk-api / Opik (`bulk-api-probe`, `opik-eval`) |
+
+### 5.12 `mm-topic-radar`
+
+- **스킬:** `tenant-repo-sync` → `topic-radar` → `comment-draft` ([agent-workflows §8](agent-workflows.md)).
+- `mm.repo_ids` 제품 checkout에서 `.factory/marketing.yaml` 없으면 **skip**(사유). 공개 웹 `sites`×`keywords`만; 로그인 크롤·외부 자동 댓글 금지.
+- 후보 티켓 dedupe `<!-- mm-radar:… -->`. 초안은 factory 티켓에만.
+- Outcome create-once (동일 일자·title reuse; POST≤1; `ticket.id` 파싱).
 
 ---
 

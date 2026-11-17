@@ -32,6 +32,7 @@ macOS에서 크래시 자동 재기동: [../../scripts/macos/README.md](../../sc
 
 1. **계정 생성** — `POST /api/auth/register` (`email` + `password` ≥8 + `name`).  
    편의 스크립트: `./register-agent-users.sh` (yaml의 각 agent를 등록하고 `user_id`를 덮어씀).  
+   직원 세션(`pm`/`km`/`ta`/`qa`/`aa`/`mm`)·IC·`candidate` 등 **yaml에 있는 모든 agent**가 대상이다 — `mm` 추가 후 재실행하면 `mm@example.com`이 등록되고 `user_id`가 갱신된다.  
    `PERSONA_PASSWORD`는 seed와 동일한 봇 비밀번호.
 2. **이미 있는 human** (예: `suyoo@didim.com`) — 스크립트에 `SKIP_HUMAN=1`을 주고, id는 D1에서 조회해 yaml에 수동 기입:
    ```bash
@@ -39,7 +40,7 @@ macOS에서 크래시 자동 재기동: [../../scripts/macos/README.md](../../sc
      "SELECT id, email, name FROM users WHERE email='suyoo@didim.com'"
    ```
 3. **Space/Project 초대** — 가입만으로는 티켓 권한이 없다. admin이 People에 초대한 뒤 assignee로 쓸 수 있다 ([ARCHITECTURE](../../ARCHITECTURE.md) §1.15).
-4. **시드** — Pod 기동(`seed-cookies-cli`) 또는 `./seed-personas.sh`가 email+`PERSONA_PASSWORD`로 **persona마다** 로그인한다. `GATEWAY_SESSION_COOKIE`는 gateway 폴링용이라 `secrets/session.cookie`를 대신하지 않는다.
+4. **시드** — Pod 기동(`seed-cookies-cli`) 또는 `./seed-personas.sh`가 email+`PERSONA_PASSWORD`로 **`type: sessions` persona마다**(포함: `mm`) 로그인·쿠키·mcp·MEMORY/skills·`repo_ids` ensure를 한다. `GATEWAY_SESSION_COOKIE`는 gateway 폴링용이라 `secrets/session.cookie`를 대신하지 않는다.
 
 | 스크립트 | 역할 |
 |----------|------|

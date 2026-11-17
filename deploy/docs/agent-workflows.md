@@ -260,6 +260,8 @@ must_avoid:
 
 Dual-loop CD(test/qa/aa/prod)와 무관. 게시·시크릿·범위 이슈는 human `@admin` / `@eric`.
 
+스케줄: `mm-topic-radar` (`0 4 * * 1` UTC) — [schedules.md §5.12](schedules.md). 운영 `user_id`는 register 후 `agents.yaml`에 기입([local/README](../local/README.md)).
+
 ---
 
 ## 9. 시퀀스 (기능 루프)
