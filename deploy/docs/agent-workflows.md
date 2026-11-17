@@ -14,10 +14,11 @@
 | **qa** | sessions | QA — ticket E2E 게이트·주간 bulk/Opik |
 | **aa** | sessions | AA — ticket 보안 게이트·주간 clean-code |
 | **km** | sessions | KM — org-wiki librarian (inbox 승격·야간 research) |
+| **mm** | sessions | MM — 공개 웹 topic-radar + 댓글 **초안**만 (HITL; 외부 게시 금지) |
 | **developer** (IC) | sessions (또는 human) | client/repo 구현 — `asky`/`path`/`sw-factory` 등 `agents[]` 이름 |
 | **admin** (예: eric) | human | HITL — 시크릿·RBAC·범위·비용·비가역 승인. prompt 대상 아님 |
 
-직원 5인(pm/km/ta/qa/aa)은 **client에 묶이지 않는다**. 테넌트 키는 티켓·배포 조회용. developer는 repo/`primary_repo`에 귀속될 수 있다.
+직원 세션(pm/km/ta/qa/aa/mm)은 **client에 묶이지 않는다**. 테넌트 키는 티켓·배포·마케팅 조회용. developer는 repo/`primary_repo`에 귀속될 수 있다.
 
 ### 1.2 Dual-loop 보드
 
@@ -207,7 +208,61 @@ New → In Progress → Review → Deploying Test → QA → Deploying Prod → 
 
 ---
 
-## 8. 시퀀스 (기능 루프)
+## 8. mm (Marketing Mentions)
+
+**스킬 (How):** `deploy/personas/mm/` — `topic-radar`, `comment-draft` (+ `tenant-repo-sync`).  
+**기준 (What):** 제품 repo `$path/.factory/marketing.yaml` — ta/qa/aa의 `.factory/quality.yaml`과 같은 **제품 쪽 What** 패턴.
+
+### 8.1 How / What
+
+| 축 | 위치 | 내용 |
+|----|------|------|
+| How | `deploy/personas/mm/` | 검색·초안 절차, 금지 규칙, soft-mention |
+| What | 제품 `.factory/marketing.yaml` | `sites`·`keywords`·`tone`·`product_mention`·`must_avoid` |
+| 추천 힌트 | `…/topic-radar/references/sites-guide.md` | P0–P2 **예시만** (정본 아님) |
+
+파일이 없거나 비면 해당 클라이언트는 **skip**(사유 명시). 사이트를 스킬/가이드에서 발명·하드코딩하지 않는다.
+
+### 8.2 `.factory/marketing.yaml` 스키마 (블록)
+
+```yaml
+# 제품 repo: .factory/marketing.yaml
+sites:                    # 실제 on/off = 이 목록 (가이드 P0–P2 아님)
+  - news.ycombinator.com
+  - www.reddit.com/r/MachineLearning
+keywords:
+  - "on-device LLM"
+tone: helpful peer; concise; no hype
+product_mention: soft     # soft | none
+must_avoid:
+  - "guaranteed"
+```
+
+예시 정본 경로(overlay): [../personas/mm/.cursor/skills/topic-radar/references/marketing.yaml.example](../personas/mm/.cursor/skills/topic-radar/references/marketing.yaml.example).
+
+### 8.3 추천 sites P0–P2 (reference only)
+
+| 등급 | 의미 | 예 (힌트) |
+|------|------|-----------|
+| P0 | 공개 검색이 잘 되는 개발·제품 논의 | HN, Reddit(공개 서브), dev.to, Stack Overflow |
+| P1 | 업계·커뮤니티 포럼 | Indie Hackers, 공개 discourse/제품 포럼 |
+| P2 | 보조·주의 | LinkedIn/X **공개 검색 스니펫만** |
+
+**실제 검색 대상 on/off는 제품 yaml `sites`만.** 가이드·스킬에 적힌 호스트는 채우기 힌트이며 권한·의무가 없다.
+
+### 8.4 레인 · 금지
+
+| 허용 | 금지 |
+|------|------|
+| 공개 웹 검색 (`sites`×`keywords`) | 로그인 크롤·스크래퍼·브라우저 자동화(소셜) |
+| factory 티켓에 후보 표 + 댓글 **초안** (2–5문장) | 외부 사이트 자동 댓글·포스트·투표 |
+| yaml `tone` / soft `product_mention` | 페이월·인증 벽 우회, 키워드/사이트 하드코딩 |
+
+Dual-loop CD(test/qa/aa/prod)와 무관. 게시·시크릿·범위 이슈는 human `@admin` / `@eric`.
+
+---
+
+## 9. 시퀀스 (기능 루프)
 
 ```mermaid
 sequenceDiagram
@@ -235,7 +290,7 @@ sequenceDiagram
 
 ---
 
-## 9. main 갭 (의도적)
+## 10. main 갭 (의도적)
 
 | 생략 | 이유 |
 |------|------|
