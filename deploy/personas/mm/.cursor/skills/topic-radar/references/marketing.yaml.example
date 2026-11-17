@@ -1,0 +1,21 @@
+# Tenant: place at `$path/.factory/marketing.yaml`
+# Factory MM reads this; missing file → skip client.
+
+# Public hosts or host paths to search (no login scrape).
+sites:
+  - news.ycombinator.com
+  - www.reddit.com/r/MachineLearning
+  - dev.to
+
+# Query terms paired with each site.
+keywords:
+  - "on-device LLM"
+  - "text to sql agent"
+
+# comment-draft constraints
+tone: helpful peer; concise; no hype
+product_mention: soft # soft | none — at most one natural mention
+must_avoid:
+  - "guaranteed"
+  - "best in the world"
+  - competitor_name_here

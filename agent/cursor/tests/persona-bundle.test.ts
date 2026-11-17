@@ -77,6 +77,29 @@ describe("persona-bundle", () => {
     ).toContain("release.yml");
   });
 
+  it("buildPersonaBundle(mm) includes topic-radar and comment-draft", async () => {
+    const bundle = await buildPersonaBundle("mm", personasRoot);
+    expect(bundle["MEMORY.md"]).toContain("persona: mm");
+    expect(bundle["MEMORY.md"]).toContain("외부 게시 금지");
+    expect(bundle[".cursor/skills/topic-radar/SKILL.md"]).toContain(
+      "marketing.yaml",
+    );
+    expect(bundle[".cursor/skills/topic-radar/SKILL.md"]).toContain(
+      "mm-radar:",
+    );
+    expect(bundle[".cursor/skills/comment-draft/SKILL.md"]).toContain(
+      "외부 게시 금지",
+    );
+    expect(
+      bundle[".cursor/skills/topic-radar/references/sites-guide.md"],
+    ).toContain("P0");
+    expect(
+      bundle[
+        ".cursor/skills/topic-radar/references/marketing.yaml.example"
+      ],
+    ).toContain("product_mention");
+  });
+
   it("buildPersonaBundle(candidate) includes publication-safety skill", async () => {
     const bundle = await buildPersonaBundle("candidate", personasRoot);
     expect(
