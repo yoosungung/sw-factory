@@ -34,7 +34,7 @@
 
 ## F3. Your work — `/` (alias `/your-work` → `/`)
 
-**Layout:** 탭 — Assigned to me | Created by me | Recently viewed | Overviews. Assigned/Created/Viewed = `.your-work-issues` 4열(Issue `minmax(0,1fr)` · Project · Status · Due); Overviews = `.your-work-overviews` 멤버십 프로젝트 섹션(프로젝트명 → Overview 링크 · **In progress** · **Open milestones**, 각 상한 5). 헤더·탭은 고정, 그리드는 `.page-scroll`(`.main` overflow hidden 유지)로 세로 스크롤.  
+**Layout:** 탭 — Assigned to me | Created by me | Recently viewed | Overviews. Assigned/Created/Viewed = `.your-work-issues` 4열(Issue `minmax(0,1fr)` · Project · Status · Due); Overviews = `.your-work-overviews` 멤버십 프로젝트 섹션(프로젝트명 앞 `.overview-project-title` 블릿(•) → Overview 링크 · **In progress** · **Open milestones**, 각 상한 5). 헤더·탭은 고정, 그리드는 `.page-scroll`(`.main` overflow hidden 유지)로 세로 스크롤.  
 **Behavior:** 이슈 행 → `/browse/:id`; Overviews 프로젝트명 → `/projects/:id`(Overview). Assigned/Created는 `created_at` DESC(동일 시각 id DESC). List API 기본도 DESC. Recently viewed 순서는 클라이언트 저장. 프로젝트 섹션 순서는 `GET /api/projects`(`created_at` DESC). **Assigned to me는 `category=done` 제외**(최근 done 포함; Created/Viewed·칸반은 비범위). 멤버십 없음은 전역 EmptyState; 섹션 내 In progress/Open milestones 0건은 `EmptyState variant=compact`(한 줄·짧은 안내, `.empty-state--compact`). 리스트 타이틀 열은 weight/tracking 완화 + 행 left inset·column-gap(`.overview-active-list`); 섹션 헤딩·empty는 `.overview-section` 가로 24px.  
 **API:** `GET /api/projects`; tickets by `assignee_id=me&exclude_done=true` / `created_by=me` (ARCHITECTURE §4); Overviews는 프로젝트별 `GET …/kanban` + `GET …/tickets?type=milestone`(F4b와 동일 소스, 신규 aggregate 없음).  
 **Connections:** → Issue · Project Overview. Top nav **Your work**. 로그인·로고 홈.
@@ -52,7 +52,7 @@
 
 ## F4b. Project Overview — `/projects/:id` (`?view=overview` 또는 view 없음)
 
-**Layout:** 프로젝트 이름, 설명(없으면 muted 한 줄), **In progress** (`project_statuses.category=active` 티켓 목록), **Open milestones** (`type=milestone` 중 `category=done`이 아닌 목록; 자식 수는 생략). 행 그리드 = key(보조) · **title(주)** · status(보조) — `.overview-active-list`(공용 `.tableish` 4열 미사용). 섹션 0건은 compact EmptyState; 타이틀 열 typography·left inset은 F3 Overviews와 동일(`.overview-section` 가로 24px).  
+**Layout:** 프로젝트 이름(`h1.overview-project-title` 블릿(•), breadcrumb 비범위), 설명(없으면 muted 한 줄), **In progress** (`project_statuses.category=active` 티켓 목록), **Open milestones** (`type=milestone` 중 `category=done`이 아닌 목록; 자식 수는 생략). 행 그리드 = key(보조) · **title(주)** · status(보조) — `.overview-active-list`(공용 `.tableish` 4열 미사용). 섹션 0건은 compact EmptyState; 타이틀 열 typography·left inset은 F3 Overviews와 동일(`.overview-section` 가로 24px).  
 **Behavior:** 티켓 행 → issue 인스펙터. 사이드바 **Overview** 활성.  
 **API:** `GET /api/projects/:id`, `GET …/kanban`, `GET …/tickets?type=milestone`.  
 **Connections:** → Tickets · Issue.

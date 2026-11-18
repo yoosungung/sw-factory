@@ -301,7 +301,7 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
             <span>{project.name}</span>
           </div>
           <div className="page-title-row">
-            <h1>
+            <h1 className={view === "overview" ? "overview-project-title" : undefined}>
               {view === "overview"
                 ? project.name
                 : view === "board"

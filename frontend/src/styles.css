@@ -1718,6 +1718,13 @@ select {
   margin: 0 0 12px;
 }
 
+/* F3 Overviews project h2 · F4b Overview h1 — shared disc before name */
+.overview-project-title::before {
+  content: "•";
+  color: inherit;
+  margin-right: 0.4em;
+}
+
 .space-switcher {
   position: relative;
   padding: 0 8px 8px;
