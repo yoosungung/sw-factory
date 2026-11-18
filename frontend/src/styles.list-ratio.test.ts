@@ -71,4 +71,10 @@ describe("list column ratio scopes", () => {
     expect(body).toMatch(/margin-left:\s*0/);
     expect(body).toMatch(/margin-right:\s*0/);
   });
+
+  it("overview-project-title prefixes a disc bullet with existing text color", () => {
+    const body = ruleBody(".overview-project-title::before");
+    expect(body).toMatch(/content:\s*["']•["']/);
+    expect(body).toMatch(/color:\s*inherit|color:\s*var\(--(?:ds-text|color-text-primary)\)/);
+  });
 });

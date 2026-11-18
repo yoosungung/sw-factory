@@ -208,12 +208,17 @@ describe("YourWorkPage grid UX", () => {
     expect(kanbanApi).toHaveBeenCalled();
     const alphaSection = container.querySelector('[data-project-id="p1"]') as HTMLElement;
     expect(alphaSection).toBeTruthy();
+    const alphaTitle = within(alphaSection).getByRole("heading", { level: 2, name: "Alpha" });
+    expect(alphaTitle).toHaveClass("overview-project-title");
     expect(within(alphaSection).getByRole("heading", { name: "In progress" })).toBeInTheDocument();
     expect(within(alphaSection).getByText(ticket.title)).toBeInTheDocument();
     expect(within(alphaSection).getByRole("heading", { name: "Open milestones" })).toBeInTheDocument();
     expect(within(alphaSection).getByText("Ship MVP")).toBeInTheDocument();
     expect(within(alphaSection).queryByText("Done milestone")).toBeNull();
     const betaSection = container.querySelector('[data-project-id="p2"]') as HTMLElement;
+    expect(within(betaSection).getByRole("heading", { level: 2, name: "Beta" })).toHaveClass(
+      "overview-project-title",
+    );
     expect(within(betaSection).getByText("Nothing in progress")).toBeInTheDocument();
     expect(within(betaSection).getByText("No open milestones")).toBeInTheDocument();
     const sectionEmpties = within(betaSection).getAllByTestId("empty-state");

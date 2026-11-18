@@ -264,6 +264,20 @@ describe("ProjectWorkspace type filter UX", () => {
     expect(within(section!).queryByText("Done milestone")).toBeNull();
   });
 
+  it("overview h1 project name uses overview-project-title bullet class", async () => {
+    await renderView("overview");
+    expect(screen.getByRole("heading", { level: 1, name: "Proj" })).toHaveClass(
+      "overview-project-title",
+    );
+  });
+
+  it("board h1 does not use overview-project-title", async () => {
+    await renderView("board");
+    expect(screen.getByRole("heading", { level: 1, name: "Board" })).not.toHaveClass(
+      "overview-project-title",
+    );
+  });
+
   it("overview section empties use compact EmptyState", async () => {
     kanbanMock.mockResolvedValue({
       statuses,
