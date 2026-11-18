@@ -72,9 +72,10 @@ describe("list column ratio scopes", () => {
     expect(body).toMatch(/margin-right:\s*0/);
   });
 
-  it("overview-project-title prefixes a disc bullet with existing text color", () => {
-    const body = ruleBody(".overview-project-title::before");
-    expect(body).toMatch(/content:\s*["']•["']/);
+  it("overview-project-bullet is decorative text colored like the title", () => {
+    const body = ruleBody(".overview-project-bullet");
     expect(body).toMatch(/color:\s*inherit|color:\s*var\(--(?:ds-text|color-text-primary)\)/);
+    expect(body).toMatch(/margin-right:\s*0\.4em/);
+    expect(css).not.toMatch(/\.overview-project-title::before\s*\{/);
   });
 });

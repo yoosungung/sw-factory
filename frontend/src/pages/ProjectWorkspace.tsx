@@ -302,13 +302,20 @@ export function ProjectWorkspace({ user, onLogout }: { user: User; onLogout: () 
           </div>
           <div className="page-title-row">
             <h1 className={view === "overview" ? "overview-project-title" : undefined}>
-              {view === "overview"
-                ? project.name
-                : view === "board"
-                  ? "Board"
-                  : view === "backlog"
-                    ? "Backlog"
-                    : "List"}
+              {view === "overview" ? (
+                <>
+                  <span className="overview-project-bullet" aria-hidden="true">
+                    {"•"}
+                  </span>
+                  {project.name}
+                </>
+              ) : view === "board" ? (
+                "Board"
+              ) : view === "backlog" ? (
+                "Backlog"
+              ) : (
+                "List"
+              )}
             </h1>
             {ticketsView && (
               <div className="menu menu-right">

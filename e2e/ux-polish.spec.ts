@@ -141,6 +141,18 @@ test("collapsed sidebar keeps icon rail navigation", async ({ page }) => {
   await page.waitForURL(/\/settings\/details/);
 });
 
+test("overview project bullet stays decorative for accessible name", async ({ page }) => {
+  await loginAsAdmin(page);
+  const stamp = Date.now();
+  const project = `Bullet Proj ${stamp}`;
+  await createSpace(page, `Bullet Space ${stamp}`);
+  await createSoftwareProject(page, project, { tickets: false });
+  const overviewH1 = page.getByRole("heading", { level: 1, name: project, exact: true });
+  await expect(overviewH1).toBeVisible();
+  await expect(overviewH1.locator(".overview-project-bullet")).toHaveAttribute("aria-hidden", "true");
+  await expect(overviewH1).toHaveText(new RegExp(`^•\\s*${project}$`));
+});
+
 test("sidebar collapse and issue panel chrome are icon-only", async ({ page }) => {
   await loginAsAdmin(page);
   const stamp = Date.now();
