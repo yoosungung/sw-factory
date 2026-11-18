@@ -2,6 +2,8 @@
 
 GitHub `leantime-mcp`(JSON-RPC + PAT) 대신 Worker **REST + 세션 쿠키**를 MCP 도구로 감싼다.
 
+stdio는 **MCP JSON-RPC**(`initialize` → `notifications/initialized` → `tools/list` / `tools/call`)다. Cursor IDE 글로벌 `~/.cursor/mcp.json`과 persona workspace MCP가 동일 진입점을 쓴다. 예전 newline `{method:"tools/list"}` 전용은 IDE에서 connecting에 고착되므로 쓰지 않는다.
+
 인증: [07-auth-as-user](07-auth-as-user.md). PAT/`x-api-key` 신설 없음 (ARCHITECTURE Exclude 유지).
 
 ## 도구 매핑 (초안)

@@ -3,6 +3,7 @@ import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { FactoryClient, loginFactory } from "../mcp/client";
+import { handleStdioRpc } from "../mcp/protocol";
 import { createFactoryMcp } from "../mcp/tools";
 import {
   ensurePersonaSessionCookies,
@@ -212,6 +213,39 @@ function startMockFactory() {
 }
 
 describe("A4 factory-mcp", () => {
+  it("stdio JSON-RPC answers initialize then tools/list for Cursor IDE", async () => {
+    const mcp = createFactoryMcp(
+      new FactoryClient({ baseUrl: "http://127.0.0.1:9", cookie: "lt_session=x" }),
+    );
+    const init = await handleStdioRpc(mcp, {
+      jsonrpc: "2.0",
+      id: 0,
+      method: "initialize",
+      params: { protocolVersion: "2024-11-05" },
+    });
+    expect(init).toContain('"protocolVersion"');
+    expect(init).toContain('"factory"');
+    expect(JSON.parse(init!).result.serverInfo.name).toBe("factory");
+
+    const noted = await handleStdioRpc(mcp, {
+      jsonrpc: "2.0",
+      method: "notifications/initialized",
+    });
+    expect(noted).toBeNull();
+
+    const listed = await handleStdioRpc(mcp, {
+      jsonrpc: "2.0",
+      id: 1,
+      method: "tools/list",
+    });
+    const tools = JSON.parse(listed!).result.tools as Array<{
+      name: string;
+      inputSchema: { type: string };
+    }>;
+    expect(tools.length).toBeGreaterThanOrEqual(12);
+    expect(tools[0]!.inputSchema.type).toBe("object");
+  });
+
   it("logs in with session cookie and reads/comments tickets via tools", async () => {
     const factory = await startMockFactory();
     const baseUrl = `http://127.0.0.1:${factory.port}`;
