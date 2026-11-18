@@ -96,8 +96,13 @@ Resolve mention/`assignee_id` from `agents.yaml` — **never hardcode names or n
      - `milestone_id` = current milestone id
      - `description` includes the marker + intake sections (Goal / Non-goals / Acceptance criteria / Risks / Required test·deploy evidence / Architecture notes) filled from the item and section context; leave open questions explicit rather than inventing product scope
 8. Do not force ticket Done from checklist alone; if tickets lag the doc, note once in the session reply (no spam comments).
-9. **Milestone → In Progress (after sync):** once upsert + ticket create/skip for the current `##` finish, `update_ticket` that milestone (`type=milestone`, id from step 6) to `status` = `in_progress` if still `backlog` (or unset). Idempotent: already `in_progress` → no-op. Do **not** demote from later dual-loop statuses or from `blocked` / `waiting_for_approval`. Child task tickets stay `backlog` until intake/assignee handoff — only the **milestone** advances here.
+9. **Milestone → In Progress (after sync):** once upsert + ticket create/skip for the current `##` finish, `update_ticket` that milestone (`type=milestone`, id from step 6) to `status` = `in_progress` if still `backlog` (or unset). Idempotent: already `in_progress` → no-op. Do **not** demote from later dual-loop statuses or from `blocked` / `waiting_for_approval`. Sync alone does **not** move child tasks out of `backlog`.
+10. **Child kickoff or escalate (same run, required):** after step 9, for that milestone’s children:
+    - If any child is already in an active dual-loop status (`in_progress`…`qa` / deploying*) → **WIP=1**; do not start another child in parallel. Session reply: `kickoff skipped (WIP)`.
+    - Else if the next ROADMAP-order child is clear and intake-ready → PM fills intake (or confirms description AC), `update_ticket` that child: `assignee_id` = `lane=developer` member (else ask human for People lane), `status` = `in_progress`, one `@mention` kickoff. Prefer checklist order in the current `##`.
+    - Else if start is blocked (H2/`- [ ]` missing, pass-gate pending, scope invent risk, missing secrets/RBAC) → **do not invent tickets**. Comment the reason on the **milestone** (or this sync outcome ticket), hand off once to the resolved human (`@Name`), status `waiting_for_approval` only when human decision is the next action.
+    - Never leave `milestone=in_progress` + all-children-`backlog` without either a kickoff or a human-reason comment in the same sync/session.
 
 ## Session reply
 
-Per repo: `current` title **or** `pass-gate → @{who}` **or** `approved → created next`; milestones created/reused; tickets created/skipped; milestone `in_progress` set/skipped; “blocked on current” if later `##` sections were ignored.
+Per repo: `current` title **or** `pass-gate → @{who}` **or** `approved → created next`; milestones created/reused; tickets created/skipped; milestone `in_progress` set/skipped; child `kickoff` / `kickoff skipped (WIP)` / `escalate → @{who}`; “blocked on current” if later `##` sections were ignored.
