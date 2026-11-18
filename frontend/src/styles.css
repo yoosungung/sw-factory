@@ -1718,9 +1718,8 @@ select {
   margin: 0 0 12px;
 }
 
-/* F3 Overviews project h2 · F4b Overview h1 — shared disc before name */
-.overview-project-title::before {
-  content: "•";
+/* F3 Overviews project h2 · F4b Overview h1 — decorative disc (DOM, aria-hidden) */
+.overview-project-bullet {
   color: inherit;
   margin-right: 0.4em;
 }

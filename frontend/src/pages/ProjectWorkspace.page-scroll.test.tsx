@@ -266,9 +266,11 @@ describe("ProjectWorkspace type filter UX", () => {
 
   it("overview h1 project name uses overview-project-title bullet class", async () => {
     await renderView("overview");
-    expect(screen.getByRole("heading", { level: 1, name: "Proj" })).toHaveClass(
-      "overview-project-title",
-    );
+    const h1 = screen.getByRole("heading", { level: 1, name: "Proj" });
+    expect(h1).toHaveClass("overview-project-title");
+    const bullet = h1.querySelector(".overview-project-bullet");
+    expect(bullet).toHaveAttribute("aria-hidden", "true");
+    expect(bullet?.textContent).toBe("•");
   });
 
   it("board h1 does not use overview-project-title", async () => {

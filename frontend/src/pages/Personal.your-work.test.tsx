@@ -210,6 +210,9 @@ describe("YourWorkPage grid UX", () => {
     expect(alphaSection).toBeTruthy();
     const alphaTitle = within(alphaSection).getByRole("heading", { level: 2, name: "Alpha" });
     expect(alphaTitle).toHaveClass("overview-project-title");
+    const alphaBullet = alphaTitle.querySelector(".overview-project-bullet");
+    expect(alphaBullet).toHaveAttribute("aria-hidden", "true");
+    expect(alphaBullet?.textContent).toBe("•");
     expect(within(alphaSection).getByRole("heading", { name: "In progress" })).toBeInTheDocument();
     expect(within(alphaSection).getByText(ticket.title)).toBeInTheDocument();
     expect(within(alphaSection).getByRole("heading", { name: "Open milestones" })).toBeInTheDocument();

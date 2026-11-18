@@ -256,6 +256,9 @@ export function YourWorkPage({
             {overviews?.map(({ project: p, active, milestones }) => (
               <section key={p.id} className="overview-section" data-project-id={p.id}>
                 <h2 className="overview-project-title">
+                  <span className="overview-project-bullet" aria-hidden="true">
+                    {"•"}
+                  </span>
                   <Link to={`/projects/${p.id}`}>{p.name}</Link>
                 </h2>
                 <h3>In progress</h3>
