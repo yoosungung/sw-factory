@@ -23,12 +23,19 @@ Registry: `.cursor/roadmap-registry.json` (ensure/seed가 `agents.yaml` `pm.road
    Missing file at `$ROOT/$path` → skip repo with reason (do not invent items).
 3. **Parse** markdown:
    - Everyday sync sections: `##` headings (ignore `#` title).
-   - Checklist items: `- [ ]` unchecked, `- [x]` / `- [X]` checked (case-insensitive).
+   - Checklist markers (line-start task items only; plain `-` bullets ignored):
+     | Marker | Meaning | Gate (`current`) | Ticket enqueue |
+     |--------|---------|------------------|----------------|
+     | `- [ ]` | open / to-do | **blocks** | yes |
+     | `- [x]` / `- [X]` | done (case-insensitive) | pass | no |
+     | `- [-]` | cancelled / won't-do / 불필요 / 게이트 미발화 | pass | no |
+     | `- [~]` | deferred parking (임시) | pass | no |
+   - **incomplete** = `- [ ]` only. `[-]` / `[~]` / `[x]` are **not** open.
    - `###` headings are **not** everyday sync targets; use only after pass-gate approval (next milestone).
 4. **Current milestone only:** walk `##` sections top→bottom; first section with ≥1 `- [ ]` = **current**. Do **not** create milestones or tickets for later `##` sections in this run.
 5. **If current exists** → jump to **Milestone upsert** + **Tickets** below. Skip pass-gate.
 6. **If no incomplete `##` section** → **Pass gate** (do not silent no-op):
-   - `passed` = last `##` section whose checklist is all `[x]` (if none, skip repo: “no passed section”).
+   - `passed` = last `##` section with **zero** `- [ ]` (items may be `[x]` / `[-]` / `[~]`; if none, skip repo: “no passed section”).
    - `next` = **Next `###` resolve** (below). If missing → session reply “no next ###”; do not invent scope. **Do not** use “first `###` after `passed` in document order” — catalogs like `### M0`… under a later `## 마일스톤` would wrongly pick M0.
    - Marker: `<!-- roadmap:{repo_id}:pass-gate:{passed-slug} -->` (`passed-slug` = stable slug of passed title).
    - Find existing ticket with that marker (`list_tickets` + description/comments). Missing → `create_ticket`:
@@ -39,7 +46,20 @@ Registry: `.cursor/roadmap-registry.json` (ensure/seed가 `agents.yaml` `pm.road
    - **Approved only when** a comment from the **delegated assignee** contains `<!-- roadmap-pass:approved -->`.
    - Not approved → session reply `pass-gate → @{who}`; **do not** create next milestone tickets.
    - Approved → **Next enqueue** (this run only), then stop everyday rules for this repo.
-7. **Never** enqueue the next milestone while current still has unchecked `- [ ]`.
+7. **Never** enqueue the next milestone while current still has open `- [ ]`.
+
+### ROADMAP authoring (cancel / defer)
+
+Tenant writers (not sync) own these edits. Sync **never** rewrites ROADMAP.
+
+| Intent | Write | Sync effect |
+|--------|-------|-------------|
+| Still todo in this `##` | `- [ ] …` | keeps `current` |
+| Completed | `- [x] …` | non-open |
+| Cancel / won't-do / gate never fired | `- [-] …` + short reason | non-open (same gate as done) |
+| Defer to a later milestone | Prefer **cut-paste** as `- [ ]` under the target `##`. If target unknown, temp `- [~] …` then move on next edit | `[~]` is non-open (does not stall); do not leave forever |
+
+Do **not** use fake `- [x] (미실시…)` when the work was never done — prefer `- [-]` so done vs cancelled stay distinct in the doc.
 
 ### Next `###` resolve
 
@@ -84,7 +104,7 @@ Resolve mention/`assignee_id` from `agents.yaml` — **never hardcode names or n
 6. **Milestone upsert:** list milestones for `project_id`. Match by headline (section title trimmed). Missing → `create_ticket` `type=milestone`, `created_by_owner: true`, `assignee_id` = pm, `title` = section title. Keep `milestone_id`.
 7. **Tickets (current section only):**
    - `list_tickets(project_id)`.
-   - For each unchecked item, stable slug from headline text (lowercase, non-alnum→`-`, max ~60).
+   - For each open `- [ ]` item only (`[-]` / `[~]` / `[x]` skipped), stable slug from headline text (lowercase, non-alnum→`-`, max ~60).
    - Marker: `<!-- roadmap:{repo_id}:{slug} -->`.
    - Skip if any ticket description/comment already contains that marker, or an open ticket headline equals the item text.
    - Else `create_ticket`:
