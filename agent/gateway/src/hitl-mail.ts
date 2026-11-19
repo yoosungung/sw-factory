@@ -19,12 +19,14 @@ export type HitlSendMail = (msg: HitlMailMessage) => Promise<void>;
 
 export type HitlMailConfig = {
   to: string;
+  /** Optional sender address for Cloudflare send_email (default: Worker HITL_MAIL_FROM or hitl@askwho.net). */
+  from?: string;
   /** Default 30 minutes. */
   ttlMs?: number;
   clientId?: string;
   clientSecret?: string;
   refreshToken?: string;
-  /** Injected in tests; default uses Gmail API when OAuth env present. */
+  /** Injected in tests; default uses Cloudflare Worker (/api/agent/hitl-mail) or Gmail API when OAuth env present. */
   sendMail?: HitlSendMail;
 };
 
@@ -194,16 +196,64 @@ export async function sendViaGmailApi(
   }
 }
 
-function resolveSendMail(mail: HitlMailConfig): HitlSendMail | null {
+export async function sendViaCloudflareWorker(
+  msg: HitlMailMessage & { from?: string },
+  opts: { factoryBaseUrl: string; sessionCookie: string },
+  fetchImpl: typeof fetch = fetch,
+): Promise<void> {
+  const base = opts.factoryBaseUrl.replace(/\/$/, "");
+  const res = await fetchImpl(`${base}/api/agent/hitl-mail`, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      cookie: opts.sessionCookie,
+    },
+    body: JSON.stringify({
+      to: msg.to,
+      subject: msg.subject,
+      text: msg.text,
+      ...(msg.from ? { from: msg.from } : {}),
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`cf_mail_http_${res.status}:${body.slice(0, 200)}`);
+  }
+}
+
+function resolveSendMail(
+  mail: HitlMailConfig,
+  workerOpts?: {
+    factoryBaseUrl?: string;
+    sessionCookie?: string;
+    fetchImpl?: typeof fetch;
+  },
+): HitlSendMail | null {
   if (mail.sendMail) return mail.sendMail;
   const { clientId, clientSecret, refreshToken } = mail;
-  if (!clientId || !clientSecret || !refreshToken) return null;
-  return (msg) =>
-    sendViaGmailApi(msg, {
-      clientId,
-      clientSecret,
-      refreshToken,
-    });
+  if (clientId && clientSecret && refreshToken) {
+    return (msg) =>
+      sendViaGmailApi(
+        msg,
+        {
+          clientId,
+          clientSecret,
+          refreshToken,
+        },
+        workerOpts?.fetchImpl,
+      );
+  }
+  const factoryBaseUrl = workerOpts?.factoryBaseUrl?.trim();
+  const sessionCookie = workerOpts?.sessionCookie?.trim();
+  if (factoryBaseUrl && sessionCookie) {
+    return (msg) =>
+      sendViaCloudflareWorker(
+        { ...msg, from: mail.from },
+        { factoryBaseUrl, sessionCookie },
+        workerOpts?.fetchImpl,
+      );
+  }
+  return null;
 }
 
 export function hitlMailFromEnv(
@@ -215,6 +265,7 @@ export function hitlMailFromEnv(
   const ttlMs = ttlRaw ? Number(ttlRaw) : undefined;
   return {
     to,
+    from: env.HITL_MAIL_FROM?.trim() || undefined,
     ttlMs: Number.isFinite(ttlMs) && (ttlMs as number) > 0 ? ttlMs : undefined,
     clientId: env.HITL_GMAIL_CLIENT_ID?.trim() || undefined,
     clientSecret: env.HITL_GMAIL_CLIENT_SECRET?.trim() || undefined,
@@ -227,7 +278,9 @@ export async function maybeSendHitlMail(opts: {
   agents: PersonaConfig[];
   dataDir: string;
   factoryBaseUrl: string;
+  sessionCookie?: string;
   mail: HitlMailConfig | undefined;
+  fetchImpl?: typeof fetch;
   nowMs?: number;
 }): Promise<void> {
   const { event, agents, dataDir, factoryBaseUrl, mail } = opts;
@@ -236,7 +289,11 @@ export async function maybeSendHitlMail(opts: {
   const detect = detectHitlMail(event, agents);
   if (!detect) return;
 
-  const send = resolveSendMail(mail);
+  const send = resolveSendMail(mail, {
+    factoryBaseUrl,
+    sessionCookie: opts.sessionCookie,
+    fetchImpl: opts.fetchImpl,
+  });
   if (!send) return;
 
   const ttlMs = mail.ttlMs ?? DEFAULT_TTL_MS;

@@ -311,7 +311,9 @@ export async function tick(deps: TickDeps): Promise<TickResult> {
       agents: config.agents,
       dataDir: config.dataDir,
       factoryBaseUrl: config.factoryBaseUrl,
+      sessionCookie: config.sessionCookie,
       mail: config.hitlMail,
+      fetchImpl: deps.fetchImpl,
     });
     dispatched.push(...result.dispatched);
     if (result.allOk) {

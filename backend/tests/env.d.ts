@@ -6,6 +6,8 @@ declare module "cloudflare:test" {
     DB: D1Database;
     FILES: R2Bucket;
     ASSETS: Fetcher;
+    HITL_EMAIL?: SendEmail;
+    HITL_MAIL_FROM?: string;
     SESSION_SECRET: string;
     ADMIN_EMAIL?: string;
     ADMIN_PASSWORD?: string;

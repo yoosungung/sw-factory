@@ -203,6 +203,7 @@ erDiagram
 | `GET /api/agent/events` | `after_id`, `limit`; 세션 필수; mutate append는 tickets/comments 경로 |
 | `GET /api/agent/flow-gates` | `{ in_progress, flow_active }` EXISTS; 세션 필수 |
 | `POST /api/agent/prompts` | `{ project_id, target, prompt, ticket_id? }` → `manual_prompt` append; 호출자·target project member |
+| `POST /api/agent/hitl-mail` | `{ to, subject, text, from? }` → `HITL_EMAIL`(`send_email` 바인딩) 발송; 세션 필수 |
 
 ### 4.7 에러
 

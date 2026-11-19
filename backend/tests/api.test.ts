@@ -2364,3 +2364,48 @@ describe("Done ticket purge", () => {
   });
 });
 
+describe("POST /api/agent/hitl-mail (Cloudflare send_email)", () => {
+  it("requires session auth, validates body, and sends via HITL_EMAIL binding", async () => {
+    const anon = await request("/api/agent/hitl-mail", {
+      method: "POST",
+      body: JSON.stringify({
+        to: "eric@example.com",
+        subject: "[factory HITL] waiting_for_approval",
+        text: "HITL body",
+      }),
+    });
+    expect(anon.status).toBe(401);
+
+    const bot = await register("GatewayBot");
+
+    const invalid = await request(
+      "/api/agent/hitl-mail",
+      {
+        method: "POST",
+        body: JSON.stringify({ to: "not-an-email", subject: "", text: "" }),
+      },
+      bot.cookie,
+    );
+    expect(invalid.status).toBe(400);
+    expect(invalid.json.error).toBe("invalid_body");
+
+    const sent = await request(
+      "/api/agent/hitl-mail",
+      {
+        method: "POST",
+        body: JSON.stringify({
+          to: "eric@example.com",
+          from: "hitl@askwho.net",
+          subject: "[factory HITL] waiting_for_approval · 12345678",
+          text: "HITL: waiting_for_approval\nticket_id: 12345678",
+        }),
+      },
+      bot.cookie,
+    );
+    expect(sent.status).toBe(200);
+    expect(sent.json.ok).toBe(true);
+    expect(typeof sent.json.message_id).toBe("string");
+  });
+});
+
+

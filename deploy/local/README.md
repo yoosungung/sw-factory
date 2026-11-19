@@ -64,6 +64,7 @@ macOS에서 크래시 자동 재기동: [../../scripts/macos/README.md](../../sc
 | `AGENT_BACKEND` | 아니오 | `mock` 강제 |
 | `AGENTS_FILE` | 아니오 | 기본 `deploy/agents.yaml` |
 | `SKIP_HUMAN` | 아니오 | `1`이면 `type: human` 등록 생략 |
-| `HITL_MAIL_TO` | 아니오 | human HITL 메일 수신(Eric). 없으면 HITL Gmail no-op |
-| `HITL_GMAIL_CLIENT_ID` / `CLIENT_SECRET` / `REFRESH_TOKEN` | HITL 시 | Gmail OAuth (전용 notify 계정). PM 도구 아님 |
+| `HITL_MAIL_TO` | 아니오 | human HITL 메일 수신(Eric). 설정 시 기본 Cloudflare `send_email`(`/api/agent/hitl-mail`)로 발송; 없으면 no-op |
+| `HITL_MAIL_FROM` | 아니오 | Cloudflare `send_email` 발신 주소(기본 `hitl@askwho.net`) |
+| `HITL_GMAIL_CLIENT_ID` / `CLIENT_SECRET` / `REFRESH_TOKEN` | 아니오 | 선택적 Gmail OAuth 오버라이드. 생략 시 Cloudflare `send_email` 사용 |
 | `HITL_MAIL_TTL_MS` | 아니오 | 동일 ticket+kind 재발송 억제(기본 30분) |

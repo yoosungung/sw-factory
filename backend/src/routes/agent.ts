@@ -1,7 +1,8 @@
+import { EmailMessage } from "cloudflare:email";
 import { Hono } from "hono";
 import type { AppVariables, Env } from "../env";
 import { appendAgentEvent } from "../lib/agent-events";
-import { nowIso } from "../lib/crypto";
+import { newId, nowIso } from "../lib/crypto";
 import { requireAuth, requireProjectMember } from "../middleware/auth";
 
 type AgentEventRow = {
@@ -179,3 +180,59 @@ agentRoutes.post("/prompts", async (c) => {
 
   return c.json({ id, at }, 201);
 });
+
+const SIMPLE_EMAIL_RE = /^[^\s@\r\n]+@[^\s@\r\n]+\.[^\s@\r\n]+$/;
+
+agentRoutes.post("/hitl-mail", async (c) => {
+  const body = (await c.req.json().catch(() => null)) as {
+    to?: unknown;
+    from?: unknown;
+    subject?: unknown;
+    text?: unknown;
+  } | null;
+
+  const to = typeof body?.to === "string" ? body.to.trim() : "";
+  const subject =
+    typeof body?.subject === "string"
+      ? body.subject.replace(/[\r\n]+/g, " ").trim()
+      : "";
+  const text = typeof body?.text === "string" ? body.text : "";
+  const fromRaw =
+    typeof body?.from === "string" && body.from.trim()
+      ? body.from.trim()
+      : c.env.HITL_MAIL_FROM?.trim() || "hitl@askwho.net";
+
+  if (
+    !SIMPLE_EMAIL_RE.test(to) ||
+    !SIMPLE_EMAIL_RE.test(fromRaw) ||
+    !subject ||
+    !text.trim()
+  ) {
+    return c.json({ error: "invalid_body" }, 400);
+  }
+
+  if (!c.env.HITL_EMAIL || typeof c.env.HITL_EMAIL.send !== "function") {
+    return c.json({ error: "email_binding_unavailable" }, 503);
+  }
+
+  const domain = fromRaw.split("@")[1] || "askwho.net";
+  const msgId = `<${newId()}@${domain}>`;
+  const raw = [
+    `From: ${fromRaw}`,
+    `To: ${to}`,
+    `Subject: ${subject}`,
+    `Message-ID: ${msgId}`,
+    `Date: ${new Date().toUTCString()}`,
+    "MIME-Version: 1.0",
+    'Content-Type: text/plain; charset="UTF-8"',
+    "",
+    text,
+  ].join("\r\n");
+
+  const result = await c.env.HITL_EMAIL.send(new EmailMessage(fromRaw, to, raw));
+  return c.json({
+    ok: true,
+    message_id: result?.messageId ?? msgId,
+  });
+});
+

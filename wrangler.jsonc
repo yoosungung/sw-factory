@@ -24,6 +24,11 @@
       "bucket_name": "sw-factory-files"
     }
   ],
+  "send_email": [
+    {
+      "name": "HITL_EMAIL"
+    }
+  ],
   "routes": [
     {
       "pattern": "factory.askwho.net",
