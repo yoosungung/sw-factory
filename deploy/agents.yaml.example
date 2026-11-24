@@ -172,7 +172,8 @@ settings:
       agents: [mm]
       prompt: >-
         Use tenant-repo-sync then topic-radar (then comment-draft). For each
-        synced product repo: missing/empty .factory/marketing.yaml → skip with
+        synced product repo: missing/empty .factory/marketing.yaml → skip;
+        apply max_age_days (default 30) and drop undated hits; skip with
         reason. Else public web search sites×keywords only (no login scrape,
         no HTML scrapers, no external auto-comment). Candidate tickets with
         <!-- mm-radar:… --> dedupe; drafts stay on factory tickets.

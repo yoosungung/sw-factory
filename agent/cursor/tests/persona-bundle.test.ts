@@ -98,6 +98,14 @@ describe("persona-bundle", () => {
         ".cursor/skills/topic-radar/references/marketing.yaml.example"
       ],
     ).toContain("product_mention");
+    expect(
+      bundle[
+        ".cursor/skills/topic-radar/references/marketing.yaml.example"
+      ],
+    ).toContain("max_age_days");
+    expect(bundle[".cursor/skills/topic-radar/SKILL.md"]).toContain(
+      "max_age_days",
+    );
   });
 
   it("buildPersonaBundle(candidate) includes publication-safety skill", async () => {

@@ -12,6 +12,10 @@ keywords:
   - "on-device LLM"
   - "text to sql agent"
 
+# Skip candidates older than this many days (outreach freshness).
+# Missing → default 30. Prefer search date filters when the engine supports them.
+max_age_days: 30
+
 # comment-draft constraints
 tone: helpful peer; concise; no hype
 product_mention: soft # soft | none — at most one natural mention

@@ -220,7 +220,7 @@ New → In Progress → Review → Deploying Test → QA → Deploying Prod → 
 | 축 | 위치 | 내용 |
 |----|------|------|
 | How | `deploy/personas/mm/` | 검색·초안 절차, 금지 규칙, soft-mention |
-| What | 제품 `.factory/marketing.yaml` | `sites`·`keywords`·`tone`·`product_mention`·`must_avoid` |
+| What | 제품 `.factory/marketing.yaml` | `sites`·`keywords`·`max_age_days`·`tone`·`product_mention`·`must_avoid` |
 | 추천 힌트 | `…/topic-radar/references/sites-guide.md` | P0–P2 **예시만** (정본 아님) |
 
 파일이 없거나 비면 해당 클라이언트는 **skip**(사유 명시). 사이트를 스킬/가이드에서 발명·하드코딩하지 않는다.
@@ -234,6 +234,7 @@ sites:                    # 실제 on/off = 이 목록 (가이드 P0–P2 아님
   - www.reddit.com/r/MachineLearning
 keywords:
   - "on-device LLM"
+max_age_days: 30          # optional; missing → 30. Skip older / undated hits
 tone: helpful peer; concise; no hype
 product_mention: soft     # soft | none
 must_avoid:

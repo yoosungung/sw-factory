@@ -231,7 +231,7 @@ main 스냅샷: [../agents.back.yaml](../agents.back.yaml) `settings.schedules`.
 ### 5.12 `mm-topic-radar`
 
 - **스킬:** `tenant-repo-sync` → `topic-radar` → `comment-draft` ([agent-workflows §8](agent-workflows.md)).
-- `mm.repo_ids` 제품 checkout에서 `.factory/marketing.yaml` 없으면 **skip**(사유). 공개 웹 `sites`×`keywords`만; 로그인 크롤·외부 자동 댓글 금지.
+- `mm.repo_ids` 제품 checkout에서 `.factory/marketing.yaml` 없으면 **skip**(사유). 공개 웹 `sites`×`keywords`만; `max_age_days`(기본 30)보다 오래되거나 날짜 없는 히트는 제외. 로그인 크롤·외부 자동 댓글 금지.
 - 후보 티켓 dedupe `<!-- mm-radar:… -->`. 초안은 factory 티켓에만.
 - Outcome create-once (동일 일자·title reuse; POST≤1; `ticket.id` 파싱).
 
