@@ -1,5 +1,10 @@
 import { readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
+import {
+  formatTicketNo,
+  resolveProjectName,
+  resolveTicketNo,
+} from "./ticket-no";
 import type { AgentEvent, PersonaConfig } from "./types";
 
 export type HitlKind = "approval" | "mention";
@@ -13,6 +18,16 @@ export type HitlMailMessage = {
   to: string;
   subject: string;
   text: string;
+};
+
+/** Human-facing labels for ops mail (UUIDs kept off the primary lines). */
+export type HitlLabels = {
+  ticketLabel: string;
+  ticketTitle?: string;
+  ticketNo?: string;
+  projectLabel: string;
+  assigneeLabel: string;
+  actorLabel: string;
 };
 
 export type HitlSendMail = (msg: HitlMailMessage) => Promise<void>;
@@ -109,11 +124,87 @@ function pruneExpired(store: SentStore, nowMs: number, ttlMs: number): void {
   }
 }
 
-function composeMessage(
+function personaLabel(
+  userId: string | null | undefined,
+  agents: PersonaConfig[],
+): string {
+  if (!userId) return "(none)";
+  const hit = agents.find((a) => a.user_id === userId);
+  if (hit) return hit.name;
+  return `(unknown) ${userId.slice(0, 8)}`;
+}
+
+async function fetchTicketTitle(opts: {
+  factoryBaseUrl: string;
+  sessionCookie?: string;
+  ticketId: string;
+  fetchImpl?: typeof fetch;
+}): Promise<string | undefined> {
+  const cookie = opts.sessionCookie?.trim();
+  if (!cookie) return undefined;
+  const fetchFn = opts.fetchImpl ?? fetch;
+  const base = opts.factoryBaseUrl.replace(/\/$/, "");
+  try {
+    const res = await fetchFn(`${base}/api/tickets/${opts.ticketId}`, {
+      headers: { Cookie: cookie },
+    });
+    if (!res.ok) return undefined;
+    const json = (await res.json()) as { ticket?: { title?: string } };
+    const title = json.ticket?.title?.trim();
+    return title || undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export async function resolveHitlLabels(opts: {
+  event: AgentEvent;
+  detect: HitlDetect;
+  agents: PersonaConfig[];
+  factoryBaseUrl: string;
+  sessionCookie?: string;
+  fetchImpl?: typeof fetch;
+}): Promise<HitlLabels> {
+  const { event, detect, agents } = opts;
+  const sessionCookie = opts.sessionCookie ?? "";
+  const projectName = await resolveProjectName({
+    factoryBaseUrl: opts.factoryBaseUrl,
+    sessionCookie,
+    projectId: event.project_id,
+    fetchImpl: opts.fetchImpl,
+  });
+  const ticketNo =
+    (await resolveTicketNo({
+      factoryBaseUrl: opts.factoryBaseUrl,
+      sessionCookie,
+      projectId: event.project_id,
+      ticketId: detect.ticket_id,
+      fetchImpl: opts.fetchImpl,
+    })) ?? formatTicketNo(projectName, detect.ticket_id);
+
+  const title = await fetchTicketTitle({
+    factoryBaseUrl: opts.factoryBaseUrl,
+    sessionCookie: opts.sessionCookie,
+    ticketId: detect.ticket_id,
+    fetchImpl: opts.fetchImpl,
+  });
+
+  return {
+    ticketLabel: title ?? ticketNo,
+    ticketTitle: title,
+    ticketNo,
+    projectLabel: projectName || event.project_id || "(none)",
+    assigneeLabel: personaLabel(event.assignee_user_id, agents),
+    actorLabel: personaLabel(event.actor_user_id, agents),
+  };
+}
+
+export function composeMessage(
   event: AgentEvent,
   detect: HitlDetect,
   to: string,
   factoryBaseUrl: string,
+  labels?: HitlLabels,
 ): HitlMailMessage {
   const base = factoryBaseUrl.replace(/\/$/, "");
   const projectUrl = event.project_id
@@ -121,20 +212,29 @@ function composeMessage(
     : base;
   const kindLabel =
     detect.kind === "approval" ? "waiting_for_approval" : "human @mention";
-  const subject = `[factory HITL] ${kindLabel} · ${detect.ticket_id.slice(0, 8)}`;
+  const ticketLabel =
+    labels?.ticketLabel ?? detect.ticket_id.slice(0, 8);
+  const subject = `[factory HITL] ${kindLabel} · ${ticketLabel}`;
+
+  let ticketLine = `ticket: ${ticketLabel}`;
+  if (labels?.ticketTitle && labels.ticketNo) {
+    ticketLine = `ticket: ${labels.ticketTitle} (${labels.ticketNo})`;
+  } else if (labels?.ticketNo && !labels.ticketTitle) {
+    ticketLine = `ticket: ${labels.ticketNo}`;
+  }
+
   const text = [
     `HITL: ${kindLabel}`,
-    `ticket_id: ${detect.ticket_id}`,
-    event.project_id ? `project_id: ${event.project_id}` : null,
+    ticketLine,
+    `project: ${labels?.projectLabel ?? event.project_id ?? "(none)"}`,
+    `assignee: ${labels?.assigneeLabel ?? event.assignee_user_id ?? "(none)"}`,
+    `actor: ${labels?.actorLabel ?? event.actor_user_id}`,
     `event_type: ${event.event_type}`,
     `event_id: ${event.id}`,
-    `assignee_user_id: ${event.assignee_user_id ?? "(none)"}`,
     `Open: ${projectUrl}`,
     "",
     "SPA in-app notifications are out of scope; this is gateway ops mail only.",
-  ]
-    .filter((line): line is string => line !== null)
-    .join("\n");
+  ].join("\n");
   return { to, subject, text };
 }
 
@@ -309,7 +409,15 @@ export async function maybeSendHitlMail(opts: {
       if (Number.isFinite(at) && nowMs - at <= ttlMs) return;
     }
 
-    const msg = composeMessage(event, detect, mail.to, factoryBaseUrl);
+    const labels = await resolveHitlLabels({
+      event,
+      detect,
+      agents,
+      factoryBaseUrl,
+      sessionCookie: opts.sessionCookie,
+      fetchImpl: opts.fetchImpl,
+    });
+    const msg = composeMessage(event, detect, mail.to, factoryBaseUrl, labels);
     await send(msg);
 
     store.entries[key] = { at: new Date(nowMs).toISOString() };

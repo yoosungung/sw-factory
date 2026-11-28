@@ -16,6 +16,38 @@ export function clearProjectNameCache(): void {
 }
 
 /**
+ * Resolve project display name (cached GET /api/projects/:id).
+ * Empty string on miss/failure.
+ */
+export async function resolveProjectName(opts: {
+  factoryBaseUrl: string;
+  sessionCookie: string;
+  projectId: string | null;
+  fetchImpl?: typeof fetch;
+}): Promise<string> {
+  if (!opts.projectId) return "";
+  const cached = projectNameCache.get(opts.projectId);
+  if (cached !== undefined) return cached;
+
+  let projectName = "";
+  const fetchFn = opts.fetchImpl ?? fetch;
+  try {
+    const res = await fetchFn(
+      `${opts.factoryBaseUrl.replace(/\/$/, "")}/api/projects/${opts.projectId}`,
+      { headers: { Cookie: opts.sessionCookie } },
+    );
+    if (res.ok) {
+      const json = (await res.json()) as { project?: { name?: string } };
+      projectName = json.project?.name ?? "";
+    }
+  } catch {
+    projectName = "";
+  }
+  projectNameCache.set(opts.projectId, projectName);
+  return projectName;
+}
+
+/**
  * Resolve UI-style `ticket_no` for gateway tick logs.
  * Uses GET /api/projects/:id (cached). Ticketless → null.
  */
@@ -27,28 +59,6 @@ export async function resolveTicketNo(opts: {
   fetchImpl?: typeof fetch;
 }): Promise<string | null> {
   if (!opts.ticketId) return null;
-
-  let projectName = "";
-  if (opts.projectId) {
-    const cached = projectNameCache.get(opts.projectId);
-    if (cached !== undefined) {
-      projectName = cached;
-    } else {
-      const fetchFn = opts.fetchImpl ?? fetch;
-      try {
-        const res = await fetchFn(`${opts.factoryBaseUrl}/api/projects/${opts.projectId}`, {
-          headers: { Cookie: opts.sessionCookie },
-        });
-        if (res.ok) {
-          const json = (await res.json()) as { project?: { name?: string } };
-          projectName = json.project?.name ?? "";
-        }
-      } catch {
-        projectName = "";
-      }
-      projectNameCache.set(opts.projectId, projectName);
-    }
-  }
-
+  const projectName = await resolveProjectName(opts);
   return formatTicketNo(projectName, opts.ticketId);
 }

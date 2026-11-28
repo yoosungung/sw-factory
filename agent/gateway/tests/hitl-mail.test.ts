@@ -4,11 +4,13 @@ import path from "node:path";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  composeMessage,
   detectHitlMail,
   maybeSendHitlMail,
   type HitlMailConfig,
   type HitlSendMail,
 } from "../src/hitl-mail";
+import { clearProjectNameCache } from "../src/ticket-no";
 import { tick } from "../src/loop";
 import { loadCheckpoint } from "../src/checkpoint";
 import type { AgentEvent, GatewayConfig, PromptTemplates } from "../src/types";
@@ -41,6 +43,7 @@ const ADMIN = {
 
 const tempDirs: string[] = [];
 afterEach(async () => {
+  clearProjectNameCache();
   while (tempDirs.length) {
     const d = tempDirs.pop();
     if (d) await rm(d, { recursive: true, force: true });
@@ -137,7 +140,166 @@ describe("detectHitlMail", () => {
   });
 });
 
+describe("composeMessage human labels", () => {
+  const baseEvent: AgentEvent = {
+    id: "e1",
+    at: "2026-01-01T00:00:00.000Z",
+    event_type: "ticket_updated",
+    ticket_id: "4c1fd3a9-94c5-49a2-9bb7-4818900b2084",
+    project_id: "8a927848-4411-42a8-8508-f7b8efb3ec60",
+    actor_user_id: PM.user_id,
+    assignee_user_id: ADMIN.user_id,
+    payload: { changed_fields: ["status"], status: "waiting_for_approval" },
+  };
+
+  it("puts title in subject and persona/project names in body", () => {
+    const msg = composeMessage(
+      baseEvent,
+      { kind: "approval", ticket_id: baseEvent.ticket_id! },
+      "eric@example.com",
+      "https://factory.example",
+      {
+        ticketLabel: "wait 인간 메일 포맷",
+        ticketTitle: "wait 인간 메일 포맷",
+        ticketNo: "SWF-4C1F",
+        projectLabel: "sw-factory",
+        assigneeLabel: "eric",
+        actorLabel: "pm",
+      },
+    );
+    expect(msg.subject).toBe(
+      "[factory HITL] waiting_for_approval · wait 인간 메일 포맷",
+    );
+    expect(msg.text).toContain("ticket: wait 인간 메일 포맷 (SWF-4C1F)");
+    expect(msg.text).toContain("project: sw-factory");
+    expect(msg.text).toContain("assignee: eric");
+    expect(msg.text).toContain("actor: pm");
+    expect(msg.text).not.toContain("assignee_user_id:");
+    expect(msg.text).not.toMatch(/^project_id:/m);
+  });
+
+  it("falls back to ticket_no in subject when title is absent", () => {
+    const msg = composeMessage(
+      baseEvent,
+      { kind: "mention", ticket_id: baseEvent.ticket_id! },
+      "eric@example.com",
+      "https://factory.example",
+      {
+        ticketLabel: "SWF-4C1F",
+        ticketNo: "SWF-4C1F",
+        projectLabel: "sw-factory",
+        assigneeLabel: "eric",
+        actorLabel: "pm",
+      },
+    );
+    expect(msg.subject).toBe("[factory HITL] human @mention · SWF-4C1F");
+    expect(msg.text).toContain("ticket: SWF-4C1F");
+  });
+});
+
 describe("maybeSendHitlMail", () => {
+  it("resolves ticket title and persona names via fetch + agents.yaml", async () => {
+    const dataDir = await tempDir();
+    const sent: Array<{ to: string; subject: string; text: string }> = [];
+    const sendMail: HitlSendMail = async (msg) => {
+      sent.push({ to: msg.to, subject: msg.subject, text: msg.text });
+    };
+    const ticketId = "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee";
+    const projectId = "11111111-2222-3333-4444-555555555555";
+    const fakeFetch: typeof fetch = async (input) => {
+      const url = String(input);
+      if (url.endsWith(`/api/tickets/${ticketId}`)) {
+        return new Response(
+          JSON.stringify({ ticket: { id: ticketId, title: "Approve deploy" } }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
+      if (url.endsWith(`/api/projects/${projectId}`)) {
+        return new Response(
+          JSON.stringify({ project: { id: projectId, name: "sw-factory" } }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
+      return new Response("not found", { status: 404 });
+    };
+    const event: AgentEvent = {
+      id: "e-labels",
+      at: "2026-01-01T00:00:00.000Z",
+      event_type: "ticket_updated",
+      ticket_id: ticketId,
+      project_id: projectId,
+      actor_user_id: PM.user_id,
+      assignee_user_id: ADMIN.user_id,
+      payload: {
+        changed_fields: ["status"],
+        status: "waiting_for_approval",
+      },
+    };
+    await maybeSendHitlMail({
+      event,
+      agents: [PM, ADMIN],
+      dataDir,
+      factoryBaseUrl: "https://factory.example",
+      sessionCookie: "lt_session=test",
+      mail: { to: "eric@example.com", sendMail },
+      fetchImpl: fakeFetch,
+    });
+    expect(sent).toHaveLength(1);
+    expect(sent[0]!.subject).toBe(
+      "[factory HITL] waiting_for_approval · Approve deploy",
+    );
+    expect(sent[0]!.text).toContain("ticket: Approve deploy (SWF-AAAA)");
+    expect(sent[0]!.text).toContain("project: sw-factory");
+    expect(sent[0]!.text).toContain("assignee: eric");
+    expect(sent[0]!.text).toContain("actor: pm");
+  });
+
+  it("falls back to issueKey when ticket GET fails", async () => {
+    const dataDir = await tempDir();
+    const sent: Array<{ subject: string; text: string }> = [];
+    const sendMail: HitlSendMail = async (msg) => {
+      sent.push({ subject: msg.subject, text: msg.text });
+    };
+    const ticketId = "bbbbbbbb-cccc-dddd-eeee-ffffffffffff";
+    const projectId = "p-fallback";
+    const fakeFetch: typeof fetch = async (input) => {
+      const url = String(input);
+      if (url.includes("/api/tickets/")) {
+        return new Response("boom", { status: 500 });
+      }
+      if (url.endsWith(`/api/projects/${projectId}`)) {
+        return new Response(
+          JSON.stringify({ project: { id: projectId, name: "aura" } }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      }
+      return new Response("not found", { status: 404 });
+    };
+    await maybeSendHitlMail({
+      event: {
+        id: "e-fb",
+        at: "2026-01-01T00:00:00.000Z",
+        event_type: "comment_added",
+        ticket_id: ticketId,
+        project_id: projectId,
+        actor_user_id: "unknown-user",
+        assignee_user_id: ADMIN.user_id,
+        payload: { mention_user_ids: [ADMIN.user_id] },
+      },
+      agents: [PM, ADMIN],
+      dataDir,
+      factoryBaseUrl: "https://factory.example",
+      sessionCookie: "lt_session=test",
+      mail: { to: "eric@example.com", sendMail },
+      fetchImpl: fakeFetch,
+    });
+    expect(sent).toHaveLength(1);
+    expect(sent[0]!.subject).toBe("[factory HITL] human @mention · AUR-BBBB");
+    expect(sent[0]!.text).toContain("ticket: AUR-BBBB");
+    expect(sent[0]!.text).toContain("project: aura");
+    expect(sent[0]!.text).toContain("actor: (unknown) unknown-");
+  });
+
   it("sends once then dedupes within TTL", async () => {
     const dataDir = await tempDir();
     const sent: Array<{ to: string; subject: string }> = [];
@@ -266,11 +428,11 @@ describe("maybeSendHitlMail", () => {
       },
       fetchImpl: fakeFetch,
     });
-    expect(calls).toHaveLength(1);
-    expect(calls[0]!.url).toBe("https://factory.askwho.net/api/agent/hitl-mail");
-    const headers = calls[0]!.init?.headers as Record<string, string>;
+    const mailCall = calls.find((c) => c.url.endsWith("/api/agent/hitl-mail"));
+    expect(mailCall).toBeTruthy();
+    const headers = mailCall!.init?.headers as Record<string, string>;
     expect(headers.cookie).toBe("lt_session=test-session");
-    const parsed = JSON.parse(String(calls[0]!.init?.body)) as Record<string, string>;
+    const parsed = JSON.parse(String(mailCall!.init?.body)) as Record<string, string>;
     expect(parsed.to).toBe("eric@example.com");
     expect(parsed.from).toBe("hitl@askwho.net");
     expect(parsed.subject).toContain("waiting_for_approval");
