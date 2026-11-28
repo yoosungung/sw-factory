@@ -18,7 +18,7 @@ GitHub 원본 개념: CursorBridge Listener / Router / DeferredDispatch / Resili
 
 **갭(의도):** FS `dependency_cleared`는 Worker가 후속 `ticket_updated`로 append한다. gateway는 기존 assignee/`ticket_updated` 라우팅만 쓰며 전용 prompt 분기는 두지 않는다.
 
-**HITL mail:** 동일 tick에서 `type: human`에 대한 `waiting_for_approval`(payload `status`) 또는 `@mention`만 메일 발송. 기본 경로는 Worker `POST /api/agent/hitl-mail`(Cloudflare `send_email` 바인딩 `HITL_EMAIL`)이며, `HITL_GMAIL_*` OAuth가 모두 있으면 Gmail API를 쓴다. `HITL_MAIL_TO`가 없으면 no-op. 실패해도 `acked_id`는 막지 않는다. dedupe는 `data-dir/hitl-mail-sent.json`(TTL).
+**HITL mail:** 동일 tick에서 `type: human`에 대한 `waiting_for_approval`(payload `status`) 또는 `@mention`만 메일 발송. 기본 경로는 Worker `POST /api/agent/hitl-mail`(Cloudflare `send_email` 바인딩 `HITL_EMAIL`)이며, `HITL_GMAIL_*` OAuth가 모두 있으면 Gmail API를 쓴다. `HITL_MAIL_TO`가 없으면 no-op. 실패해도 `acked_id`는 막지 않는다. dedupe는 `data-dir/hitl-mail-sent.json`(TTL). Subject/body는 human-facing labels(ticket title·issueKey, project name, agents.yaml persona `name`)를 쓰고, 조회 실패 시 id 폴백.
 
 ## Layout
 
